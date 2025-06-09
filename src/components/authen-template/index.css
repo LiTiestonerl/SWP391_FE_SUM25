@@ -1,0 +1,27 @@
+.authen-template{
+    width: 100vw;
+    height: 100vh;
+    background-color:  green;
+    display: flex;
+    background-repeat: no-repeat;
+    background-size: cover;
+    
+    
+}
+.authen-template__form{
+    width: 30%;
+    height: 100%;
+    background-color: #ABC8E3;
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
+.authen-template__image{
+    width: 70%;
+    height: 100%;
+    background-image: url('/images/health.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+}
