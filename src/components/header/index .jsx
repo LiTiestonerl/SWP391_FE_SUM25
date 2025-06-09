@@ -15,11 +15,10 @@ const Header = () => {
   const user = useSelector((state) => state.user);
 
   const navItems = [
-    { id: 1, label: "home", href: "home" },
-    { id: 2, label: "about", href: "about" },
-    { id: 3, label: "services", href: "services" },
-    { id: 4, label: "contact", href: "contact" },
-    { id: 5, label: "membership", href: "membership" },
+    { id: 1, label: "Home", href: "home" },
+    { id: 2, label: "About", href: "about" },
+    { id: 3, label: "Contact", href: "contact" },
+    { id: 4, label: "Membership", href: "membership" },
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -44,7 +43,7 @@ const Header = () => {
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex items-center space-x-2">
               <img
                 src="/images/logo.jpg"
                 alt="Logo"
@@ -54,6 +53,9 @@ const Header = () => {
                   e.target.src = "https://via.placeholder.com/32";
                 }}
               />
+              <span className="text-sm font-bold tracking-wide ">
+                NoSmoking
+              </span>
             </div>
 
             <nav className="hidden md:flex space-x-8">
