@@ -17,8 +17,10 @@ const Header = () => {
   const navItems = [
     { id: 1, label: "Home", href: "home" },
     { id: 2, label: "About", href: "about" },
-    { id: 3, label: "Contact", href: "contact" },
-    { id: 4, label: "Membership", href: "membership" },
+    { id: 3, label: "Contact", href: "contact" }, 
+    { id: 4, label: "News", href: "news" },
+    { id: 5, label: "Membership", href: "membership" },
+   
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
