@@ -37,7 +37,7 @@ const Footer = () => {
                   <h3 className="text-lg font-medium text-white">Quick Links</h3>
                   <nav className="mt-4">
                     <ul className="space-y-2 text-sm">
-                      {["About", "Services", "Projects", "Blog", "Careers"].map((item) => (
+                      {["About", "Membership", "News", "Contact"].map((item) => (
                         <li key={item}>
                           <button
                             className="text-gray-300 transition hover:text-white hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-white"
