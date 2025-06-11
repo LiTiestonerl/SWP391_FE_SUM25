@@ -11,6 +11,8 @@ import OverviewPage from './pages/dashboard-admin/overview';
 import ManageProduct from './pages/dashboard-admin/product';
 import ManageUser from './pages/dashboard-admin/user';
 import MembershipPage from './pages/membership';
+import NotificationsPage from './pages/notifications';
+
 
 
 import Footer from './components/footer';
@@ -71,6 +73,11 @@ function App() {
       path: "/register",//đường dẫn
       element: <RegisterPage />,
     },
+
+    {
+      path: '/notifications',
+      element: <NotificationsPage />,
+    }
 
 
   ]);
