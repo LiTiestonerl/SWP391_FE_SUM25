@@ -72,8 +72,8 @@ const MembershipPage = () => {
       </div>
 
       <main className="py-12 text-center px-4">
-        <h2 className="text-3xl font-semibold italic underline mb-12">
-          Chọn gói thành viên phù hợp với bạn
+        <h2 className="text-3xl font-semibold italic px-4 py-5 font-medium">
+          Upgrade Your Experience Today
         </h2>
 
         <div className="flex flex-wrap justify-center gap-10">

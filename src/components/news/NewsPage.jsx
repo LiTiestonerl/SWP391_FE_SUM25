@@ -1,27 +1,35 @@
-
-import { FiSearch, FiBookmark, FiShare2, FiSun, FiMoon, FiMenu } from "react-icons/fi";
+import {
+  FiSearch,
+  FiBookmark,
+  FiShare2,
+  FiSun,
+  FiMoon,
+  FiMenu,
+} from "react-icons/fi";
+import './NewsPage.css';
 
 const NewsPage = () => {
-  
-
   const NewsPage = {
     featured: {
       title: "Global Climate Summit Reaches Historic Agreement",
-      description: "World leaders unite to combat climate change with groundbreaking commitments",
+      description:
+        "World leaders unite to combat climate change with groundbreaking commitments",
       image: "https://images.unsplash.com/photo-1516937941344-00b4e0337589",
-      category: "World News"
+      category: "World News",
     },
     categories: [
       {
-        name: "Technology",
+        name: "Doctor Advice",
         articles: [
           {
             title: "Next Generation AI Breakthrough",
-            excerpt: "Revolutionary AI model shows human-like reasoning capabilities",
-            image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e",
-            date: "2024-01-20"
-          }
-        ]
+            excerpt:
+              "Revolutionary AI model shows human-like reasoning capabilities",
+            image:
+              "https://images.unsplash.com/photo-1485827404703-89b55fcc595e",
+            date: "2024-01-20",
+          },
+        ],
       },
       {
         name: "Sports",
@@ -29,24 +37,25 @@ const NewsPage = () => {
           {
             title: "Historic Victory in World Cup Final",
             excerpt: "Dramatic penalty shootout decides championship",
-            image: "https://images.unsplash.com/photo-1517927033932-35943d37c322",
-            date: "2024-01-19"
-          }
-        ]
-      }
+            image:
+              "https://images.unsplash.com/photo-1517927033932-35943d37c322",
+            date: "2024-01-19",
+          },
+        ],
+      },
     ],
     trending: [
       {
         title: "Space Tourism Takes Off",
         views: 150000,
-        image: "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7"
+        image: "https://images.unsplash.com/photo-1516849841032-87cbac4d88f7",
       },
       {
         title: "Revolutionary Electric Vehicle Launch",
         views: 120000,
-        image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7"
-      }
-    ]
+        image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7",
+      },
+    ],
   };
 
   return (
@@ -68,7 +77,9 @@ const NewsPage = () => {
               <h1 className="text-4xl font-bold text-white mb-4">
                 {NewsPage.featured.title}
               </h1>
-              <p className="text-gray-200 mb-4">{NewsPage.featured.description}</p>
+              <p className="text-gray-200 mb-4">
+                {NewsPage.featured.description}
+              </p>
               <button className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition">
                 Read More
               </button>
@@ -82,7 +93,7 @@ const NewsPage = () => {
           <div className="lg:col-span-2">
             {NewsPage.categories.map((category, index) => (
               <section key={index} className="mb-12">
-                <h2 className="text-2xl font-bold mb-6 dark:text-white">
+                <h2 className="text-2xl font-bold mb-6 dark:text-black">
                   {category.name}
                 </h2>
                 <div className="grid gap-6">
@@ -97,9 +108,16 @@ const NewsPage = () => {
                         className="w-full h-48 object-cover"
                       />
                       <div className="p-6">
-                        <h3 className="text-xl font-semibold mb-2 dark:text-white">
+                        <h3
+                          className={`font-semibold ${
+                            article.title === "Space Tourism Takes Off"
+                              ? "text-white"
+                              : "dark:text-white"
+                          }`}
+                        >
                           {article.title}
                         </h3>
+
                         <p className="text-gray-600 dark:text-gray-300 mb-4">
                           {article.excerpt}
                         </p>
@@ -127,7 +145,9 @@ const NewsPage = () => {
           {/* Trending News Sidebar */}
           <aside className="lg:col-span-1">
             <div className="sticky top-24">
-              <h2 className="text-2xl font-bold mb-6 dark:text-white">Trending Now</h2>
+              <h2 className="text-2xl font-bold mb-6 dark:text-black">
+                Trending Now
+              </h2>
               <div className="space-y-4">
                 {NewsPage.trending.map((article, index) => (
                   <div
@@ -140,7 +160,9 @@ const NewsPage = () => {
                       className="w-full h-40 object-cover"
                     />
                     <div className="p-4">
-                      <h3 className="font-semibold dark:text-white">{article.title}</h3>
+                      <h3 className="font-semibold dark:text-white">
+                        {article.title}
+                      </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                         {article.views.toLocaleString()} views
                       </p>

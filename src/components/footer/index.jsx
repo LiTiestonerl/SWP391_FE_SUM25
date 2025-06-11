@@ -1,17 +1,24 @@
 import React from "react";
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
+import { Link } from "react-router-dom";
+
+import {
+  FaFacebook,
+  FaTwitter,
+  FaInstagram,
+  FaLinkedin,
+  FaPhone,
+  FaEnvelope,
+  FaMapMarkerAlt,
+} from "react-icons/fa";
 
 const Footer = () => {
   const footerStyle = {
-    backgroundImage: `url("https://images.unsplash.com/photo-1557683316-973673baf926?ixlib=rb-4.0.3")`
+    backgroundImage: `url("https://images.unsplash.com/photo-1557683316-973673baf926?ixlib=rb-4.0.3")`,
   };
 
   return (
     <footer className="relative" aria-label="Site Footer">
-      <div
-        className="bg-cover bg-center bg-no-repeat"
-        style={footerStyle}
-      >
+      <div className="bg-cover bg-center bg-no-repeat" style={footerStyle}>
         <div className="absolute inset-0 bg-gray-900/90 dark:bg-gray-950/90"></div>
 
         <div className="relative px-4 py-16 sm:px-6 lg:px-8">
@@ -24,7 +31,9 @@ const Footer = () => {
                     className="w-12 h-12 rounded-full"
                     alt="Company Logo"
                   />
-                  <h2 className="ml-3 text-2xl font-bold text-white">NoSmoking</h2>
+                  <h2 className="ml-3 text-2xl font-bold text-white">
+                    NoSmoking
+                  </h2>
                 </div>
 
                 <p className="mt-4 max-w-xs text-gray-300">
@@ -34,24 +43,31 @@ const Footer = () => {
 
               <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:col-span-2">
                 <div>
-                  <h3 className="text-lg font-medium text-white">Quick Links</h3>
+                  <h3 className="text-lg font-medium text-white">
+                    Quick Links
+                  </h3>
                   <nav className="mt-4">
                     <ul className="space-y-2 text-sm">
-                      {["About", "Membership", "News", "Contact"].map((item) => (
-                        <li key={item}>
-                          <button
-                            className="text-gray-300 transition hover:text-white hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-white"
-                          >
-                            {item}
-                          </button>
-                        </li>
-                      ))}
+                      {["About", "Membership", "News", "Contact"].map(
+                        (item) => (
+                          <li key={item}>
+                            <Link
+                              to={`/${item.toLowerCase()}`}
+                              className="text-gray-300 transition hover:text-white hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-white"
+                            >
+                              {item}
+                            </Link>
+                          </li>
+                        )
+                      )}
                     </ul>
                   </nav>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium text-white">Contact Info</h3>
+                  <h3 className="text-lg font-medium text-white">
+                    Contact Info
+                  </h3>
                   <ul className="mt-4 space-y-3 text-sm">
                     <li className="flex items-center text-gray-300">
                       <FaPhone className="mr-3" />
@@ -63,7 +79,9 @@ const Footer = () => {
                     </li>
                     <li className="flex items-center text-gray-300">
                       <FaMapMarkerAlt className="mr-3" />
-                      <span>7 D1 Street, Long Thanh My, Thu Duc, Ho Chi Minh City </span>
+                      <span>
+                        7 D1 Street, Long Thanh My, Thu Duc, Ho Chi Minh City{" "}
+                      </span>
                     </li>
                   </ul>
                 </div>
@@ -76,7 +94,7 @@ const Footer = () => {
                     { Icon: FaFacebook, label: "Facebook" },
                     { Icon: FaTwitter, label: "Twitter" },
                     { Icon: FaInstagram, label: "Instagram" },
-                    { Icon: FaLinkedin, label: "LinkedIn" }
+                    { Icon: FaLinkedin, label: "LinkedIn" },
                   ].map(({ Icon, label }) => (
                     <button
                       key={label}

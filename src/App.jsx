@@ -1,6 +1,6 @@
 import React from 'react'
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom'
-import HomePage from './pages/home'
+import HomePage from './pages/home/HomePage'
 import RegisterPage from './pages/register';
 import LoginPage from './pages/login';
 import Dashbroad from './components/dashbroad/index.';
@@ -31,6 +31,10 @@ function App() {
       children: [
         {
           path: "/",
+          element: <HomePage />,
+        },
+        {
+          path: "home",
           element: <HomePage />,
         },
         {

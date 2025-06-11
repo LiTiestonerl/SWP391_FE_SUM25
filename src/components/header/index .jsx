@@ -3,7 +3,7 @@ import { FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/features/userSlice";
-import "./Header.css"; 
+import "./Header.css";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,10 +17,9 @@ const Header = () => {
   const navItems = [
     { id: 1, label: "Home", href: "home" },
     { id: 2, label: "Rank", href: "rank" },
-    { id: 3, label: "Contact", href: "contact" }, 
+    { id: 3, label: "Contact", href: "contact" },
     { id: 4, label: "News", href: "news" },
     { id: 5, label: "Membership", href: "membership" },
-   
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -45,7 +44,7 @@ const Header = () => {
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <div className="flex-shrink-0 flex items-center space-x-2">
+            <Link to="/" className="flex-shrink-0 flex items-center space-x-2">
               <img
                 src="/images/logo.jpg"
                 alt="Logo"
@@ -55,11 +54,8 @@ const Header = () => {
                   e.target.src = "https://via.placeholder.com/32";
                 }}
               />
-              <span className="text-sm font-bold tracking-wide ">
-                NoSmoking
-              </span>
-            </div>
-
+              <span className="text-sm font-bold tracking-wide">NoSmoking</span>
+            </Link>
             <nav className="hidden md:flex space-x-8">
               {navItems.map((item) => (
                 <Link
@@ -179,7 +175,20 @@ const Header = () => {
       {/* Dòng chạy chữ noSmoke */}
       <div className="marquee-container">
         <div className="marquee-text">
-         NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
         </div>
       </div>
     </>
