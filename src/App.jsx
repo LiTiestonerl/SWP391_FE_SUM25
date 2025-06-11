@@ -15,6 +15,7 @@ import MembershipPage from './pages/membership';
 
 import Footer from './components/footer';
 import Header from './components/header/index ';
+import NewsPage from './pages/news';
 
 function App() {
   const router = createBrowserRouter([
@@ -33,8 +34,12 @@ function App() {
           element: <HomePage />,
         },
         {
-          path: "about",
-          element: <div>about</div>,
+          path: "rank",
+          element: <div>Rank</div>,
+        },
+        {
+          path: "news",
+         element: <NewsPage />,
         },
         {
           path: "membership",

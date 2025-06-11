@@ -3,7 +3,7 @@ import { FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/features/userSlice";
-import "./Header.css"; // import CSS chạy chữ
+import "./Header.css"; 
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,7 +16,7 @@ const Header = () => {
 
   const navItems = [
     { id: 1, label: "Home", href: "home" },
-    { id: 2, label: "About", href: "about" },
+    { id: 2, label: "Rank", href: "rank" },
     { id: 3, label: "Contact", href: "contact" }, 
     { id: 4, label: "News", href: "news" },
     { id: 5, label: "Membership", href: "membership" },
