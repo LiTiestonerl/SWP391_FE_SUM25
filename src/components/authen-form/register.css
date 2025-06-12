@@ -30,3 +30,7 @@ h1 {
   font-style: italic;
   text-decoration: none; /* Giữ gạch chân theo code cũ */
 }
+.register-title-box h1 {
+  color: black !important;
+  margin: 0;
+}

@@ -21,7 +21,9 @@ function RegisterForm() {
   return (
     <div className='register-form'>
       <div className='register-form-container'>
-        <h1>SignUp</h1>
+       <div className="register-title-box">
+          <h1>SignUp</h1>
+        </div>
         <Form
           name="basic"
           layout='vertical'

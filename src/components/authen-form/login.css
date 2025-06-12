@@ -21,7 +21,7 @@
 h1 {
   text-align: center;
   margin-bottom: 20px;
-  color: black;
+  color:black;
   font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
   position: relative;
   top: -12px;
@@ -29,6 +29,13 @@ h1 {
   font-weight: bold;
   font-style: italic;
   text-decoration: none; /* Bỏ gạch chân */
+
+}
+
+/* Ưu tiên chữ màu đen trong khung login */
+.login-title-box h1 {
+  color: black !important;
+  margin: 0;
 }
 
 .login-form .ant-form-item-label > label {
