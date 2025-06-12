@@ -3,7 +3,8 @@ import { FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/features/userSlice";
-import "./Header.css";
+import NotificationBell from "../notifications/notificationBell";
+import "./header.css";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -20,6 +21,12 @@ const Header = () => {
     { id: 3, label: "Contact", href: "contact" },
     { id: 4, label: "News", href: "news" },
     { id: 5, label: "Membership", href: "membership" },
+  ];
+
+  const testNotifications = [
+    { id: 1, content: "User A vừa tham gia Premium!", date: "2025-06-10T04:09:05Z" },
+    { id: 2, content: "Bạn đã hoàn thành 3 ngày không hút thuốc!", date: "2025-06-10T04:09:03Z" },
+    { id: 3, content: "Coach John đã phản hồi cho bạn.", date: "2025-06-10T04:09:01Z" },
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -69,6 +76,7 @@ const Header = () => {
             </nav>
 
             <div className="flex items-center space-x-4">
+              <NotificationBell notifications={testNotifications} isDarkMode={isDarkMode} />
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
@@ -138,8 +146,6 @@ const Header = () => {
               </button>
             </div>
           </div>
-
-          {/* Mobile menu */}
           <div className={`md:hidden ${isOpen ? "block" : "hidden"}`}>
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navItems.map((item) => (
