@@ -146,7 +146,6 @@ const Header = () => {
               </button>
             </div>
           </div>
-
           <div className={`md:hidden ${isOpen ? "block" : "hidden"}`}>
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navItems.map((item) => (
@@ -182,7 +181,6 @@ const Header = () => {
       {/* Dòng chạy chữ noSmoke */}
       <div className="marquee-container">
         <div className="marquee-text">
-<<<<<<< HEAD
           NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
@@ -197,9 +195,7 @@ const Header = () => {
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-=======
-          NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
->>>>>>> b20bca9 (WIP: đang làm phần notification)
+          
         </div>
       </div>
     </>

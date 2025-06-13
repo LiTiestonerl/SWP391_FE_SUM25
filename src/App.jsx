@@ -18,6 +18,7 @@ import NotificationsPage from './pages/notifications';
 import Footer from './components/footer';
 import Header from './components/header/index ';
 import NewsPage from './pages/news';
+import RankPage from './components/rank/RankPage';
 
 function App() {
   const router = createBrowserRouter([
@@ -41,7 +42,7 @@ function App() {
         },
         {
           path: "rank",
-          element: <div>Rank</div>,
+          element: <RankPage/>,
         },
         {
           path: "news",
