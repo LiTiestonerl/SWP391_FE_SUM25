@@ -7,8 +7,21 @@ import {
   FaQuoteLeft,
 } from "react-icons/fa";
 import { GiCigarette, GiHealthNormal } from "react-icons/gi";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const HomePage = () => {
+  const navigate = useNavigate();
+  const user = useSelector((state) => state.user);
+
+  const handleStartJourney = () => {
+    if (!user) {
+      navigate("/login");
+    } else {
+      navigate("/membership");
+    }
+  };
+
   useEffect(() => {
     const handleScroll = () => {};
     window.addEventListener("scroll", handleScroll);
@@ -70,7 +83,10 @@ const HomePage = () => {
           <p className="text-xl md:text-2xl mb-8">
             Start your journey to a healthier, smoke-free life today
           </p>
-          <button className="bg-white text-red-600 px-8 py-3 rounded-full font-semibold hover:bg-red-50 transition-colors">
+          <button
+            onClick={handleStartJourney}
+            className="bg-white text-red-600 px-8 py-3 rounded-full font-semibold hover:bg-red-50 transition-colors"
+          >
             Start Your Journey
           </button>
         </div>
@@ -117,7 +133,10 @@ const HomePage = () => {
                 life expectancy. By quitting smoking, you can improve your
                 health, save money, and enhance your quality of life.
               </p>
-              <button className="bg-red-600 text-white px-6 py-3 rounded-full hover:bg-red-700 transition-colors">
+              <button
+                onClick={handleStartJourney}
+                className="bg-red-600 text-white px-6 py-3 rounded-full hover:bg-red-700 transition-colors"
+              >
                 Get Support
               </button>
             </div>

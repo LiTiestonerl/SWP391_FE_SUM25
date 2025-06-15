@@ -13,11 +13,12 @@ import ManageUser from "./pages/dashboard-admin/user";
 import MembershipPage from "./pages/membership";
 import NotificationsPage from "./pages/notifications";
 
-
 import Footer from "./components/footer";
 import Header from "./components/header/index ";
 import NewsPage from "./pages/news";
 import RankPage from "./components/rank/RankPage";
+import CoachesPage from "./components/coaches/CoachesPage";
+import BecomeCoachPage from "./components/BecomeCoach/BecomeCoachPage";
 
 function App() {
   const router = createBrowserRouter([
@@ -47,7 +48,14 @@ function App() {
           path: "news",
           element: <NewsPage />,
         },
-       
+        {
+          path: "coaches",
+          element: <CoachesPage />,
+        },
+        {
+          path: "/becomecoach",
+          element: <BecomeCoachPage />,
+        },
 
         {
           path: "membership",
