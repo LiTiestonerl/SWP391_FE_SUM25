@@ -12,6 +12,7 @@ import ManageProduct from './pages/dashboard-admin/product';
 import ManageUser from './pages/dashboard-admin/user';
 import MembershipPage from './pages/membership';
 import NotificationsPage from './pages/notifications';
+import ForgotPasswordPage from "./pages/dashboard-admin/forgot-password"; 
 
 
 
@@ -19,6 +20,8 @@ import Footer from './components/footer';
 import Header from './components/header/index ';
 import NewsPage from './pages/news';
 import RankPage from './components/rank/RankPage';
+
+
 
 function App() {
   const router = createBrowserRouter([
@@ -83,7 +86,10 @@ function App() {
       path: "/register",//đường dẫn
       element: <RegisterPage />,
     },
-
+{
+      path: "/forgot-password",
+      element: <ForgotPasswordPage />,
+    },
     {
       path: '/notifications',
       element: <NotificationsPage />,
