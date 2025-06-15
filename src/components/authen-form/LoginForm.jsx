@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Checkbox, Form, Input, message } from "antd";
+import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import "./login.css";
 
 function LoginForm() {
@@ -23,17 +24,12 @@ function LoginForm() {
         message.error(data.message || "Đăng nhập thất bại, vui lòng thử lại!");
       }
     } catch (err) {
-      console.error("Lỗi khi đăng nhập:", err);
+      console.error(err);
       message.error("Có lỗi xảy ra, vui lòng thử lại!");
     }
   };
 
-  const onFinishFailed = (errorInfo) => {
-    console.log("Failed:", errorInfo);
-  };
-
   const handleGoogleLogin = () => {
-    // Placeholder cho đăng nhập Google (sẽ tích hợp sau)
     message.info("Chức năng đăng nhập Google sẽ được thêm sau!");
   };
 
@@ -46,52 +42,51 @@ function LoginForm() {
         <Form
           name="basic"
           layout="vertical"
-          labelCol={{ span: 24 }}
-          style={{ maxWidth: 600 }}
           initialValues={{ remember: true }}
           onFinish={onFinish}
-          onFinishFailed={onFinishFailed}
           autoComplete="off"
         >
           <Form.Item
-            label="Username"
             name="username"
             rules={[{ required: true, message: "Please input your username!" }]}
           >
-            <Input />
+            <Input
+              prefix={<UserOutlined />}
+              placeholder="Enter your username"
+            />
           </Form.Item>
 
           <Form.Item
-            label="Password"
             name="password"
             rules={[{ required: true, message: "Please input your password!" }]}
           >
-            <Input.Password />
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder="Enter your password"
+            />
           </Form.Item>
 
-          <Form.Item name="remember" valuePropName="checked" label={null}>
-            <Checkbox>Remember me</Checkbox>
+          <Form.Item style={{ display: "flex", justifyContent: "space-between" }}>
+            <Form.Item name="remember" valuePropName="checked" noStyle>
+              <Checkbox>Remember me</Checkbox>
+            </Form.Item>
+            <a href="/forgot-password" className="forgot-password-link">Forgot password?</a>
           </Form.Item>
 
-          <Form.Item label={null}>
-            <Button type="primary" htmlType="submit">
+          <Form.Item>
+            <Button type="primary" htmlType="submit" block>
               Submit
             </Button>
           </Form.Item>
 
+          <div className="or-divider">or</div>
+
           <button className="google-login-button" onClick={handleGoogleLogin}>
-            <img src="https://www.google.com/favicon.ico" alt="Google Icon" />
-            Login with Google
+            <img src="https://www.google.com/favicon.ico" alt="Google Logo" className="google-icon" />
+            Continue with Google
           </button>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: 10,
-            }}
-          >
-            <a href="/forgot-password">Forgot password?</a>
+          <div className="login-footer">
             <a href="/register">Don't have an account? Register!</a>
           </div>
         </Form>
