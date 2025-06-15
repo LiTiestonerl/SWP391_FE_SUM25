@@ -1,11 +1,5 @@
 import React, { useState } from "react";
-import {
-  FiCalendar,
-  FiStar,
-  FiMessageSquare,
-  FiFilter,
-  FiVideo,
-} from "react-icons/fi";
+import { FiCalendar, FiFilter, FiVideo } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
@@ -31,7 +25,6 @@ const CoachesPage = () => {
     const newEntry = {
       user: user?.name || "Anonymous",
       text: newComment,
-      rating: 5,
     };
 
     setComments((prev) => ({
@@ -43,49 +36,35 @@ const CoachesPage = () => {
   };
 
   const coaches = [
-      {
-    id: 1,
-    name: "Dr. Sarah Johnson",
-    specialization: "Behavioral Therapy",
-    experience: 12,
-    rate: "$120/hour",
-    introduction:
-      "Specialized in cognitive behavioral therapy for smoking cessation",
-    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2",
-    availability: "Available",
-    success_rate: "89%",
-    qualification: "Ph.D. in Psychology",
-    methodology: "Combines CBT with mindfulness techniques",
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    specialization: "Holistic Approach",
-    experience: 8,
-    rate: "$95/hour",
-    introduction:
-      "Integrative approach combining Eastern and Western methods",
-    image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d",
-    availability: "Limited",
-    success_rate: "85%",
-    qualification: "Certified Addiction Specialist",
-    methodology: "Natural healing and behavioral modification",
-  },
-  {
-    id: 3,
-    name: "Emily Nguyen",
-    specialization: "Motivational Coaching",
-    experience: 10,
-    rate: "$110/hour",
-    introduction:
-      "Helping clients build lasting habits through positive psychology",
-    image: "https://images.unsplash.com/photo-1607746882042-944635dfe10e",
-    availability: "Available",
-    success_rate: "91%",
-    qualification: "Certified Life Coach (CLC)",
-    methodology: "Goal setting, habit tracking, and motivational interviewing",
-  },
-];
+    {
+      id: 1,
+      name: "Dr. Sarah Johnson",
+      specialization: "Behavioral Therapy",
+      experience: 12,
+      rate: "$120/hour",
+      introduction:
+        "Specialized in cognitive behavioral therapy for smoking cessation",
+      image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2",
+      availability: "Available",
+      success_rate: "89%",
+      qualification: "Ph.D. in Psychology",
+      methodology: "Combines CBT with mindfulness techniques",
+    },
+    {
+      id: 2,
+      name: "Michael Chen",
+      specialization: "Holistic Approach",
+      experience: 8,
+      rate: "$95/hour",
+      introduction:
+        "Integrative approach combining Eastern and Western methods",
+      image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d",
+      availability: "Limited",
+      success_rate: "85%",
+      qualification: "Certified Addiction Specialist",
+      methodology: "Natural healing and behavioral modification",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-green-50">
@@ -121,11 +100,9 @@ const CoachesPage = () => {
           <h2 className="text-3xl font-bold text-gray-800">
             Our Expert Coaches
           </h2>
-          <div className="flex gap-4">
-            <button className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
-              <FiFilter /> Filter
-            </button>
-          </div>
+          <button className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
+            <FiFilter /> Filter
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -234,21 +211,20 @@ const CoachesPage = () => {
                 <p className="text-gray-600">{selectedCoach.methodology}</p>
               </div>
 
-              {/* Reviews Section */}
+              {/* Comments Section */}
               <div className="mb-6">
-                <h4 className="font-bold mb-4">Reviews & Comments</h4>
+                <h4 className="font-bold mb-4">Comments</h4>
                 <div className="space-y-4 mb-4">
                   {(comments[selectedCoach.id] || []).map((comment, index) => (
                     <div key={index} className="bg-gray-100 p-4 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold text-gray-700">
-                          {comment.user}
-                        </span>
+                      <div className="mb-2 font-semibold text-gray-700">
+                        {comment.user}
                       </div>
                       <p className="text-gray-600">{comment.text}</p>
                     </div>
                   ))}
                 </div>
+
                 <div className="flex flex-col gap-2">
                   <textarea
                     className="w-full p-3 border rounded-lg"
@@ -259,7 +235,12 @@ const CoachesPage = () => {
                   />
                   <button
                     onClick={handleAddComment}
-                    className="self-end bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold"
+                    disabled={newComment.trim() === ""}
+                    className={`self-end px-4 py-2 rounded-lg font-semibold transition ${
+                      newComment.trim() === ""
+                        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                        : "bg-blue-500 hover:bg-blue-600 text-white"
+                    }`}
                   >
                     Submit Comment
                   </button>

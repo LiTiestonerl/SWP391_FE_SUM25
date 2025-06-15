@@ -18,7 +18,8 @@ import Header from "./components/header/index ";
 import NewsPage from "./pages/news";
 import RankPage from "./components/rank/RankPage";
 import CoachesPage from "./components/coaches/CoachesPage";
-import BecomeCoachPage from "./components/BecomeCoach/BecomeCoachPage";
+
+import ChatPage from "./components/chat/ChatPage";
 
 function App() {
   const router = createBrowserRouter([
@@ -52,10 +53,7 @@ function App() {
           path: "coaches",
           element: <CoachesPage />,
         },
-        {
-          path: "/becomecoach",
-          element: <BecomeCoachPage />,
-        },
+      
 
         {
           path: "membership",
@@ -94,6 +92,10 @@ function App() {
     {
       path: "/notifications",
       element: <NotificationsPage />,
+    },
+    {
+      path: "/chat", //đường dẫn
+      element: <ChatPage/>,
     },
   ]);
   return (

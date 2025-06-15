@@ -21,7 +21,7 @@ const Header = () => {
     { id: 3, label: "Coaches", href: "coaches" },
     { id: 4, label: "News", href: "news" },
     { id: 5, label: "Membership", href: "membership" },
-    { id: 6, label: "BecomeCoach", href: "becomecoach" },
+    
   ];
 
   const testNotifications = [
