@@ -1,261 +1,197 @@
-import React, { useState } from "react";
-import { FiCalendar, FiFilter, FiVideo } from "react-icons/fi";
-import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useRef, useEffect } from "react";
+import { FiSend, FiPaperclip, FiPhone, FiCalendar, FiMoreVertical } from "react-icons/fi";
+import { BsCircleFill } from "react-icons/bs";
 
-const CoachesPage = () => {
-  const [selectedCoach, setSelectedCoach] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [newComment, setNewComment] = useState("");
-  const [comments, setComments] = useState({});
-  const user = useSelector((state) => state.user);
-  const navigate = useNavigate();
-
-  const handleBookConsultation = () => {
-    if (!user) {
-      navigate("/login");
-    } else {
-      navigate("/membership");
-    }
-  };
-
-  const handleAddComment = () => {
-    if (newComment.trim() === "" || !selectedCoach) return;
-
-    const newEntry = {
-      user: user?.name || "Anonymous",
-      text: newComment,
-    };
-
-    setComments((prev) => ({
-      ...prev,
-      [selectedCoach.id]: [newEntry, ...(prev[selectedCoach.id] || [])],
-    }));
-
-    setNewComment("");
-  };
-
-  const coaches = [
+const ChatPage = () => {
+  const [messages, setMessages] = useState([
     {
       id: 1,
-      name: "Dr. Sarah Johnson",
-      specialization: "Behavioral Therapy",
-      experience: 12,
-      rate: "$120/hour",
-      introduction:
-        "Specialized in cognitive behavioral therapy for smoking cessation",
-      image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2",
-      availability: "Available",
-      success_rate: "89%",
-      qualification: "Ph.D. in Psychology",
-      methodology: "Combines CBT with mindfulness techniques",
+      sender: "coach",
+      text: "Hello! How can I help you today?",
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      read: true
     },
     {
       id: 2,
-      name: "Michael Chen",
-      specialization: "Holistic Approach",
-      experience: 8,
-      rate: "$95/hour",
-      introduction:
-        "Integrative approach combining Eastern and Western methods",
-      image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d",
-      availability: "Limited",
-      success_rate: "85%",
-      qualification: "Certified Addiction Specialist",
-      methodology: "Natural healing and behavioral modification",
-    },
-  ];
+      sender: "member",
+      text: "Hi, I'd like to discuss my progress.",
+      timestamp: new Date(Date.now() - 1800000).toISOString(),
+      read: true
+    }
+  ]);
+
+  const [newMessage, setNewMessage] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState(null);
+  
+
+  const messageEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+
+  const coachData = {
+    name: "Dr. Sarah Johnson",
+    status: "online",
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=128&q=80",
+    specialty: "Wellness Coach"
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleSend = async () => {
+    if (!newMessage.trim()) return;
+
+    try {
+      setIsTyping(true);
+      const newMsg = {
+        id: messages.length + 1,
+        sender: "member",
+        text: newMessage,
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+
+      setMessages([...messages, newMsg]);
+      setNewMessage("");
+
+      // Simulate coach response
+      setTimeout(() => {
+        const coachResponse = {
+          id: messages.length + 2,
+          sender: "coach",
+          text: "Thank you for sharing. Let me help you with that.",
+          timestamp: new Date().toISOString(),
+          read: false
+        };
+        setMessages(prev => [...prev, coachResponse]);
+        setIsTyping(false);
+      }, 2000);
+
+    } catch (err) {
+      setError("Failed to send message. Please try again.");
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-green-50">
-      {/* Hero Section */}
-      <div
-        className="relative h-[500px] bg-cover bg-center"
-        style={{
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1506126613408-eca07ce68773')",
-        }}
-      >
-        <div className="relative z-10 h-full flex flex-col items-center justify-center text-white px-4">
-          <h1 className="text-4xl md:text-6xl font-bold text-center mb-6">
-            Begin Your Journey to a Smoke-Free Life
-          </h1>
-          <p className="text-xl md:text-2xl text-center mb-8">
-            Expert coaches ready to guide you through your transformation
-          </p>
-          <div className="flex flex-col md:flex-row gap-4">
-            <button
-              onClick={handleBookConsultation}
-              className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full transition duration-300"
-            >
-              Book Consultation
-            </button>
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm p-4 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="relative">
+            <img
+              src={coachData.avatar}
+              alt="Coach"
+              className="w-12 h-12 rounded-full object-cover"
+              onError={(e) => {
+                e.target.src = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=128&q=80";
+              }}
+            />
+            <BsCircleFill
+              className={`absolute bottom-0 right-0 text-${coachData.status === "online" ? "green" : "gray"}-500 h-3 w-3`}
+            />
+          </div>
+          <div>
+            <h2 className="font-semibold text-lg">{coachData.name}</h2>
+            <p className="text-sm text-gray-500">{coachData.specialty}</p>
           </div>
         </div>
-      </div>
-
-      {/* Coaches Directory */}
-      <div className="max-w-7xl mx-auto px-4 py-16">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-800">
-            Our Expert Coaches
-          </h2>
-          <button className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
-            <FiFilter /> Filter
+        <div className="flex items-center space-x-4">
+          <button className="p-2 hover:bg-gray-100 rounded-full">
+            <FiPhone className="h-5 w-5 text-gray-600" />
+          </button>
+          <button className="p-2 hover:bg-gray-100 rounded-full">
+            <FiCalendar className="h-5 w-5 text-gray-600" />
+          </button>
+          <button className="p-2 hover:bg-gray-100 rounded-full">
+            <FiMoreVertical className="h-5 w-5 text-gray-600" />
           </button>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {coaches.map((coach) => (
-            <div
-              key={coach.id}
-              className="bg-white rounded-xl shadow-lg overflow-hidden transition-transform hover:scale-105"
-            >
-              <img
-                src={coach.image}
-                alt={coach.name}
-                className="w-full h-64 object-cover"
-              />
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800">
-                      {coach.name}
-                    </h3>
-                    <p className="text-green-600 font-medium">
-                      {coach.specialization}
-                    </p>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm ${
-                      coach.availability === "Available"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {coach.availability}
-                  </span>
-                </div>
-                <p className="text-gray-600 mb-4">{coach.introduction}</p>
-                <div className="flex justify-between items-center text-sm text-gray-500 mb-4">
-                  <span>{coach.experience} years experience</span>
-                  <span>{coach.rate}</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedCoach(coach);
-                      setShowModal(true);
-                    }}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2"
-                  >
-                    <FiVideo /> View Profile
-                  </button>
-                  <button
-                    onClick={handleBookConsultation}
-                    className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2"
-                  >
-                    <FiCalendar /> Chat Now
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
-      {/* Coach Profile Modal */}
-      {showModal && selectedCoach && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <div className="flex items-center gap-4">
-                  <img
-                    src={selectedCoach.image}
-                    alt={selectedCoach.name}
-                    className="w-20 h-20 rounded-full object-cover"
-                  />
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-800">
-                      {selectedCoach.name}
-                    </h3>
-                    <p className="text-green-600">
-                      {selectedCoach.specialization}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-bold mb-2">Qualification</h4>
-                  <p>{selectedCoach.qualification}</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-bold mb-2">Success Rate</h4>
-                  <p className="text-green-600 font-bold">
-                    {selectedCoach.success_rate}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h4 className="font-bold mb-2">Methodology</h4>
-                <p className="text-gray-600">{selectedCoach.methodology}</p>
-              </div>
-
-              {/* Comments Section */}
-              <div className="mb-6">
-                <h4 className="font-bold mb-4">Comments</h4>
-                <div className="space-y-4 mb-4">
-                  {(comments[selectedCoach.id] || []).map((comment, index) => (
-                    <div key={index} className="bg-gray-100 p-4 rounded-lg">
-                      <div className="mb-2 font-semibold text-gray-700">
-                        {comment.user}
-                      </div>
-                      <p className="text-gray-600">{comment.text}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <textarea
-                    className="w-full p-3 border rounded-lg"
-                    rows="3"
-                    placeholder="Leave a comment..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                  />
-                  <button
-                    onClick={handleAddComment}
-                    disabled={newComment.trim() === ""}
-                    className={`self-end px-4 py-2 rounded-lg font-semibold transition ${
-                      newComment.trim() === ""
-                        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                        : "bg-blue-500 hover:bg-blue-600 text-white"
-                    }`}
-                  >
-                    Submit Comment
-                  </button>
-                </div>
-              </div>
-
-              <button className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-bold">
-                Schedule Consultation
-              </button>
+      {/* Chat Area */}
+      <div
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-4"
+      >
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex ${message.sender === "member" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`max-w-[70%] rounded-lg p-3 ${
+                message.sender === "member"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-800 shadow"
+              }`}
+            >
+              <p className="text-sm">{message.text}</p>
+              <p
+                className={`text-xs mt-1 ${
+                  message.sender === "member" ? "text-blue-100" : "text-gray-400"
+                }`}
+              >
+                {new Date(message.timestamp).toLocaleTimeString()}
+              </p>
             </div>
           </div>
+        ))}
+        {isTyping && (
+          <div className="flex items-center space-x-2 text-gray-500">
+            <div className="animate-bounce">•</div>
+            <div className="animate-bounce delay-100">•</div>
+            <div className="animate-bounce delay-200">•</div>
+          </div>
+        )}
+        <div ref={messageEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="bg-white border-t p-4">
+        {error && (
+          <div className="mb-2 text-red-500 text-sm">{error}</div>
+        )}
+        <div className="flex items-center space-x-2">
+          <button className="p-2 hover:bg-gray-100 rounded-full">
+            <FiPaperclip className="h-5 w-5 text-gray-600" />
+          </button>
+          <textarea
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type your message..."
+            className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            rows="1"
+            maxLength="500"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!newMessage.trim()}
+            className={`p-2 rounded-full ${
+              newMessage.trim()
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-gray-200 text-gray-400"
+            }`}
+          >
+            <FiSend className="h-5 w-5" />
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-export default CoachesPage;
+export default ChatPage;
