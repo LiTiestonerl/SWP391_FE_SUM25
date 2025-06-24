@@ -20,6 +20,8 @@ import RankPage from "./components/rank/RankPage";
 import CoachesPage from "./components/coaches/CoachesPage";
 
 import ChatPage from "./components/chat/ChatPage";
+import ProfileMPage from "./components/profile/ProfileMPage";
+import MedicalBooking from "./pages/booking";
 
 function App() {
   const router = createBrowserRouter([
@@ -54,7 +56,10 @@ function App() {
           element: <CoachesPage />,
         },
       
-
+        {
+          path: "/profile",
+          element: <ProfileMPage />,
+        },
         {
           path: "membership",
           element: <MembershipPage />,
@@ -96,6 +101,10 @@ function App() {
     {
       path: "/chat", //đường dẫn
       element: <ChatPage/>,
+    },
+     {
+      path: "/booking", //đường dẫn
+      element: <MedicalBooking/>,
     },
   ]);
   return (

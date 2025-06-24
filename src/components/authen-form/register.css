@@ -6,6 +6,7 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  font-weight: bold
 }
 
 .register-form .register-form-container {
@@ -33,4 +34,14 @@ h1 {
 .register-title-box h1 {
   color: black !important;
   margin: 0;
+  
+}
+.google-register-button:hover {
+  background-color: #f5f5f5;
+}
+
+.google-register-button img {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
 }

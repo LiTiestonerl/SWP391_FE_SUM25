@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Checkbox, Form, Input } from 'antd';
+import { Button, Checkbox, Form, Input, message } from 'antd';
 import { useNavigate } from 'react-router-dom'; // 👈 Thêm useNavigate
 import './register.css';
 
@@ -16,6 +16,10 @@ function RegisterForm() {
 
   const handleLoginRedirect = () => {
     navigate('/login');
+  };
+  const handleGoogleRegister = () => {
+    // Placeholder cho đăng nhập Google (sẽ tích hợp sau)
+    message.info("Chức năng đăng nhập Google sẽ được thêm sau!");
   };
 
   return (
@@ -84,6 +88,10 @@ function RegisterForm() {
               Submit
             </Button>
           </Form.Item>
+          <button className="google-login-button" onClick={handleGoogleRegister}>
+            <img src="https://www.google.com/favicon.ico" alt="Google Icon" />
+            Signup with Google
+          </button>
 
           <Form.Item style={{ textAlign: 'center' }}>
             Already have an account?{' '}

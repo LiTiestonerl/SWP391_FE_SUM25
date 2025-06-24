@@ -36,6 +36,7 @@ function LoginForm() {
     // Placeholder cho đăng nhập Google (sẽ tích hợp sau)
     message.info("Chức năng đăng nhập Google sẽ được thêm sau!");
   };
+  
 
   return (
     <div className="login-form">
