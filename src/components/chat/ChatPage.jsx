@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+
 import {
   FiSearch,
   FiPaperclip,
@@ -8,7 +10,7 @@ import {
   FiPhone,
   FiVideo,
   FiHome,
-  FiBell
+  FiBell,
 } from "react-icons/fi";
 import { format } from "date-fns";
 
@@ -28,9 +30,19 @@ const ChatApp = () => {
       unread: 2,
       online: true,
       messages: [
-        { id: 1, text: "Hi there!", sent: false, timestamp: "2024-01-20T09:00:00" },
-        { id: 2, text: "Hello! How are you?", sent: true, timestamp: "2024-01-20T09:01:00" }
-      ]
+        {
+          id: 1,
+          text: "Hi there!",
+          sent: false,
+          timestamp: "2024-01-20T09:00:00",
+        },
+        {
+          id: 2,
+          text: "Hello! How are you?",
+          sent: true,
+          timestamp: "2024-01-20T09:01:00",
+        },
+      ],
     },
     {
       id: 1,
@@ -40,8 +52,13 @@ const ChatApp = () => {
       unread: 0,
       online: false,
       messages: [
-        { id: 1, text: "Are you free tomorrow?", sent: false, timestamp: "2024-01-20T10:00:00" }
-      ]
+        {
+          id: 1,
+          text: "Are you free tomorrow?",
+          sent: false,
+          timestamp: "2024-01-20T10:00:00",
+        },
+      ],
     },
     {
       id: 2,
@@ -51,8 +68,13 @@ const ChatApp = () => {
       unread: 1,
       online: true,
       messages: [
-        { id: 1, text: "See you at 5 PM!", sent: false, timestamp: "2024-01-20T11:00:00" }
-      ]
+        {
+          id: 1,
+          text: "See you at 5 PM!",
+          sent: false,
+          timestamp: "2024-01-20T11:00:00",
+        },
+      ],
     },
     {
       id: 3,
@@ -62,8 +84,13 @@ const ChatApp = () => {
       unread: 0,
       online: false,
       messages: [
-        { id: 1, text: "Really appreciate it!", sent: true, timestamp: "2024-01-20T12:00:00" }
-      ]
+        {
+          id: 1,
+          text: "Really appreciate it!",
+          sent: true,
+          timestamp: "2024-01-20T12:00:00",
+        },
+      ],
     },
     {
       id: 4,
@@ -73,8 +100,13 @@ const ChatApp = () => {
       unread: 3,
       online: true,
       messages: [
-        { id: 1, text: "Lunch soon?", sent: false, timestamp: "2024-01-20T13:00:00" }
-      ]
+        {
+          id: 1,
+          text: "Lunch soon?",
+          sent: false,
+          timestamp: "2024-01-20T13:00:00",
+        },
+      ],
     },
     {
       id: 5,
@@ -84,8 +116,13 @@ const ChatApp = () => {
       unread: 0,
       online: false,
       messages: [
-        { id: 1, text: "Gotta go, bye!", sent: true, timestamp: "2024-01-20T14:00:00" }
-      ]
+        {
+          id: 1,
+          text: "Gotta go, bye!",
+          sent: true,
+          timestamp: "2024-01-20T14:00:00",
+        },
+      ],
     },
     {
       id: 6,
@@ -95,9 +132,14 @@ const ChatApp = () => {
       unread: 1,
       online: true,
       messages: [
-        { id: 1, text: "Let's plan tomorrow.", sent: false, timestamp: "2024-01-20T15:00:00" }
-      ]
-    }
+        {
+          id: 1,
+          text: "Let's plan tomorrow.",
+          sent: false,
+          timestamp: "2024-01-20T15:00:00",
+        },
+      ],
+    },
   ];
 
   const filteredConversations = conversations.filter((conv) =>
@@ -119,13 +161,14 @@ const ChatApp = () => {
       id: Date.now(),
       text: message,
       sent: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     conversations[activeChat].messages.push(newMessage);
     setMessage("");
     scrollToBottom();
   };
+  const navigate = useNavigate();
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
@@ -134,6 +177,12 @@ const ChatApp = () => {
         {[FiHome, FiSearch, FiVideo, FiMoreVertical].map((Icon, i) => (
           <button
             key={i}
+            onClick={() => {
+              if (Icon === FiHome) {
+                navigate("/home");
+              }
+              // Bạn có thể thêm xử lý cho các icon khác nếu cần
+            }}
             className="text-black dark:text-white hover:text-blue-500 w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             <Icon className="h-5 w-5" />
@@ -161,7 +210,9 @@ const ChatApp = () => {
           {filteredConversations.map((conv, index) => (
             <div
               key={conv.id}
-              onClick={() => setActiveChat(conversations.findIndex(c => c.id === conv.id))}
+              onClick={() =>
+                setActiveChat(conversations.findIndex((c) => c.id === conv.id))
+              }
               className={`flex items-center space-x-4 p-4 cursor-pointer rounded-lg transition-colors ${
                 conversations[activeChat].id === conv.id
                   ? "bg-blue-100 dark:bg-blue-900"
@@ -223,31 +274,51 @@ const ChatApp = () => {
                       alt={conversations[activeChat].name}
                       className="w-20 h-20 rounded-full mb-2"
                     />
-                    <h3 className="text-lg font-semibold dark:text-white">{conversations[activeChat].name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">@{conversations[activeChat].name.toLowerCase().replace(" ", "")}</p>
-                    <p className="text-sm mt-1 text-gray-400">Hoạt động 1 giờ trước</p>
+                    <h3 className="text-lg font-semibold dark:text-white">
+                      {conversations[activeChat].name}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      @
+                      {conversations[activeChat].name
+                        .toLowerCase()
+                        .replace(" ", "")}
+                    </p>
+                    <p className="text-sm mt-1 text-gray-400">
+                      Hoạt động 1 giờ trước
+                    </p>
                     <div className="flex justify-center gap-6 mt-3 mb-3">
                       <button className="flex flex-col items-center">
                         <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full">
                           <FiHome className="w-5 h-5 text-black dark:text-white" />
                         </div>
-                        <span className="text-xs mt-1 text-black dark:text-white">Trang cá nhân</span>
+                        <span className="text-xs mt-1 text-black dark:text-white">
+                          Trang cá nhân
+                        </span>
                       </button>
                       <button className="flex flex-col items-center">
                         <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full">
                           <FiBell className="w-5 h-5 text-black dark:text-white" />
                         </div>
-                        <span className="text-xs mt-1 text-black dark:text-white">Tắt thông báo</span>
+                        <span className="text-xs mt-1 text-black dark:text-white">
+                          Tắt thông báo
+                        </span>
                       </button>
                       <button className="flex flex-col items-center">
                         <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full">
                           <FiSearch className="w-5 h-5 text-black dark:text-white" />
                         </div>
-                        <span className="text-xs mt-1 text-black dark:text-white">Tìm kiếm</span>
+                        <span className="text-xs mt-1 text-black dark:text-white">
+                          Tìm kiếm
+                        </span>
                       </button>
                     </div>
                     <ul className="text-left w-full mt-3 space-y-2">
-                      {["Thông tin về đoạn chat", "Tùy chỉnh đoạn chat", "File phương tiện & file", "Quyền riêng tư và hỗ trợ"].map((item, i) => (
+                      {[
+                        "Thông tin về đoạn chat",
+                        "Tùy chỉnh đoạn chat",
+                        "File phương tiện & file",
+                        "Quyền riêng tư và hỗ trợ",
+                      ].map((item, i) => (
                         <li
                           key={i}
                           className="flex justify-between items-center py-2 border-t border-gray-200 dark:border-gray-700 text-black dark:text-white"
@@ -268,7 +339,9 @@ const ChatApp = () => {
           {conversations[activeChat].messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.sent ? "justify-end" : "justify-start"} mb-4`}
+              className={`flex ${
+                msg.sent ? "justify-end" : "justify-start"
+              } mb-4`}
             >
               <div
                 className={`max-w-[70%] ${

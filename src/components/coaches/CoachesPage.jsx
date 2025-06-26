@@ -19,9 +19,9 @@ const CoachesPage = () => {
 
   const handleBookConsultation = () => {
     if (!user) {
-      navigate("/login");
+      navigate("/booking");
     } else {
-      navigate("/membership");
+      navigate("/booking");
     }
   };
 
@@ -178,7 +178,7 @@ const CoachesPage = () => {
                     onClick={handleBookConsultation}
                     className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2"
                   >
-                    <FiCalendar /> Chat Now
+                    <FiCalendar /> Book now!
                   </button>
                 </div>
               </div>

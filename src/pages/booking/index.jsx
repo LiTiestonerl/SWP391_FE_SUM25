@@ -70,7 +70,7 @@ const MedicalBooking = () => {
     };
     // call api
     try {
-      const response = await api.post("appointment",{
+      const response = await api.post("appointment", {
         slotId: 5,
         staffId: 3,
         appointmentDate: "2025-06-18",
