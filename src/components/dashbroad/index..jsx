@@ -12,6 +12,13 @@ import {
   PieChartOutlined,
   TeamOutlined,
   UserOutlined,
+  LineChartOutlined,
+  StarOutlined,
+  UserSwitchOutlined,
+  TrophyOutlined,
+  ProjectOutlined,
+  ProfileOutlined,
+  DashboardOutlined
 } from "@ant-design/icons";
 import { Breadcrumb, Layout, Menu, theme } from "antd";
 import { Link, Outlet } from "react-router-dom";
@@ -39,10 +46,11 @@ const headerMenu = (
 );
 
 const items = [
-  getItem("Overview", "overview", <PieChartOutlined />),
-  getItem("ManageRating", "managerating", <DesktopOutlined />),
-  getItem("ManageUser", "user", <UserOutlined />),
-  getItem("ManageCoaches", "managecoaches", <TeamOutlined />),
+  getItem("Overview", "overview", <LineChartOutlined />),         // Tổng quan → biểu đồ tổng hợp
+  getItem("ManageRating", "managerating", <StarOutlined />),      // Quản lý đánh giá → ngôi sao
+  getItem("ManageUser", "user", <UserSwitchOutlined />),          // Quản lý người dùng → người dùng
+  getItem("ManageCoaches", "managecoaches", <TeamOutlined />),    // Quản lý huấn luyện viên → nhóm người
+  getItem("ManageRank", "managerank", <TrophyOutlined />),        // Quản lý xếp hạng → cúp
 ];
 const Dashbroad = () => {
   const [collapsed, setCollapsed] = useState(false);

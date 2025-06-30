@@ -23,6 +23,7 @@ import RankPage from "./components/rank/RankPage";
 import CoachesPage from "./components/coaches/CoachesPage";
 import BecomeCoachPage from "./components/BecomeCoach/BecomeCoachPage";
 import ManageCoaches from "./pages/dashboard-admin/managecoaches";
+import ManageRank from "./pages/dashboard-admin/managerank";
 
 function App() {
   const router = createBrowserRouter([
@@ -94,6 +95,10 @@ function App() {
         {
           path: "managecoaches",
           element: <ManageCoaches />,
+        },
+        {
+          path: "managerank",
+          element: <ManageRank />,
         },
       ],
     },
