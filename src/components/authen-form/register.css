@@ -1,47 +1,129 @@
 .register-form {
   width: 100%;
-  padding: 0px 30px;
-  color: black;
+  padding: 0 30px;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  font-weight: bold
+  background: linear-gradient(135deg, #77dbc8, #acb6e5);
+  transition: background 0.5s ease;
 }
 
 .register-form .register-form-container {
-  background: rgba(255, 255, 255, 0.9); /* Giữ nền trắng trong suốt giống Login */
+  background: rgba(255, 255, 255, 0.95);
   border: 2px solid #2c3e50;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  padding: 35px;
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
 }
 
 h1 {
   text-align: center;
-  margin-bottom: 20px;
-  color: black;
+  color: #1a1a1a;
   font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-  position: relative;
-  top: -12px;
   font-size: 60px;
   font-weight: bold;
   font-style: italic;
-  text-decoration: none; /* Giữ gạch chân theo code cũ */
-}
-.register-title-box h1 {
-  color: black !important;
-  margin: 0;
-  
-}
-.google-register-button:hover {
-  background-color: #f5f5f5;
+  margin-bottom: 20px;
+  text-decoration: none;
 }
 
-.google-register-button img {
-  width: 20px;
-  height: 20px;
+.register-title-box h1 {
+  color: #1a1a1a !important;
+  margin: 0;
+}
+
+.register-form .ant-form-item-label > label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.register-form .ant-input {
+  font-size: 16px;
+  height: 48px;
+  border-radius: 8px;
+  padding-left: 40px;
+}
+
+.register-form .ant-input-prefix {
+  color: #666;
+  font-size: 18px;
   margin-right: 10px;
+}
+
+.register-form .ant-btn-primary {
+  background-color: #2c3e50;
+  border-color: #2c3e50;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  height: 48px;
+  border-radius: 8px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.register-form .ant-btn-primary:hover {
+  background-color: #34495e;
+  border-color: #34495e;
+  transform: translateY(-2px);
+}
+
+.google-login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 12px;
+  width: 100%;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.google-login-button:hover {
+  background-color: #f3f4f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.google-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+}
+
+.or-divider {
+  text-align: center;
+  margin: 15px 0;
+  font-weight: 600;
+  color: #666;
+  font-size: 14px;
+}
+
+.register-form .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.register-form .ant-btn-link {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.register-form .ant-btn-link:hover {
+  text-decoration: underline;
+}
+
+.login-link {
+  color: #007bff !important;
+}
+
+.login-link:hover {
+  text-decoration: underline;
 }

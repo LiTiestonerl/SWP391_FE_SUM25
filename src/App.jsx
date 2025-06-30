@@ -8,20 +8,21 @@ import { persistor, store } from "./redux/store";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import OverviewPage from "./pages/dashboard-admin/overview";
-import ManageProduct from "./pages/dashboard-admin/product";
+import ManageRating from "./pages/dashboard-admin/managerating";
 import ManageUser from "./pages/dashboard-admin/user";
+
+import ForgotPasswordPage from "./pages/dashboard-admin/forgot-password";
 import MembershipPage from "./pages/membership";
 import NotificationsPage from "./pages/notifications";
+import QuitPlanPage from "./pages/quit-plan";
 
 import Footer from "./components/footer";
 import Header from "./components/header/index ";
 import NewsPage from "./pages/news";
 import RankPage from "./components/rank/RankPage";
 import CoachesPage from "./components/coaches/CoachesPage";
-
-import ChatPage from "./components/chat/ChatPage";
-import ProfileMPage from "./components/profile/ProfileMPage";
-import MedicalBooking from "./pages/booking";
+import BecomeCoachPage from "./components/BecomeCoach/BecomeCoachPage";
+import ManageCoaches from "./pages/dashboard-admin/managecoaches";
 
 function App() {
   const router = createBrowserRouter([
@@ -55,14 +56,18 @@ function App() {
           path: "coaches",
           element: <CoachesPage />,
         },
-      
         {
-          path: "/profile",
-          element: <ProfileMPage />,
+          path: "/becomecoach",
+          element: <BecomeCoachPage />,
         },
+
         {
           path: "membership",
           element: <MembershipPage />,
+        },
+        {
+          path: "quit-plan",
+          element: <QuitPlanPage />,
         },
       ], //element show lên cho giao diện
     },
@@ -79,12 +84,16 @@ function App() {
           element: <OverviewPage />,
         },
         {
-          path: "product",
-          element: <ManageProduct />,
+          path: "managerating",
+          element: <ManageRating />,
         },
         {
           path: "user",
           element: <ManageUser />,
+        },
+        {
+          path: "managecoaches",
+          element: <ManageCoaches />,
         },
       ],
     },
@@ -95,16 +104,13 @@ function App() {
     },
 
     {
+      path: "/forgot-password",
+      element: <ForgotPasswordPage />,
+    },
+
+    {
       path: "/notifications",
       element: <NotificationsPage />,
-    },
-    {
-      path: "/chat", //đường dẫn
-      element: <ChatPage/>,
-    },
-     {
-      path: "/booking", //đường dẫn
-      element: <MedicalBooking/>,
     },
   ]);
   return (
