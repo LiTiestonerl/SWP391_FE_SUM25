@@ -18,7 +18,8 @@ import {
   TrophyOutlined,
   ProjectOutlined,
   ProfileOutlined,
-  DashboardOutlined
+  DashboardOutlined,
+  SolutionOutlined,
 } from "@ant-design/icons";
 import { Breadcrumb, Layout, Menu, theme } from "antd";
 import { Link, Outlet } from "react-router-dom";
@@ -46,11 +47,10 @@ const headerMenu = (
 );
 
 const items = [
-  getItem("Overview", "overview", <LineChartOutlined />),         // Tổng quan → biểu đồ tổng hợp
-  getItem("ManageRating", "managerating", <StarOutlined />),      // Quản lý đánh giá → ngôi sao
-  getItem("ManageUser", "user", <UserSwitchOutlined />),          // Quản lý người dùng → người dùng
-  getItem("ManageCoaches", "managecoaches", <TeamOutlined />),    // Quản lý huấn luyện viên → nhóm người
-  getItem("ManageRank", "managerank", <TrophyOutlined />),        // Quản lý xếp hạng → cúp
+  getItem("Overview", "overview", <LineChartOutlined />),
+  getItem("ManageRating", "managerating", <StarOutlined />),
+  getItem("ManageAccount", "manageaccount", <SolutionOutlined />),
+  getItem("ManageRank", "managerank", <TrophyOutlined />),
 ];
 const Dashbroad = () => {
   const [collapsed, setCollapsed] = useState(false);

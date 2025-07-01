@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
-import "./ManageCoach.css";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -10,7 +9,7 @@ import {
   LinearScale,
   BarElement,
 } from "chart.js";
-import { Pie, Bar } from "react-chartjs-2";
+import { Pie } from "react-chartjs-2";
 
 ChartJS.register(
   ArcElement,
@@ -21,27 +20,33 @@ ChartJS.register(
   BarElement
 );
 
-const mockData = [
+// ==== Dữ liệu Coach ====
+const mockCoachData = [
   {
     id: 1,
-    coachName: "Michael Brown",
+    name: "Michael Brown",
     coachId: "C001",
     certification: "Level 3 Inspector",
     assignedAreas: ["Building A", "Building B"],
-    rank: "Senior",
     status: "compliant",
-    starRating: 4,
+    starRating: 5,
   },
   {
     id: 2,
-    coachName: "Sarah Wilson",
+    name: "Sarah Wilson",
     coachId: "C002",
     certification: "Level 2 Inspector",
     assignedAreas: ["Building C"],
-    rank: "Junior",
     status: "non-compliant",
-    starRating: 2,
+    starRating: 3,
   },
+];
+
+// ==== Dữ liệu User ====
+const mockUserData = [
+  { id: 1, name: "Alice", top: "top1", package: "health" },
+  { id: 2, name: "Bob", top: "top2", package: "health+" },
+  { id: 3, name: "Charlie", top: "top10", package: "other" },
 ];
 
 const renderStars = (count) => {
@@ -59,51 +64,57 @@ const renderStars = (count) => {
   return stars;
 };
 
-const ManageCoach = () => {
-  const [ratings, setRatings] = useState(mockData);
+const ManageAccount = () => {
+  const [coaches, setCoaches] = useState(mockCoachData);
+  const [users, setUsers] = useState(mockUserData);
   const [selectedCoach, setSelectedCoach] = useState(null);
   const [showCoachModal, setShowCoachModal] = useState(false);
 
-  const pieChartData = {
-    labels: ["Compliant", "Non-Compliant"],
+  const accountChartData = {
+    labels: ["Coaches", "Users"],
+    datasets: [
+      {
+        label: "Account Distribution",
+        data: [coaches.length, users.length],
+        backgroundColor: ["#3b82f6", "#f59e0b"],
+        hoverOffset: 4,
+      },
+    ],
+  };
+
+  const userPackageChartData = {
+    labels: ["Health", "Health+", "Other"],
     datasets: [
       {
         data: [
-          ratings.filter((r) => r.status === "compliant").length,
-          ratings.filter((r) => r.status === "non-compliant").length,
+          users.filter((u) => u.package === "health").length,
+          users.filter((u) => u.package === "health+").length,
+          users.filter((u) => u.package === "other").length,
         ],
-        backgroundColor: ["#22c55e", "#ef4444"],
+        backgroundColor: ["#10b981", "#3b82f6", "#f59e0b"],
       },
     ],
   };
 
-  const barChartData = {
-    labels: ["Jan", "Feb", "Mar", "Apr"],
-    datasets: [
-      {
-        label: "Average Compliance Score",
-        data: [75, 82, 88, 90],
-        backgroundColor: "#22c55e",
-      },
-    ],
-  };
-
-  const filteredRatings = useMemo(() => {
-    return ratings.sort((a, b) => a.rank.localeCompare(b.rank));
-  }, [ratings]);
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => {
+      const getTopValue = (top) => parseInt(top.replace("top", ""));
+      return getTopValue(a.top) - getTopValue(b.top);
+    });
+  }, [users]);
 
   const handleCoachEdit = (coach) => {
-    setSelectedCoach({ ...coach }); // create a copy
+    setSelectedCoach({ ...coach });
     setShowCoachModal(true);
   };
 
   const handleDelete = (id) => {
-    setRatings((prev) => prev.filter((r) => r.id !== id));
+    setCoaches((prev) => prev.filter((c) => c.id !== id));
   };
 
   const handleSave = () => {
-    setRatings((prev) =>
-      prev.map((r) => (r.id === selectedCoach.id ? selectedCoach : r))
+    setCoaches((prev) =>
+      prev.map((c) => (c.id === selectedCoach.id ? selectedCoach : c))
     );
     setShowCoachModal(false);
   };
@@ -112,35 +123,31 @@ const ManageCoach = () => {
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">
-          No Smoking Coach Management Dashboard
+          No Smoking Account Management
         </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Hai biểu đồ kế bên nhau */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2">Total Coaches</h3>
-            <p className="text-3xl font-bold text-green-500">
-              {ratings.length}
-            </p>
+            <h2 className="text-xl font-bold mb-4 text-center">
+              Account Distribution
+            </h2>
+            <Pie data={accountChartData} />
           </div>
+
           <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2">Average Star Rating</h3>
-            <p className="text-3xl font-bold text-blue-500">
-              {(
-                ratings.reduce((acc, curr) => acc + curr.starRating, 0) /
-                ratings.length
-              ).toFixed(1)}{" "}
-              ★
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-2">Active Coaches</h3>
-            <p className="text-3xl font-bold text-purple-500">
-              {ratings.length}
-            </p>
+            <h2 className="text-xl font-bold mb-4 text-center">
+              User Subscription Packages
+            </h2>
+            <Pie data={userPackageChartData} />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        {/* Danh sách Coach */}
+        <div className="bg-white rounded-lg shadow mb-10 overflow-hidden">
+          <h2 className="text-xl font-bold px-6 py-4 bg-gray-100">
+            Coach List
+          </h2>
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -148,10 +155,7 @@ const ManageCoach = () => {
                   Coach ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Coach Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Rank
+                  Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Certification
@@ -171,49 +175,38 @@ const ManageCoach = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredRatings.map((rating) => (
-                <tr key={rating.id}>
-                  <td className="px-6 py-4">{rating.coachId}</td>
-                  <td className="px-6 py-4">{rating.coachName}</td>
+              {coaches.map((coach) => (
+                <tr key={coach.id}>
+                  <td className="px-6 py-4">{coach.coachId}</td>
+                  <td className="px-6 py-4">{coach.name}</td>
+                  <td className="px-6 py-4">{coach.certification}</td>
                   <td className="px-6 py-4">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        rating.rank === "Senior"
-                          ? "bg-purple-100 text-purple-800"
-                          : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {rating.rank}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">{rating.certification}</td>
-                  <td className="px-6 py-4">
-                    {rating.assignedAreas.join(", ")}
+                    {coach.assignedAreas.join(", ")}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex">{renderStars(rating.starRating)}</div>
+                    <div className="flex">{renderStars(coach.starRating)}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        rating.status === "compliant"
+                        coach.status === "compliant"
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {rating.status}
+                      {coach.status}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleCoachEdit(rating)}
+                        onClick={() => handleCoachEdit(coach)}
                         className="text-blue-600 hover:text-blue-900"
                       >
                         <FiEdit2 />
                       </button>
                       <button
-                        onClick={() => handleDelete(rating.id)}
+                        onClick={() => handleDelete(coach.id)}
                         className="text-red-600 hover:text-red-900"
                       >
                         <FiTrash2 />
@@ -225,8 +218,42 @@ const ManageCoach = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Danh sách User */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <h2 className="text-xl font-bold px-6 py-4 bg-gray-100">User List</h2>
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  ID
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Top
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Package
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {sortedUsers.map((user) => (
+                <tr key={user.id}>
+                  <td className="px-6 py-4">{user.id}</td>
+                  <td className="px-6 py-4">{user.name}</td>
+                  <td className="px-6 py-4 font-medium">{user.top}</td>
+                  <td className="px-6 py-4 capitalize">{user.package}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
+      {/* Modal chỉnh sửa Coach */}
       {showCoachModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full">
@@ -234,37 +261,19 @@ const ManageCoach = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Coach Name
+                  Name
                 </label>
                 <input
                   type="text"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  value={selectedCoach?.coachName || ""}
+                  value={selectedCoach?.name || ""}
                   onChange={(e) =>
                     setSelectedCoach((prev) => ({
                       ...prev,
-                      coachName: e.target.value,
+                      name: e.target.value,
                     }))
                   }
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Rank
-                </label>
-                <select
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  value={selectedCoach?.rank}
-                  onChange={(e) =>
-                    setSelectedCoach((prev) => ({
-                      ...prev,
-                      rank: e.target.value,
-                    }))
-                  }
-                >
-                  <option value="Senior">Senior</option>
-                  <option value="Junior">Junior</option>
-                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -313,4 +322,4 @@ const ManageCoach = () => {
   );
 };
 
-export default ManageCoach;
+export default ManageAccount;

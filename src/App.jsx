@@ -9,7 +9,6 @@ import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import OverviewPage from "./pages/dashboard-admin/overview";
 import ManageRating from "./pages/dashboard-admin/managerating";
-import ManageUser from "./pages/dashboard-admin/user";
 
 import ForgotPasswordPage from "./pages/dashboard-admin/forgot-password";
 import MembershipPage from "./pages/membership";
@@ -22,8 +21,8 @@ import NewsPage from "./pages/news";
 import RankPage from "./components/rank/RankPage";
 import CoachesPage from "./components/coaches/CoachesPage";
 import BecomeCoachPage from "./components/BecomeCoach/BecomeCoachPage";
-import ManageCoaches from "./pages/dashboard-admin/managecoaches";
 import ManageRank from "./pages/dashboard-admin/managerank";
+import ManageAccount from "./pages/dashboard-admin/manageaccount";
 
 function App() {
   const router = createBrowserRouter([
@@ -87,14 +86,10 @@ function App() {
         {
           path: "managerating",
           element: <ManageRating />,
-        },
+        },      
         {
-          path: "user",
-          element: <ManageUser />,
-        },
-        {
-          path: "managecoaches",
-          element: <ManageCoaches />,
+          path: "manageaccount",
+          element: <ManageAccount />,
         },
         {
           path: "managerank",
