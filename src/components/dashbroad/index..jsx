@@ -12,14 +12,6 @@ import {
   PieChartOutlined,
   TeamOutlined,
   UserOutlined,
-  LineChartOutlined,
-  StarOutlined,
-  UserSwitchOutlined,
-  TrophyOutlined,
-  ProjectOutlined,
-  ProfileOutlined,
-  DashboardOutlined,
-  SolutionOutlined,
 } from "@ant-design/icons";
 import { Breadcrumb, Layout, Menu, theme } from "antd";
 import { Link, Outlet } from "react-router-dom";
@@ -47,10 +39,11 @@ const headerMenu = (
 );
 
 const items = [
-  getItem("Overview", "overview", <LineChartOutlined />),
-  getItem("ManageRating", "managerating", <StarOutlined />),
-  getItem("ManageAccount", "manageaccount", <SolutionOutlined />),
-  getItem("ManageRank", "managerank", <TrophyOutlined />),
+  getItem("Overview", "overview", <PieChartOutlined />),
+  getItem("ManageRating", "managerating", <DesktopOutlined />),
+  getItem("ManageAccount", "manageaccount", <UserOutlined />),
+  
+  
 ];
 const Dashbroad = () => {
   const [collapsed, setCollapsed] = useState(false);

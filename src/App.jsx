@@ -10,6 +10,7 @@ import { PersistGate } from "redux-persist/integration/react";
 import OverviewPage from "./pages/dashboard-admin/overview";
 import ManageRating from "./pages/dashboard-admin/managerating";
 
+
 import ForgotPasswordPage from "./pages/dashboard-admin/forgot-password";
 import MembershipPage from "./pages/membership";
 import NotificationsPage from "./pages/notifications";
@@ -21,8 +22,10 @@ import NewsPage from "./pages/news";
 import RankPage from "./components/rank/RankPage";
 import CoachesPage from "./components/coaches/CoachesPage";
 import BecomeCoachPage from "./components/BecomeCoach/BecomeCoachPage";
-import ManageRank from "./pages/dashboard-admin/managerank";
+import Verify from "./pages/verify";
 import ManageAccount from "./pages/dashboard-admin/manageaccount";
+import ChatPage from "./pages/chat";
+import UserProfile from "./pages/userprofile";
 
 function App() {
   const router = createBrowserRouter([
@@ -62,13 +65,14 @@ function App() {
         },
 
         {
-          path: "membership",
+          path: "/membership",
           element: <MembershipPage />,
         },
         {
-          path: "quit-plan",
+          path: "/quit-plan",
           element: <QuitPlanPage />,
         },
+        
       ], //element show lên cho giao diện
     },
     {
@@ -86,15 +90,12 @@ function App() {
         {
           path: "managerating",
           element: <ManageRating />,
-        },      
+        },
         {
           path: "manageaccount",
           element: <ManageAccount />,
         },
-        {
-          path: "managerank",
-          element: <ManageRank />,
-        },
+        
       ],
     },
 
@@ -112,6 +113,19 @@ function App() {
       path: "/notifications",
       element: <NotificationsPage />,
     },
+    {
+      path: "/verify",
+      element: <Verify/>,
+    },
+    {
+      path: "/chat",
+      element: <ChatPage/>,
+    },
+     {
+      path: "/userprofile",
+      element: <UserProfile/>,
+    },
+   
   ]);
   return (
     <>

@@ -1,28 +1,53 @@
-.marquee-container {
-  background-color: #0a1b2b;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.marquee-track {
-  display: inline-block;
-  padding: 10px 0;
-  animation: scrollText 20s linear infinite;
-}
-
-.marquee-item {
-  display: inline-block;
-  margin-right: 50px;
-  color: white;
-  font-weight: bold;
-  font-size: 1rem;
-}
-
-@keyframes scrollText {
+/* Animation for the popular plan badge */
+@keyframes pulse {
   0% {
-    transform: translateX(0%);
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
   }
   100% {
-    transform: translateX(-100%);
+    transform: scale(1);
+  }
+}
+
+/* Card styling */
+.pricing-card {
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.pricing-card:hover {
+  transform: translateY(-5px);
+}
+
+.popular-badge {
+  animation: pulse 2s infinite;
+}
+
+/* Button gradient transition */
+.btn-gradient {
+  background-size: 200% auto;
+  transition: all 0.5s ease;
+}
+
+.btn-gradient:hover {
+  background-position: right center;
+}
+
+/* Ensure equal height for all cards */
+.flex-grow {
+  flex-grow: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .pricing-card {
+    margin-bottom: 2rem;
+  }
+  
+  .popular-card {
+    transform: none !important;
   }
 }

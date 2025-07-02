@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
+import { useState } from "react";
+import { FiMenu, FiX } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/features/userSlice";
@@ -8,7 +8,6 @@ import "./header.css";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -21,7 +20,7 @@ const Header = () => {
     { id: 3, label: "Coaches", href: "coaches" },
     { id: 4, label: "News", href: "news" },
     { id: 5, label: "Membership", href: "membership" },
-    
+    { id: 6, label: "Quit Plan", href: "quit-plan" },
   ];
 
   const testNotifications = [
@@ -43,25 +42,15 @@ const Header = () => {
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
-  const toggleTheme = () => setIsDarkMode(!isDarkMode);
   const toggleDropdown = () => setShowDropdown(!showDropdown);
-
   const handleLogout = () => {
     dispatch(logout());
     setShowDropdown(false);
   };
 
-  useEffect(() => {
-    document.body.className = isDarkMode ? "dark" : "light";
-  }, [isDarkMode]);
-
   return (
     <>
-      <header
-        className={`fixed w-full top-0 z-50 transition-all duration-300 ${
-          isDarkMode ? "bg-gray-900 text-white" : "bg-white text-gray-800"
-        }`}
-      >
+      <header className="fixed w-full top-0 z-50 bg-gray-900 text-white transition-all duration-300">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex-shrink-0 flex items-center space-x-2">
@@ -76,12 +65,13 @@ const Header = () => {
               />
               <span className="text-sm font-bold tracking-wide">NoSmoking</span>
             </Link>
+
             <nav className="hidden md:flex space-x-8">
               {navItems.map((item) => (
                 <Link
                   key={item.id}
                   to={item.href}
-                  className="text-sm font-medium hover:text-blue-500 transition-colors duration-200"
+                  className="text-sm font-medium hover:text-blue-400 transition-colors duration-200"
                 >
                   {item.label}
                 </Link>
@@ -91,15 +81,8 @@ const Header = () => {
             <div className="flex items-center space-x-4">
               <NotificationBell
                 notifications={testNotifications}
-                isDarkMode={isDarkMode}
+                isDarkMode={true}
               />
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
-                aria-label={isDarkMode ? "lightMode" : "darkMode"}
-              >
-                {isDarkMode ? <FiSun size={20} /> : <FiMoon size={20} />}
-              </button>
 
               {user ? (
                 <div className="relative">
@@ -121,16 +104,16 @@ const Header = () => {
                   </button>
 
                   {showDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5">
+                    <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
                       <a
                         href="#profile"
-                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="block px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
                       >
                         {"profile"}
                       </a>
                       <button
                         onClick={handleLogout}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
                       >
                         {"logout"}
                       </button>
@@ -141,15 +124,15 @@ const Header = () => {
                 <div className="hidden md:flex items-center space-x-4">
                   <button
                     onClick={() => navigate("login")}
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none"
                   >
-                    {"login"}
+                    {"Login"}
                   </button>
                   <button
                     onClick={() => navigate("register")}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none"
                   >
-                    {"register"}
+                    {"Register"}
                   </button>
                 </div>
               )}
@@ -162,30 +145,31 @@ const Header = () => {
               </button>
             </div>
           </div>
+
           <div className={`md:hidden ${isOpen ? "block" : "hidden"}`}>
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navItems.map((item) => (
-                <a
+                <Link
                   key={item.id}
-                  href={item.href}
-                  className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-200 dark:hover:bg-gray-700"
+                  to={item.href}
+                  className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700"
                 >
                   {item.label}
-                </a>
+                </Link>
               ))}
               {!user && (
                 <div className="space-y-2">
                   <button
                     onClick={() => navigate("login")}
-                    className="w-full px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
+                    className="w-full px-3 py-2 text-base font-medium text-white hover:text-blue-300"
                   >
-                    {"login"}
+                    {"Login"}
                   </button>
                   <button
                     onClick={() => navigate("register")}
                     className="w-full px-3 py-2 text-base font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                   >
-                    {"register"}
+                    {"Register"}
                   </button>
                 </div>
               )}
@@ -194,15 +178,10 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Dòng chạy chữ noSmoke */}
-      <div className="marquee-container">
-        <div className="marquee-text">
+      {/* Marquee */}
+      <div className="marquee-container dark">
+        <div className="marquee-text text-white">
           NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE

@@ -1,19 +1,36 @@
 import React from 'react';
-import { Button, Form, Input } from 'antd';
+import { Button, Form, Input, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import {
   UserOutlined,
   LockOutlined,
   PhoneOutlined,
-  IdcardOutlined
+  IdcardOutlined,
+  MailOutlined
 } from '@ant-design/icons';
 import './register.css';
+import api from '../../configs/axios';
+
 
 function RegisterForm() {
   const navigate = useNavigate();
 
-  const onFinish = values => {
-    console.log('Success:', values);
+  const onFinish = async (values) => {
+    try {
+      const response = await api.post('/auth/register', {
+        userName: values.userName,
+        password: values.password,
+        fullName: values.fullName,
+        email: values.email,
+        phone: values.phone,
+      });
+
+      message.success('Đăng ký thành công! Vui lòng xác thực email.');
+      navigate(`/verify?email=${values.email}`);
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Đăng ký thất bại!');
+      console.error('Register error:', error);
+    }
   };
 
   return (
@@ -28,13 +45,42 @@ function RegisterForm() {
           onFinish={onFinish}
           autoComplete="off"
         >
+          {/* Username */}
           <Form.Item
-            name="fullname"
+            name="userName"
+            rules={[{ required: true, message: 'Please input your username!' }]}
+          >
+            <Input prefix={<UserOutlined />} placeholder="Username" />
+          </Form.Item>
+
+          {/* Password */}
+          <Form.Item
+            name="password"
+            rules={[{ required: true, message: 'Please input your password!' }]}
+          >
+            <Input.Password prefix={<LockOutlined />} placeholder="Password" />
+          </Form.Item>
+
+          {/* Full Name */}
+          <Form.Item
+            name="fullName"
             rules={[{ required: true, message: 'Please input your full name!' }]}
           >
             <Input prefix={<IdcardOutlined />} placeholder="Full Name" />
           </Form.Item>
 
+          {/* Email */}
+          <Form.Item
+            name="email"
+            rules={[
+              { required: true, message: 'Please input your email!' },
+              { type: 'email', message: 'Invalid email format!' },
+            ]}
+          >
+            <Input prefix={<MailOutlined />} placeholder="Email" />
+          </Form.Item>
+
+          {/* Phone */}
           <Form.Item
             name="phone"
             rules={[
@@ -48,37 +94,16 @@ function RegisterForm() {
             <Input prefix={<PhoneOutlined />} placeholder="Phone Number" />
           </Form.Item>
 
-          <Form.Item
-            name="username"
-            rules={[{ required: true, message: 'Please input your username!' }]}
-          >
-            <Input prefix={<UserOutlined />} placeholder="Username" />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: 'Please input your password!' }]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="Password" />
-          </Form.Item>
-
           <Form.Item>
             <Button type="primary" htmlType="submit" block>
               Submit
             </Button>
           </Form.Item>
 
-          <div className="or-divider">or</div>
-
-          <button className="google-login-button">
-            <img src="https://www.google.com/favicon.ico" alt="Google Logo" className="google-icon" />
-            Continue with Google
-          </button>
-
           <Form.Item style={{ textAlign: 'center', marginTop: 10 }}>
             Already have an account?{' '}
             <Button type="link" className="login-link" onClick={() => navigate('/login')}>
-            Login!
+              Login!
             </Button>
           </Form.Item>
         </Form>

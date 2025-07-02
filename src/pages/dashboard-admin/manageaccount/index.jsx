@@ -1,323 +1,423 @@
-import React, { useState, useMemo } from "react";
-import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import React, { useState } from "react";
 import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-} from "chart.js";
-import { Pie } from "react-chartjs-2";
+  FaUserCircle,
+  FaSearch,
+  FaCheck,
+  FaTimes,
+  FaBan,
+  FaUserEdit,
+  FaNotesMedical,
+} from "react-icons/fa";
+import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
+import { differenceInDays, format } from "date-fns";
 
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement
-);
-
-// ==== Dữ liệu Coach ====
-const mockCoachData = [
+const mockUsers = [
   {
     id: 1,
-    name: "Michael Brown",
-    coachId: "C001",
-    certification: "Level 3 Inspector",
-    assignedAreas: ["Building A", "Building B"],
-    status: "compliant",
-    starRating: 5,
+    name: "John Smith",
+    email: "john.smith@example.com",
+    complianceStatus: "health+",
+    lastVerified: "2024-06-10",
+    notes: "Regular compliance checks passed",
+    history: [
+      { date: "2024-06-10", status: "health+", note: "Quarterly check passed" },
+    ],
   },
   {
     id: 2,
-    name: "Sarah Wilson",
-    coachId: "C002",
-    certification: "Level 2 Inspector",
-    assignedAreas: ["Building C"],
-    status: "non-compliant",
-    starRating: 3,
+    name: "Sarah Johnson",
+    email: "sarah.j@example.com",
+    complianceStatus: "health",
+    lastVerified: "2024-03-15",
+    notes: "Failed compliance check",
+    history: [
+      { date: "2024-03-15", status: "health", note: "Violation reported" },
+    ],
+  },
+  {
+    id: 3,
+    name: "David Lee",
+    email: "david.lee@example.com",
+    complianceStatus: "unknown",
+    lastVerified: "2024-01-05",
+    notes: "Not verified yet",
+    history: [{ date: "2024-01-05", status: "others", note: "Unverified" }],
   },
 ];
 
-// ==== Dữ liệu User ====
-const mockUserData = [
-  { id: 1, name: "Alice", top: "top1", package: "health" },
-  { id: 2, name: "Bob", top: "top2", package: "health+" },
-  { id: 3, name: "Charlie", top: "top10", package: "other" },
-];
-
-const renderStars = (count) => {
-  const stars = [];
-  for (let i = 1; i <= 5; i++) {
-    stars.push(
-      <span
-        key={i}
-        className={i <= count ? "text-yellow-400" : "text-gray-300"}
-      >
-        ★
-      </span>
-    );
+const StatusBadge = ({ status }) => {
+  let icon, bg, text, label;
+  switch (status) {
+    case "health":
+      icon = <FaNotesMedical className="mr-1" />;
+      bg = "bg-yellow-100";
+      text = "text-yellow-800";
+      label = "Health";
+      break;
+    case "health+":
+      icon = <FaCheck className="mr-1" />;
+      bg = "bg-green-100";
+      text = "text-green-800";
+      label = "Health+";
+      break;
+    default:
+      icon = <FaBan className="mr-1" />;
+      bg = "bg-gray-200";
+      text = "text-gray-800";
+      label = "Others";
+      break;
   }
-  return stars;
+  return (
+    <span
+      className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${bg} ${text}`}
+    >
+      {icon}
+      {label}
+    </span>
+  );
 };
 
 const ManageAccount = () => {
-  const [coaches, setCoaches] = useState(mockCoachData);
-  const [users, setUsers] = useState(mockUserData);
-  const [selectedCoach, setSelectedCoach] = useState(null);
-  const [showCoachModal, setShowCoachModal] = useState(false);
+  const [users, setUsers] = useState(mockUsers);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [newNote, setNewNote] = useState("");
 
-  const accountChartData = {
-    labels: ["Coaches", "Users"],
-    datasets: [
-      {
-        label: "Account Distribution",
-        data: [coaches.length, users.length],
-        backgroundColor: ["#3b82f6", "#f59e0b"],
-        hoverOffset: 4,
-      },
-    ],
-  };
+  const usersPerPage = 10;
+  const today = new Date();
 
-  const userPackageChartData = {
-    labels: ["Health", "Health+", "Other"],
-    datasets: [
-      {
-        data: [
-          users.filter((u) => u.package === "health").length,
-          users.filter((u) => u.package === "health+").length,
-          users.filter((u) => u.package === "other").length,
-        ],
-        backgroundColor: ["#10b981", "#3b82f6", "#f59e0b"],
-      },
-    ],
-  };
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter =
+      filterStatus === "all" || user.complianceStatus === filterStatus;
+    return matchesSearch && matchesFilter;
+  });
 
-  const sortedUsers = useMemo(() => {
-    return [...users].sort((a, b) => {
-      const getTopValue = (top) => parseInt(top.replace("top", ""));
-      return getTopValue(a.top) - getTopValue(b.top);
-    });
-  }, [users]);
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
 
-  const handleCoachEdit = (coach) => {
-    setSelectedCoach({ ...coach });
-    setShowCoachModal(true);
-  };
-
-  const handleDelete = (id) => {
-    setCoaches((prev) => prev.filter((c) => c.id !== id));
-  };
-
-  const handleSave = () => {
-    setCoaches((prev) =>
-      prev.map((c) => (c.id === selectedCoach.id ? selectedCoach : c))
+  const updateUserStatus = (userId, newStatus) => {
+    setUsers(
+      users.map((user) =>
+        user.id === userId
+          ? {
+              ...user,
+              complianceStatus: newStatus,
+              lastVerified: new Date().toISOString().split("T")[0],
+              history: [
+                {
+                  date: new Date().toISOString().split("T")[0],
+                  status: newStatus,
+                  note: "Status updated",
+                },
+                ...user.history,
+              ],
+            }
+          : user
+      )
     );
-    setShowCoachModal(false);
   };
+
+  const addUserNote = (userId) => {
+    if (!newNote.trim()) return;
+    setUsers(
+      users.map((user) =>
+        user.id === userId
+          ? {
+              ...user,
+              notes: newNote,
+              history: [
+                {
+                  date: new Date().toISOString().split("T")[0],
+                  status: user.complianceStatus,
+                  note: newNote,
+                },
+                ...user.history,
+              ],
+            }
+          : user
+      )
+    );
+    setNewNote("");
+  };
+
+  // 📊 Tổng số lượt đăng nhập
+  let totalLogins = 0;
+  const loginBuckets = { last30: 0, last90: 0, over90: 0 };
+  const statusCounts = { health: 0, healthPlus: 0, others: 0 };
+
+  users.forEach((user) => {
+    const daysAgo = differenceInDays(today, new Date(user.lastVerified));
+    totalLogins += user.history.length;
+
+    if (daysAgo <= 30) loginBuckets.last30++;
+    else if (daysAgo <= 90) loginBuckets.last90++;
+    else loginBuckets.over90++;
+
+    if (user.complianceStatus === "health+") statusCounts.healthPlus++;
+    else if (user.complianceStatus === "health") statusCounts.health++;
+    else statusCounts.others++;
+  });
+
+  const pieData = [
+    { name: "Last 30 days", value: loginBuckets.last30 },
+    { name: "31–90 days", value: loginBuckets.last90 },
+    { name: "91+ days", value: loginBuckets.over90 },
+  ];
+  const pieColors = ["#3B82F6", "#06B6D4", "#10B981"];
+
+  const statusChartData = [
+    { name: "Health+", value: statusCounts.healthPlus },
+    { name: "Health", value: statusCounts.health },
+    { name: "Others", value: statusCounts.others },
+  ];
+  const statusColors = ["#10B981", "#FBBF24", "#9CA3AF"];
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">
-          No Smoking Account Management
-        </h1>
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold text-green-800">
+            No Smoking Policy Management
+          </h1>
+        </header>
 
-        {/* Hai biểu đồ kế bên nhau */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold mb-4 text-center">
-              Account Distribution
-            </h2>
-            <Pie data={accountChartData} />
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          {/* Bộ lọc */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+            <div className="relative flex-1">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search users..."
+                className="pl-10 pr-4 py-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <select
+              className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="all">All Users</option>
+              <option value="health+">Health+</option>
+              <option value="health">Health</option>
+              <option value="others">Others</option>
+            </select>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold mb-4 text-center">
-              User Subscription Packages
-            </h2>
-            <Pie data={userPackageChartData} />
+          {/* Tổng quan */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-white p-4 rounded shadow text-center">
+              <h3 className="text-xl font-bold text-gray-700">Total Logins</h3>
+              <p className="text-3xl text-green-700 font-bold">{totalLogins}</p>
+            </div>
+            <div className="bg-white p-4 rounded shadow text-center">
+              <h3 className="text-xl font-bold text-gray-700">Unique Users</h3>
+              <p className="text-3xl text-green-700 font-bold">
+                {users.length}
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Danh sách Coach */}
-        <div className="bg-white rounded-lg shadow mb-10 overflow-hidden">
-          <h2 className="text-xl font-bold px-6 py-4 bg-gray-100">
-            Coach List
-          </h2>
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Coach ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Certification
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Assigned Areas
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Rating
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {coaches.map((coach) => (
-                <tr key={coach.id}>
-                  <td className="px-6 py-4">{coach.coachId}</td>
-                  <td className="px-6 py-4">{coach.name}</td>
-                  <td className="px-6 py-4">{coach.certification}</td>
-                  <td className="px-6 py-4">
-                    {coach.assignedAreas.join(", ")}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex">{renderStars(coach.starRating)}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        coach.status === "compliant"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {coach.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleCoachEdit(coach)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <FiEdit2 />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(coach.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <FiTrash2 />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Danh sách User */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <h2 className="text-xl font-bold px-6 py-4 bg-gray-100">User List</h2>
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Top
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Package
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sortedUsers.map((user) => (
-                <tr key={user.id}>
-                  <td className="px-6 py-4">{user.id}</td>
-                  <td className="px-6 py-4">{user.name}</td>
-                  <td className="px-6 py-4 font-medium">{user.top}</td>
-                  <td className="px-6 py-4 capitalize">{user.package}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Modal chỉnh sửa Coach */}
-      {showCoachModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full">
-            <h2 className="text-xl font-bold mb-4">Edit Coach Details</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                  value={selectedCoach?.name || ""}
-                  onChange={(e) =>
-                    setSelectedCoach((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Star Rating
-                </label>
-                <div className="flex space-x-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <span
-                      key={star}
-                      onClick={() =>
-                        setSelectedCoach((prev) => ({
-                          ...prev,
-                          starRating: star,
-                        }))
-                      }
-                      className={`text-2xl cursor-pointer ${
-                        star <= (selectedCoach?.starRating || 0)
-                          ? "text-yellow-400"
-                          : "text-gray-300"
-                      }`}
-                    >
-                      ★
-                    </span>
+          {/* Hai biểu đồ đặt cạnh nhau */}
+          <div className="flex flex-col md:flex-row justify-center items-center gap-12 mb-8">
+            <div>
+              <h3 className="text-center font-semibold mb-2">
+                Login Distribution
+              </h3>
+              <PieChart width={300} height={300}>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  dataKey="value"
+                  label
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={pieColors[index]} />
                   ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </div>
+
+            <div>
+              <h3 className="text-center font-semibold mb-2">
+                Compliance Status
+              </h3>
+              <PieChart width={300} height={300}>
+                <Pie
+                  data={statusChartData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  dataKey="value"
+                  label
+                >
+                  {statusChartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-status-${index}`}
+                      fill={statusColors[index]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </div>
+          </div>
+
+          {/* Bảng người dùng */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">
+                    User
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">
+                    Email
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">
+                    Last Verified
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentUsers.map((user) => (
+                  <tr key={user.id} className="border-t hover:bg-gray-50">
+                    <td className="px-4 py-3 flex items-center">
+                      <FaUserCircle className="text-gray-400 mr-2" size={24} />
+                      {user.name}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{user.email}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={user.complianceStatus} />
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {format(new Date(user.lastVerified), "MMM dd, yyyy")}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setIsModalOpen(true);
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
+                        title="View Details"
+                      >
+                        <FaUserEdit />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Modal chi tiết */}
+        {isModalOpen && selectedUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    User Details
+                  </h2>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">
+                      Compliance Status
+                    </h3>
+                    <div className="flex space-x-2">
+                      {["health+", "health", "others"].map((status) => (
+                        <button
+                          key={status}
+                          onClick={() =>
+                            updateUserStatus(selectedUser.id, status)
+                          }
+                          className={`px-4 py-2 rounded ${
+                            selectedUser.complianceStatus === status
+                              ? status === "health+"
+                                ? "bg-green-600 text-white"
+                                : status === "health"
+                                ? "bg-yellow-500 text-white"
+                                : "bg-gray-600 text-white"
+                              : "bg-gray-200 text-gray-700"
+                          }`}
+                        >
+                          {status}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Add Note</h3>
+                    <textarea
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      className="w-full p-2 border rounded-lg"
+                      rows="3"
+                      placeholder="Enter compliance note..."
+                    ></textarea>
+                    <button
+                      onClick={() => addUserNote(selectedUser.id)}
+                      className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      Add Note
+                    </button>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">
+                      Compliance History
+                    </h3>
+                    <div className="space-y-2">
+                      {selectedUser.history.map((item, index) => (
+                        <div key={index} className="p-3 bg-gray-50 rounded">
+                          <div className="flex justify-between">
+                            <span className="text-sm text-gray-600">
+                              {format(new Date(item.date), "MMM dd, yyyy")}
+                            </span>
+                            <StatusBadge status={item.status} />
+                          </div>
+                          <p className="text-sm mt-1">{item.note}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => setShowCoachModal(false)}
-                className="bg-gray-200 px-4 py-2 rounded mr-2"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-              >
-                Save Changes
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
