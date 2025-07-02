@@ -43,7 +43,7 @@ const testimonials = [
   },
 ];
 
-const Membership = () => {
+const MembershipPackages = () => {
   const navigate = useNavigate();
 
   const handleLoginClick = () => {
@@ -196,4 +196,4 @@ const Membership = () => {
   );
 };
 
-export default Membership;
+export default MembershipPackages;

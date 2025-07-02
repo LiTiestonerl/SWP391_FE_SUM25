@@ -1,22 +1,37 @@
+import { useSelector } from "react-redux";
 import { useState } from "react";
-import { FiEdit2, FiSettings, FiKey } from "react-icons/fi";
-import { format } from "date-fns";
+import {
+  FiEdit2,
+  FiSettings,
+  FiLock,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiBriefcase,
+  FiCalendar,
+  FiUser,
+} from "react-icons/fi";
 
 const UserProfile = () => {
+  const user = useSelector((state) => state.user); // Lấy user từ Redux
+
   const [isEditing, setIsEditing] = useState(false);
-  const [profileImage, setProfileImage] = useState("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3");
-  const [userData, setUserData] = useState({
-    fullName: "John Doe",
-    username: "johndoe123",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
-    joiningDate: "2023-01-15",
-    role: "Senior Developer",
-    department: "Engineering",
-    experience: "5 years",
-    dob: "1990-05-20",
-    gender: "Male",
-    location: "New York, USA"
+  const [showModal, setShowModal] = useState(false);
+
+  const [profileData, setProfileData] = useState({
+    fullName: user?.fullName || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    location: user?.location || "",
+    title: user?.title || "",
+    bio: user?.bio || "",
+    age: user?.age || "",
+    gender: user?.gender || "",
+    dateOfBirth: user?.dateOfBirth || "",
+    currentJob: user?.currentJob || "",
+    company: user?.company || "",
+    experience: user?.experience || "",
+    profileImage: user?.profileImage || "/images/123.jpg",
   });
 
   const handleImageUpload = (e) => {
@@ -24,188 +39,320 @@ const UserProfile = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setProfileImage(reader.result);
+        setProfileData({ ...profileData, profileImage: reader.result });
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleEdit = () => {
-    setIsEditing(!isEditing);
+    setIsEditing(true);
+    setShowModal(true);
   };
 
-  const handleUpdate = (e) => {
-    e.preventDefault();
-    setIsEditing(false);
-  };
+  const EditModal = () => (
+    <div
+      className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${
+        showModal ? "" : "hidden"
+      }`}
+    >
+      <div className="bg-white rounded-lg p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <h2 className="text-2xl font-bold mb-6">Edit Profile</h2>
+        <form className="space-y-6">
+          {/* Personal Details */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Personal Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={profileData.fullName}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, fullName: e.target.value })
+                }
+                className="border rounded p-2"
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={profileData.email}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, email: e.target.value })
+                }
+                className="border rounded p-2"
+              />
+              <input
+                type="tel"
+                placeholder="Phone"
+                value={profileData.phone}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, phone: e.target.value })
+                }
+                className="border rounded p-2"
+              />
+              <input
+                type="text"
+                placeholder="Location"
+                value={profileData.location}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, location: e.target.value })
+                }
+                className="border rounded p-2"
+              />
+              <input
+                type="text"
+                placeholder="Title"
+                value={profileData.title}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, title: e.target.value })
+                }
+                className="border rounded p-2"
+              />
+              <input
+                type="number"
+                placeholder="Age"
+                value={profileData.age}
+                onChange={(e) =>
+                  setProfileData({
+                    ...profileData,
+                    age: parseInt(e.target.value),
+                  })
+                }
+                className="border rounded p-2"
+              />
+              <select
+                value={profileData.gender}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, gender: e.target.value })
+                }
+                className="border rounded p-2"
+              >
+                <option value="">Select Gender</option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other</option>
+              </select>
+              <input
+                type="date"
+                placeholder="Date of Birth"
+                value={profileData.dateOfBirth}
+                onChange={(e) =>
+                  setProfileData({
+                    ...profileData,
+                    dateOfBirth: e.target.value,
+                  })
+                }
+                className="border rounded p-2"
+              />
+            </div>
+          </div>
+
+          {/* Professional Details */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Professional Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Current Job"
+                value={profileData.currentJob}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, currentJob: e.target.value })
+                }
+                className="border rounded p-2"
+              />
+              <input
+                type="text"
+                placeholder="Company"
+                value={profileData.company}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, company: e.target.value })
+                }
+                className="border rounded p-2"
+              />
+              <input
+                type="number"
+                placeholder="Experience (years)"
+                value={profileData.experience}
+                onChange={(e) =>
+                  setProfileData({
+                    ...profileData,
+                    experience: parseInt(e.target.value),
+                  })
+                }
+                className="border rounded p-2"
+              />
+            </div>
+          </div>
+
+          {/* Bio */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Bio
+            </label>
+            <textarea
+              value={profileData.bio}
+              onChange={(e) =>
+                setProfileData({ ...profileData, bio: e.target.value })
+              }
+              className="border rounded p-2 w-full h-24"
+              placeholder="Short bio..."
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-4 justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                setShowModal(false);
+                setIsEditing(false);
+              }}
+              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowModal(false);
+                setIsEditing(false);
+                // optional: dispatch update to Redux
+              }}
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-gray-50">
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-1">
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <div className="relative w-48 h-48 mx-auto mb-6">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="relative h-48 bg-gradient-to-r from-blue-500 to-purple-600">
+            <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2">
+              <div className="relative group">
                 <img
-                  src={profileImage}
+                  src={profileData.profileImage}
                   alt="Profile"
-                  className="w-full h-full rounded-full object-cover"
-                  onError={(e) => {
-                    e.target.src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3";
-                  }}
+                  className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
                 />
-                <label className="absolute bottom-2 right-2 bg-blue-500 p-2 rounded-full cursor-pointer hover:bg-blue-600 transition-colors">
-                  <FiEdit2 className="w-5 h-5 text-white" />
+                <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                   <input
                     type="file"
                     className="hidden"
-                    accept="image/*"
                     onChange={handleImageUpload}
+                    accept="image/*"
                   />
+                  <FiEdit2 className="text-white text-2xl" />
                 </label>
-              </div>
-
-              <div className="text-center">
-                <h1 className="text-2xl font-bold mb-2">{userData.fullName}</h1>
-                <p className="text-gray-600 mb-4">@{userData.username}</p>
-                <div className="flex justify-center gap-4">
-                  <button
-                    onClick={handleEdit}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    <FiEdit2 /> Edit Profile
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                    <FiKey /> Change Password
-                  </button>
-                </div>
               </div>
             </div>
           </div>
 
-          <div className="md:col-span-2">
-            <div className="bg-white rounded-lg p-6 shadow-lg mb-8">
-              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                <FiSettings /> Professional Information
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Current Role
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={userData.role}
-                      onChange={(e) => setUserData({ ...userData, role: e.target.value })}
-                      className="w-full p-2 border rounded-lg"
-                    />
-                  ) : (
-                    <p className="text-gray-900">{userData.role}</p>
-                  )}
+          {/* Content */}
+          <div className="pt-20 px-6 pb-6">
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold text-gray-900">
+                {profileData.fullName}
+              </h1>
+              <p className="text-gray-600 mt-1">{profileData.title}</p>
+              <p className="text-gray-500 mt-2">{profileData.bio}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="flex items-center justify-center space-x-2 text-gray-600">
+                <FiMail className="text-blue-500" />
+                <span>{profileData.email}</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2 text-gray-600">
+                <FiPhone className="text-blue-500" />
+                <span>{profileData.phone}</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2 text-gray-600">
+                <FiMapPin className="text-blue-500" />
+                <span>{profileData.location}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">Personal Details</h2>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <FiUser className="text-blue-500" />
+                    <span className="text-gray-600">
+                      Age: {profileData.age}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <FiUser className="text-blue-500" />
+                    <span className="text-gray-600">
+                      Gender: {profileData.gender}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <FiCalendar className="text-blue-500" />
+                    <span className="text-gray-600">
+                      DOB: {profileData.dateOfBirth}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Department
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={userData.department}
-                      onChange={(e) => setUserData({ ...userData, department: e.target.value })}
-                      className="w-full p-2 border rounded-lg"
-                    />
-                  ) : (
-                    <p className="text-gray-900">{userData.department}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Experience
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={userData.experience}
-                      onChange={(e) => setUserData({ ...userData, experience: e.target.value })}
-                      className="w-full p-2 border rounded-lg"
-                    />
-                  ) : (
-                    <p className="text-gray-900">{userData.experience}</p>
-                  )}
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">
+                  Professional Details
+                </h2>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <FiBriefcase className="text-blue-500" />
+                    <span className="text-gray-600">
+                      Current Job: {profileData.currentJob}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <FiBriefcase className="text-blue-500" />
+                    <span className="text-gray-600">
+                      Company: {profileData.company}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <FiBriefcase className="text-blue-500" />
+                    <span className="text-gray-600">
+                      Experience: {profileData.experience} years
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h2 className="text-xl font-semibold mb-6">Personal Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
-                  </label>
-                  <p className="text-gray-900">{userData.email}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="tel"
-                      value={userData.phone}
-                      onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
-                      className="w-full p-2 border rounded-lg"
-                    />
-                  ) : (
-                    <p className="text-gray-900">{userData.phone}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date of Birth
-                  </label>
-                  <p className="text-gray-900">
-                    {format(new Date(userData.dob), "MMMM dd, yyyy")}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Location
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={userData.location}
-                      onChange={(e) => setUserData({ ...userData, location: e.target.value })}
-                      className="w-full p-2 border rounded-lg"
-                    />
-                  ) : (
-                    <p className="text-gray-900">{userData.location}</p>
-                  )}
-                </div>
-              </div>
-
-              {isEditing && (
-                <div className="mt-6 flex justify-end gap-4">
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleUpdate}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              )}
+            <div className="flex flex-wrap justify-center gap-4">
+              <button
+                onClick={handleEdit}
+                className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <FiEdit2 />
+                <span>Edit Profile</span>
+              </button>
+              <button className="flex items-center space-x-2 px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                <FiLock />
+                <span>Change Password</span>
+              </button>
+              <button className="flex items-center space-x-2 px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                <FiSettings />
+                <span>Privacy Settings</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
+      <EditModal />
     </div>
   );
 };

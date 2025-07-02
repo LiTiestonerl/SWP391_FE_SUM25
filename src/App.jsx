@@ -10,9 +10,7 @@ import { PersistGate } from "redux-persist/integration/react";
 import OverviewPage from "./pages/dashboard-admin/overview";
 import ManageRating from "./pages/dashboard-admin/managerating";
 
-
 import ForgotPasswordPage from "./pages/dashboard-admin/forgot-password";
-import MembershipPage from "./pages/membership";
 import NotificationsPage from "./pages/notifications";
 import QuitPlanPage from "./pages/quit-plan";
 
@@ -26,6 +24,9 @@ import Verify from "./pages/verify";
 import ManageAccount from "./pages/dashboard-admin/manageaccount";
 import ChatPage from "./pages/chat";
 import UserProfile from "./pages/userprofile";
+import Membership from "./pages/dashboard-admin/membership";
+import MembershipPackages from "./pages/membership-packages/MembershipPackages";
+import PaymentResult from "./pages/payment-result/PaymentResult";
 
 function App() {
   const router = createBrowserRouter([
@@ -63,16 +64,18 @@ function App() {
           path: "/becomecoach",
           element: <BecomeCoachPage />,
         },
-
         {
           path: "/membership",
-          element: <MembershipPage />,
+          element: <MembershipPackages />,
         },
         {
           path: "/quit-plan",
           element: <QuitPlanPage />,
         },
-        
+         {
+          path: "/user-profile",
+          element: <UserProfile />,
+        },
       ], //element show lên cho giao diện
     },
     {
@@ -95,7 +98,10 @@ function App() {
           path: "manageaccount",
           element: <ManageAccount />,
         },
-        
+        {
+          path: "membership",
+          element: <Membership />,
+        },
       ],
     },
 
@@ -115,17 +121,18 @@ function App() {
     },
     {
       path: "/verify",
-      element: <Verify/>,
+      element: <Verify />,
     },
     {
       path: "/chat",
-      element: <ChatPage/>,
-    },
-     {
-      path: "/userprofile",
-      element: <UserProfile/>,
+      element: <ChatPage />,
     },
    
+
+    {
+      path: "/payment-result",
+      element: <PaymentResult />,
+    },
   ]);
   return (
     <>

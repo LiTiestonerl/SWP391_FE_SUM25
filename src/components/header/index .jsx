@@ -105,12 +105,14 @@ const Header = () => {
 
                   {showDropdown && (
                     <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
-                      <a
-                        href="#profile"
+                      <Link
+                        to="/user-profile"
+                        onClick={() => setShowDropdown(false)}
                         className="block px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
                       >
-                        {"profile"}
-                      </a>
+                        Profile
+                      </Link>
+
                       <button
                         onClick={handleLogout}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"

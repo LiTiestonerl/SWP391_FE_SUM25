@@ -4,6 +4,7 @@ import {
   HomeOutlined,
   AppstoreOutlined,
   FolderOpenOutlined,
+  MobileOutlined,
 } from "@ant-design/icons";
 import { Dropdown, Button } from "antd";
 import {
@@ -12,6 +13,7 @@ import {
   PieChartOutlined,
   TeamOutlined,
   UserOutlined,
+  
 } from "@ant-design/icons";
 import { Breadcrumb, Layout, Menu, theme } from "antd";
 import { Link, Outlet } from "react-router-dom";
@@ -42,6 +44,7 @@ const items = [
   getItem("Overview", "overview", <PieChartOutlined />),
   getItem("ManageRating", "managerating", <DesktopOutlined />),
   getItem("ManageAccount", "manageaccount", <UserOutlined />),
+  getItem("Membership", "membership", <MobileOutlined />),
   
   
 ];
