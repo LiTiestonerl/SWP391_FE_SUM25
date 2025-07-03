@@ -1,5 +1,5 @@
 import { useSelector } from "react-redux";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FiEdit2,
   FiSettings,
@@ -17,22 +17,64 @@ const UserProfile = () => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [showModal, setShowModal] = useState(false);
-
-  const [profileData, setProfileData] = useState({
-    fullName: user?.fullName || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    location: user?.location || "",
-    title: user?.title || "",
-    bio: user?.bio || "",
-    age: user?.age || "",
-    gender: user?.gender || "",
-    dateOfBirth: user?.dateOfBirth || "",
-    currentJob: user?.currentJob || "",
-    company: user?.company || "",
-    experience: user?.experience || "",
-    profileImage: user?.profileImage || "/images/123.jpg",
+  const [smokingStatus, setSmokingStatus] = useState({
+    cigarettesPerDay: "",
+    frequency: "",
+    packageName: "",
+    pricePerPack: "",
+    recordDate: "",
   });
+  const [profileData, setProfileData] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    location: "",
+    title: "",
+    bio: "",
+    age: "",
+    gender: "",
+    dateOfBirth: "",
+    currentJob: "",
+    company: "",
+    experience: "",
+    profileImage: "/images/123.jpg",
+  });
+
+  // Cập nhật profileData mỗi khi user từ Redux thay đổi
+  useEffect(() => {
+    if (user && !isEditing) {
+      setProfileData({
+        fullName: user.fullName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        location: user.location || "",
+        title: user.title || "",
+        bio: user.bio || "",
+        age: user.age || "",
+        gender: user.gender || "",
+        dateOfBirth: user.dateOfBirth || "",
+        currentJob: user.currentJob || "",
+        company: user.company || "",
+        experience: user.experience || "",
+        profileImage: user.profileImage || "/images/123.jpg",
+      });
+    }
+  }, [user, isEditing]);
+  useEffect(() => {
+    const fetchSmokingStatus = async () => {
+      try {
+        const res = await fetch("/api/smoking-status/${statusId}");
+        const data = await res.json();
+        if (data.length > 0) {
+          setSmokingStatus(data[0]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch smoking status:", err);
+      }
+    };
+
+    fetchSmokingStatus();
+  }, []);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -198,6 +240,72 @@ const UserProfile = () => {
               placeholder="Short bio..."
             />
           </div>
+          {/* Smoking Status */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Smoking Status</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="number"
+                placeholder="Cigarettes per Day"
+                value={smokingStatus.cigarettesPerDay}
+                onChange={(e) =>
+                  setSmokingStatus({
+                    ...smokingStatus,
+                    cigarettesPerDay: parseInt(e.target.value),
+                  })
+                }
+                className="border rounded p-2"
+              />
+              <input
+                type="text"
+                placeholder="Frequency"
+                value={smokingStatus.frequency}
+                onChange={(e) =>
+                  setSmokingStatus({
+                    ...smokingStatus,
+                    frequency: e.target.value,
+                  })
+                }
+                className="border rounded p-2"
+              />
+              <input
+                type="number"
+                placeholder="Package ID"
+                value={smokingStatus.packageId}
+                onChange={(e) =>
+                  setSmokingStatus({
+                    ...smokingStatus,
+                    packageId: parseInt(e.target.value),
+                  })
+                }
+                className="border rounded p-2"
+              />
+              <input
+                type="number"
+                placeholder="Price per Pack"
+                value={smokingStatus.pricePerPack}
+                onChange={(e) =>
+                  setSmokingStatus({
+                    ...smokingStatus,
+                    pricePerPack: parseFloat(e.target.value),
+                  })
+                }
+                className="border rounded p-2"
+              />
+              <input
+                type="date"
+                placeholder="Record Date"
+                value={smokingStatus.recordDate}
+                onChange={(e) =>
+                  setSmokingStatus({
+                    ...smokingStatus,
+                    recordDate: e.target.value,
+                  })
+                }
+                className="border rounded p-2"
+              />
+            </div>
+          </div>
 
           {/* Buttons */}
           <div className="flex gap-4 justify-end">
@@ -214,11 +322,28 @@ const UserProfile = () => {
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.preventDefault();
                 setShowModal(false);
                 setIsEditing(false);
-                // optional: dispatch update to Redux
+
+                try {
+                  const response = await fetch("/api/smoking-status", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(smokingStatus),
+                  });
+
+                  if (!response.ok) {
+                    throw new Error("Failed to update smoking status");
+                  }
+
+                  console.log("Smoking status updated successfully.");
+                } catch (err) {
+                  console.error(err.message);
+                }
               }}
             >
               Save Changes

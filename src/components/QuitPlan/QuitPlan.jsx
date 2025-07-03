@@ -1,24 +1,29 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ToastContainer, toast, Zoom } from 'react-toastify';
-import MonthNavigator from './MonthNavigator';
-import DateRangePicker from './DateRangePicker';
-import './modal.css';
+import React, { useState, useEffect, Suspense, lazy } from "react";
+import { useNavigate } from "react-router-dom";
+import { ToastContainer, toast, Zoom } from "react-toastify";
+import MonthNavigator from "./MonthNavigator";
+import DateRangePicker from "./DateRangePicker";
+import "./modal.css";
 
-const WeekCard = lazy(() => import('./WeekCard'));
-const Modal = lazy(() => import('./Modal'));
+const WeekCard = lazy(() => import("./WeekCard"));
+const Modal = lazy(() => import("./Modal"));
 
 const TOAST_DURATION = 3500;
 const TOAST_PROPERTIES = {
-  className: 'custom-toast',
-  progressClassName: 'custom-toast-progress',
+  className: "custom-toast",
+  progressClassName: "custom-toast-progress",
   autoClose: TOAST_DURATION,
   pauseOnHover: true,
 };
 
 const toastIds = new Map();
 
-export const notify = (type = 'info', message = '', key = null, options = {}) => {
+export const notify = (
+  type = "info",
+  message = "",
+  key = null,
+  options = {}
+) => {
   const toastKey = key || message;
   if (toastIds.has(toastKey)) {
     toast.dismiss(toastIds.get(toastKey));
@@ -38,9 +43,11 @@ export const notify = (type = 'info', message = '', key = null, options = {}) =>
   };
 
   const id =
-    type === 'success' ? toast.success(message, config) :
-    type === 'warning' ? toast.warning(message, config) :
-    toast.info(message, config);
+    type === "success"
+      ? toast.success(message, config)
+      : type === "warning"
+      ? toast.warning(message, config)
+      : toast.info(message, config);
 
   toastIds.set(toastKey, id);
 };
@@ -48,18 +55,20 @@ export const notify = (type = 'info', message = '', key = null, options = {}) =>
 const QuitPlan = () => {
   const navigate = useNavigate();
 
-  const [points, setPoints] = useState(() => parseInt(localStorage.getItem('plansPoints') || '0'));
+  const [points, setPoints] = useState(() =>
+    parseInt(localStorage.getItem("plansPoints") || "0")
+  );
   const [currentMonth, setMonth] = useState(new Date());
   const [selectedWeek, setWeek] = useState(null);
   const [selectedDay, setDay] = useState(null);
-  const [searchTerm, setSearch] = useState('');
+  const [searchTerm, setSearch] = useState("");
   const [plansByWeek, setWeeks] = useState([]);
   const [selectedStartDate, setSelectedStartDate] = useState(null);
   const [selectedEndDate, setSelectedEndDate] = useState(null);
   const [isDateRangeMode, setIsDateRangeMode] = useState(false);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
 
-  const selectedPlan = 'OTHERS';
+  const selectedPlan = "OTHERS";
 
   const generateWeeksForMonth = (date) => {
     const year = date.getFullYear();
@@ -74,7 +83,10 @@ const QuitPlan = () => {
     while (current <= lastDay) {
       const weekDays = [];
 
-      while (current <= lastDay && (weekDays.length === 0 || current.getDay() !== 1)) {
+      while (
+        current <= lastDay &&
+        (weekDays.length === 0 || current.getDay() !== 1)
+      ) {
         weekDays.push(new Date(current));
         current.setDate(current.getDate() + 1);
       }
@@ -97,13 +109,13 @@ const QuitPlan = () => {
     const res = [];
     let d = new Date(start);
     const templates = [
-      'Deep breathing for 10 mins',
-      'Drink 2L water daily',
-      '15 mins light exercise',
-      'Meditation session',
-      'Avoid coffee triggers',
-      'Journal your feelings',
-      'Relax with calming music',
+      "Deep breathing for 10 mins",
+      "Drink 2L water daily",
+      "15 mins light exercise",
+      "Meditation session",
+      "Avoid coffee triggers",
+      "Journal your feelings",
+      "Relax with calming music",
     ];
 
     while (d <= end && d.getMonth() === start.getMonth()) {
@@ -126,13 +138,13 @@ const QuitPlan = () => {
     const current = new Date(startDate);
     const last = new Date(endDate);
     const templates = [
-      'Deep breathing for 10 mins',
-      'Drink 2L water daily',
-      '15 mins light exercise',
-      'Meditation session',
-      'Avoid coffee triggers',
-      'Journal your feelings',
-      'Relax with calming music',
+      "Deep breathing for 10 mins",
+      "Drink 2L water daily",
+      "15 mins light exercise",
+      "Meditation session",
+      "Avoid coffee triggers",
+      "Journal your feelings",
+      "Relax with calming music",
     ];
 
     while (current <= last) {
@@ -171,8 +183,8 @@ const QuitPlan = () => {
   }, [currentMonth]);
 
   useEffect(() => {
-    localStorage.setItem('plansPoints', points);
-    localStorage.setItem('plansPlans', JSON.stringify(plansByWeek));
+    localStorage.setItem("plansPoints", points);
+    localStorage.setItem("plansPlans", JSON.stringify(plansByWeek));
   }, [points, plansByWeek]);
 
   const toggleDay = (wIdx, dIdx) => {
@@ -195,14 +207,14 @@ const QuitPlan = () => {
 
   const handleMenuAction = (wIdx, dIdx, act) => {
     switch (act) {
-      case 'save':
+      case "save":
         break;
-      case 'share':
+      case "share":
         break;
-      case 'copy':
+      case "copy":
         navigator.clipboard.writeText(plansByWeek[wIdx].plans[dIdx].plan);
         break;
-      case 'edit':
+      case "edit":
         setWeeks((prev) => {
           const dup = restoreDates(JSON.parse(JSON.stringify(prev)));
           dup[wIdx].plans[dIdx].editable = true;
@@ -210,7 +222,7 @@ const QuitPlan = () => {
         });
         setDay({ weekIndex: wIdx, dayIndex: dIdx });
         break;
-      case 'highlight':
+      case "highlight":
         setWeeks((prev) => {
           const dup = restoreDates(JSON.parse(JSON.stringify(prev)));
           dup[wIdx].plans[dIdx].highlight = !dup[wIdx].plans[dIdx].highlight;
@@ -246,16 +258,16 @@ const QuitPlan = () => {
     setSelectedStartDate(startDate);
     setSelectedEndDate(endDate);
     setIsDateRangeMode(true);
-    
+
     const dateRangePlans = generatePlansBetweenDates(startDate, endDate);
-    
+
     const fakeWeek = {
-      id: 'custom-range',
+      id: "custom-range",
       start: startDate,
       end: endDate,
-      plans: dateRangePlans
+      plans: dateRangePlans,
     };
-    
+
     setWeeks([fakeWeek]);
     setWeek(0);
   };
@@ -274,58 +286,83 @@ const QuitPlan = () => {
 
   const highlightText = (text, term) => {
     if (!term) return text;
-    const parts = text.split(new RegExp(`(${term})`, 'gi'));
-    return parts.map((part, i) => 
-      part.toLowerCase() === term.toLowerCase() 
-        ? <mark key={i} className="bg-yellow-200">{part}</mark> 
-        : part
+    const parts = text.split(new RegExp(`(${term})`, "gi"));
+    return parts.map((part, i) =>
+      part.toLowerCase() === term.toLowerCase() ? (
+        <mark key={i} className="bg-yellow-200">
+          {part}
+        </mark>
+      ) : (
+        part
+      )
     );
   };
 
   const filterPlans = (plans) => {
     if (!searchTerm.trim()) return plans;
-    
+
     const searchTermLower = searchTerm.toLowerCase();
-    
-    return plans.map(week => ({
-      ...week,
-      plans: week.plans.map(plan => {
-        // Clone plan to avoid mutating original
-        const highlightedPlan = {...plan};
-        
-        // Check matches for each field
-        const planContentMatch = plan.plan.toLowerCase().includes(searchTermLower);
-        const dateStr = `${plan.date.getDate()}/${plan.date.getMonth() + 1}`;
-        const fullDateStr = `${dateStr}/${plan.date.getFullYear()}`;
-        const dateMatch = dateStr.includes(searchTermLower) || 
-                         fullDateStr.includes(searchTermLower);
-        const weekdayMatch = plan.date.toLocaleDateString('en-US', { 
-          weekday: 'long' 
-        }).toLowerCase().includes(searchTermLower) ||
-        plan.date.toLocaleDateString('en-US', { 
-          weekday: 'short' 
-        }).toLowerCase().includes(searchTermLower);
-        const statusMatch = (
-          (plan.completed && 'completed'.includes(searchTermLower)) ||
-          (!plan.completed && new Date(plan.date) < new Date() && 'missed'.includes(searchTermLower))
-        );
-        const highlightMatch = (
-          plan.highlight && ('highlight'.includes(searchTermLower) || 
-                          'important'.includes(searchTermLower))
-        );
-        
-        // Add highlight to matching fields
-        if (planContentMatch) {
-          highlightedPlan.plan = highlightText(plan.plan, searchTerm);
-        }
-        
-        return {
-          ...highlightedPlan,
-          _match: planContentMatch || dateMatch || weekdayMatch || 
-                 statusMatch || highlightMatch
-        };
-      }).filter(plan => plan._match)
-    })).filter(week => week.plans.length > 0);
+
+    return plans
+      .map((week) => ({
+        ...week,
+        plans: week.plans
+          .map((plan) => {
+            // Clone plan to avoid mutating original
+            const highlightedPlan = { ...plan };
+
+            // Check matches for each field
+            const planContentMatch = plan.plan
+              .toLowerCase()
+              .includes(searchTermLower);
+            const dateStr = `${plan.date.getDate()}/${
+              plan.date.getMonth() + 1
+            }`;
+            const fullDateStr = `${dateStr}/${plan.date.getFullYear()}`;
+            const dateMatch =
+              dateStr.includes(searchTermLower) ||
+              fullDateStr.includes(searchTermLower);
+            const weekdayMatch =
+              plan.date
+                .toLocaleDateString("en-US", {
+                  weekday: "long",
+                })
+                .toLowerCase()
+                .includes(searchTermLower) ||
+              plan.date
+                .toLocaleDateString("en-US", {
+                  weekday: "short",
+                })
+                .toLowerCase()
+                .includes(searchTermLower);
+            const statusMatch =
+              (plan.completed && "completed".includes(searchTermLower)) ||
+              (!plan.completed &&
+                new Date(plan.date) < new Date() &&
+                "missed".includes(searchTermLower));
+            const highlightMatch =
+              plan.highlight &&
+              ("highlight".includes(searchTermLower) ||
+                "important".includes(searchTermLower));
+
+            // Add highlight to matching fields
+            if (planContentMatch) {
+              highlightedPlan.plan = highlightText(plan.plan, searchTerm);
+            }
+
+            return {
+              ...highlightedPlan,
+              _match:
+                planContentMatch ||
+                dateMatch ||
+                weekdayMatch ||
+                statusMatch ||
+                highlightMatch,
+            };
+          })
+          .filter((plan) => plan._match),
+      }))
+      .filter((week) => week.plans.length > 0);
   };
 
   const filteredWeeks = filterPlans(plansByWeek);
@@ -335,15 +372,15 @@ const QuitPlan = () => {
   );
 
   const searchSuggestions = [
-    'meditation',
-    'water',
-    'exercise',
-    'completed',
-    'missed',
-    'highlight',
+    "meditation",
+    "water",
+    "exercise",
+    "completed",
+    "missed",
+    "highlight",
     `${new Date().getDate()}/${new Date().getMonth() + 1}`,
-    'Monday',
-    'Friday'
+    "Monday",
+    "Friday",
   ];
 
   return (
@@ -361,7 +398,12 @@ const QuitPlan = () => {
           transition={Zoom}
           transitionDuration={300}
           theme="colored"
-          style={{ zIndex: 9999, marginTop: 20, marginRight: 10, position: 'fixed' }}
+          style={{
+            zIndex: 9999,
+            marginTop: 20,
+            marginRight: 10,
+            position: "fixed",
+          }}
         />
 
         <div className="flex justify-center mb-10 mt-4">
@@ -384,19 +426,25 @@ const QuitPlan = () => {
                 setShowSearchSuggestions(e.target.value.length > 0);
               }}
               onFocus={() => setShowSearchSuggestions(searchTerm.length > 0)}
-              onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 200)}
+              onBlur={() =>
+                setTimeout(() => setShowSearchSuggestions(false), 200)
+              }
               placeholder="Search plans by content, date (dd/mm), status..."
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
             />
             {showSearchSuggestions && (
               <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md p-2 text-sm text-gray-500 border border-gray-200">
-                <div className="text-xs text-gray-400 mb-2">Try searching for:</div>
+                <div className="text-xs text-gray-400 mb-2">
+                  Try searching for:
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {searchSuggestions
-                    .filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .filter((s) =>
+                      s.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
                     .slice(0, 6)
                     .map((suggestion, index) => (
-                      <span 
+                      <span
                         key={index}
                         className="bg-gray-100 px-2 py-1 rounded cursor-pointer hover:bg-gray-200"
                         onClick={() => {
@@ -411,14 +459,15 @@ const QuitPlan = () => {
               </div>
             )}
           </div>
-          
+
           <div className="flex items-center gap-4 ml-4">
             {isDateRangeMode ? (
               <div className="flex items-center gap-2">
                 <div className="date-range-display">
-                  {selectedStartDate.toLocaleDateString()} - {selectedEndDate.toLocaleDateString()}
+                  {selectedStartDate.toLocaleDateString()} -{" "}
+                  {selectedEndDate.toLocaleDateString()}
                 </div>
-                <button 
+                <button
                   onClick={resetToMonthView}
                   className="date-range-clear-btn"
                 >
@@ -426,7 +475,7 @@ const QuitPlan = () => {
                 </button>
               </div>
             ) : null}
-            
+
             <DateRangePicker onSelectDateRange={handleDateRangeSelect} />
           </div>
         </div>
@@ -438,12 +487,14 @@ const QuitPlan = () => {
                 <button
                   key={i}
                   onClick={() => setWeek(i)}
-                  className={`px-4 py-2 rounded-lg transition ${selectedWeek === i
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300'
-                    }`}
+                  className={`px-4 py-2 rounded-lg transition ${
+                    selectedWeek === i
+                      ? "bg-emerald-600 text-white"
+                      : "bg-gray-200 hover:bg-gray-300"
+                  }`}
                 >
-                  Week {w.id} ({w.plans.filter((p) => p.completed).length}/{w.plans.length})
+                  Week {w.id} ({w.plans.filter((p) => p.completed).length}/
+                  {w.plans.length})
                 </button>
               ))}
             </div>
@@ -459,7 +510,9 @@ const QuitPlan = () => {
                 selectedPlan={selectedPlan}
                 handleCompleteDay={handleCompleteDay}
                 handleMenuAction={handleMenuAction}
-                onDayClick={(dIdx) => setDay({ weekIndex: selectedWeek, dayIndex: dIdx })}
+                onDayClick={(dIdx) =>
+                  setDay({ weekIndex: selectedWeek, dayIndex: dIdx })
+                }
                 selectedStartDate={selectedStartDate}
                 selectedEndDate={selectedEndDate}
               />
@@ -475,18 +528,20 @@ const QuitPlan = () => {
             <li>Do meditation x3</li>
           </ul>
           <div className="flex flex-wrap justify-between items-center gap-4">
-            <h3 className="text-2xl font-bold">Total Progress: {points} points</h3>
+            <h3 className="text-2xl font-bold">
+              Total Progress: {points} points
+            </h3>
             <div className="text-sm">
               Completed: {completedMonth}/
               {plansByWeek.reduce((a, w) => a + w.plans.length, 0)} days
             </div>
             <div className="flex-1 min-w-[200px]">
               <div className="text-sm text-gray-600">
-                Progress:{' '}
+                Progress:{" "}
                 {Math.round(
                   (completedMonth /
                     plansByWeek.reduce((a, w) => a + w.plans.length, 0)) *
-                  100,
+                    100
                 )}
                 %
               </div>
@@ -498,7 +553,7 @@ const QuitPlan = () => {
                       (completedMonth /
                         plansByWeek.reduce((a, w) => a + w.plans.length, 0)) *
                         100,
-                      100,
+                      100
                     )}%`,
                   }}
                 />
