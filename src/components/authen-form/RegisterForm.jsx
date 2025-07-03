@@ -37,6 +37,7 @@ function RegisterForm() {
     <div className='register-form'>
       <div className='register-form-container'>
         <div className="register-title-box">
+        <div className="register-title-box">
           <h1>SignUp</h1>
         </div>
         <Form

@@ -1,6 +1,7 @@
 .login-form {
   width: 100%;
   padding: 0 30px;
+  padding: 0 30px;
   color: black;
   display: flex;
   justify-content: center;
@@ -8,15 +9,22 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #77dbc8, #acb6e5);
   transition: background 0.5s ease;
+  background: linear-gradient(135deg, #77dbc8, #acb6e5);
+  transition: background 0.5s ease;
 }
 
 .login-form .login-form-container {
+  background: rgba(255, 255, 255, 0.95);
   background: rgba(255, 255, 255, 0.95);
   border: 2px solid #2c3e50;
   border-radius: 16px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
   padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  padding: 40px;
   width: 100%;
+  max-width: 450px;
   max-width: 450px;
 }
 
@@ -24,20 +32,25 @@ h1 {
   text-align: center;
   margin-bottom: 20px;
   color: #1a1a1a;
+  color: #1a1a1a;
   font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
   font-size: 60px;
   font-weight: bold;
   font-style: italic;
   text-decoration: none;
+  text-decoration: none;
 }
 
 .login-title-box h1 {
+  color: #1a1a1a !important;
   color: #1a1a1a !important;
   margin: 0;
 }
 
 .login-form .ant-form-item-label > label {
   font-size: 16px;
+  font-weight: 600;
+  color: #333;
   font-weight: 600;
   color: #333;
 }
@@ -53,13 +66,34 @@ h1 {
   color: #666;
   font-size: 18px;
   margin-right: 10px;
+  height: 48px;
+  border-radius: 8px;
+  padding-left: 40px;
+}
+
+.login-form .ant-input-prefix {
+  color: #666;
+  font-size: 18px;
+  margin-right: 10px;
 }
 
 .login-form .ant-btn-primary {
   background-color: #2c3e50;
   border-color: #2c3e50;
+  background-color: #2c3e50;
+  border-color: #2c3e50;
   color: white;
   font-size: 16px;
+  font-weight: 600;
+  height: 48px;
+  border-radius: 8px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.login-form .ant-btn-primary:hover {
+  background-color: #34495e;
+  border-color: #34495e;
+  transform: translateY(-2px);
   font-weight: 600;
   height: 48px;
   border-radius: 8px;
