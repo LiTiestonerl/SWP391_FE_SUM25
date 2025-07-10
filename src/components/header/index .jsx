@@ -16,11 +16,12 @@ const Header = () => {
 
   const navItems = [
     { id: 1, label: "Home", href: "home" },
-    { id: 2, label: "Rank", href: "rank" },
-    { id: 3, label: "Coaches", href: "coaches" },
-    { id: 4, label: "News", href: "news" },
-    { id: 5, label: "Membership", href: "membership" },
-    { id: 6, label: "Quit Plan", href: "quit-plan" },
+    { id: 2, label: "Social", href: "social" },
+    { id: 3, label: "Rank", href: "rank" },
+    { id: 4, label: "Coaches", href: "coaches" },
+    { id: 5, label: "News", href: "news" },
+    { id: 6, label: "Membership", href: "membership" },
+    { id: 7, label: "Quit Plan", href: "quit-plan" },
   ];
 
   const testNotifications = [
@@ -91,9 +92,7 @@ const Header = () => {
                     className="flex items-center space-x-2 focus:outline-none"
                   >
                     <img
-                      src={
-                        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRsVNNgXA9Qlq5GaQtWcqv0eyrFFLBJXWXpnw&s"
-                      }
+                       src={localStorage.getItem("custom_avatar") || user?.avatar || "/images/avatar.jpg"}
                       alt={user?.fullName}
                       className="h-8 w-8 rounded-full object-cover"
                       onError={(e) => {

@@ -1,483 +1,514 @@
-import { useSelector } from "react-redux";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  FiEdit2,
-  FiSettings,
-  FiLock,
-  FiMail,
-  FiPhone,
+  FiMessageSquare,
+  FiShare2,
   FiMapPin,
   FiBriefcase,
   FiCalendar,
-  FiUser,
+  FiCamera,
 } from "react-icons/fi";
+import api from "../../configs/axios";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import "./UserProfile.css";
+import { useDispatch } from "react-redux";
+import { updateAvatar } from "../../redux/features/userSlice";
 
 const UserProfile = () => {
-  const user = useSelector((state) => state.user); // Lấy user từ Redux
+  const navigate = useNavigate();
+  const currentUser = useSelector((state) => state.user);
+  const avatarInputRef = useRef(null);
+  const coverInputRef = useRef(null);
 
+  const [posts, setPosts] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newContent, setNewContent] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [smokingStatus, setSmokingStatus] = useState({
-    cigarettesPerDay: "",
-    frequency: "",
-    packageName: "",
-    pricePerPack: "",
-    recordDate: "",
-  });
-  const [profileData, setProfileData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    location: "",
-    title: "",
-    bio: "",
-    age: "",
-    gender: "",
-    dateOfBirth: "",
-    currentJob: "",
-    company: "",
-    experience: "",
-    profileImage: "/images/123.jpg",
+  const [comments, setComments] = useState({});
+  const [visibleComments, setVisibleComments] = useState({});
+  const [newComments, setNewComments] = useState({});
+  const user = useSelector((state) => state.user);
+  const toBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+
+  const dispatch = useDispatch();
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const base64 = await toBase64(file);
+
+    setProfileInfo((prev) => ({ ...prev, avatar: base64 }));
+
+    dispatch(updateAvatar(base64));
+
+    localStorage.setItem("custom_avatar", base64);
+  };
+
+  const handleCoverChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const base64 = await toBase64(file);
+    setProfileInfo((prev) => ({ ...prev, coverPhoto: base64 }));
+    localStorage.setItem("custom_cover", base64);
+  };
+
+  const [profileInfo, setProfileInfo] = useState({
+    location: currentUser?.location || "",
+    occupation: currentUser?.occupation || "",
+    smokeFreeDate: currentUser?.smokeFreeDate || "",
+    avatar: localStorage.getItem("custom_avatar") || currentUser?.avatar || "",
+    coverPhoto:
+      localStorage.getItem("custom_cover") || currentUser?.coverPhoto || "",
   });
 
-  // Cập nhật profileData mỗi khi user từ Redux thay đổi
-  useEffect(() => {
-    if (user && !isEditing) {
-      setProfileData({
-        fullName: user.fullName || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        location: user.location || "",
-        title: user.title || "",
-        bio: user.bio || "",
-        age: user.age || "",
-        gender: user.gender || "",
-        dateOfBirth: user.dateOfBirth || "",
-        currentJob: user.currentJob || "",
-        company: user.company || "",
-        experience: user.experience || "",
-        profileImage: user.profileImage || "/images/123.jpg",
-      });
+  const userProfile = {
+    name:
+      currentUser?.name ||
+      currentUser?.fullName ||
+      currentUser?.login ||
+      currentUser?.email ||
+      "Anonymous",
+    avatar: currentUser?.avatar || "/images/avatar.jpg",
+    coverPhoto:
+      currentUser?.coverPhoto ||
+      "https://images.unsplash.com/photo-1584036561566-baf8f5f1b144",
+    stats: {
+      daysSmokeFree: currentUser?.stats?.daysSmokeFree || 0,
+      moneySaved: currentUser?.stats?.moneySaved || 0,
+      healthScore: currentUser?.stats?.healthScore || 0,
+    },
+  };
+
+  const handlePostSubmit = async () => {
+    if (!currentUser) return alert("Bạn cần đăng nhập để đăng bài");
+
+    const postPayload = {
+      title: `Post by ${userProfile.name}`,
+      content: newContent,
+      status: "published",
+    };
+
+    console.log("📤 Sending post payload:", postPayload);
+
+    try {
+      const response = await api.post("posts", postPayload);
+      console.log("✅ Post created:", response.data);
+      setPosts([response.data, ...posts]);
+      setNewContent("");
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("❌ Failed to create post", error);
     }
-  }, [user, isEditing]);
+  };
+
+  const handleViewPost = (postId) => {
+    navigate(`/posts/${postId}`);
+  };
+
   useEffect(() => {
-    const fetchSmokingStatus = async () => {
+    if (!currentUser?.id) return;
+
+    const fetchPosts = async () => {
       try {
-        const res = await fetch("/api/smoking-status/${statusId}");
-        const data = await res.json();
-        if (data.length > 0) {
-          setSmokingStatus(data[0]);
-        }
-      } catch (err) {
-        console.error("Failed to fetch smoking status:", err);
+        const res = await api.get(`posts/user/${currentUser.id}`);
+        const postsData = Array.isArray(res.data) ? res.data : [];
+        setPosts(postsData);
+      } catch (error) {
+        console.error("❌ Error fetching posts", error);
       }
     };
 
-    fetchSmokingStatus();
-  }, []);
+    fetchPosts();
+  }, [currentUser?.id]);
+  const toggleComments = async (postId) => {
+    const isVisible = visibleComments[postId];
+    setVisibleComments((prev) => ({ ...prev, [postId]: !isVisible }));
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileData({ ...profileData, profileImage: reader.result });
-      };
-      reader.readAsDataURL(file);
+    // Nếu chưa load comment thì fetch
+    if (!isVisible && !comments[postId]) {
+      try {
+        const res = await api.get(`/posts/${postId}/comments`);
+        setComments((prev) => ({ ...prev, [postId]: res.data }));
+      } catch (err) {
+        console.error("❌ Lỗi khi tải comment:", err);
+      }
+    }
+  };
+  const handleCommentSubmit = async (postId) => {
+    const content = newComments[postId]?.trim();
+    if (!content) return;
+
+    try {
+      const res = await api.post(`/posts/${postId}/comments`, {
+        content,
+        status: "published",
+      });
+
+      setComments((prev) => ({
+        ...prev,
+        [postId]: [res.data, ...(prev[postId] || [])],
+      }));
+
+      setNewComments((prev) => ({ ...prev, [postId]: "" }));
+    } catch (err) {
+      console.error("❌ Không thể gửi comment:", err);
     }
   };
 
-  const handleEdit = () => {
-    setIsEditing(true);
-    setShowModal(true);
-  };
-
-  const EditModal = () => (
-    <div
-      className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${
-        showModal ? "" : "hidden"
-      }`}
-    >
-      <div className="bg-white rounded-lg p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-6">Edit Profile</h2>
-        <form className="space-y-6">
-          {/* Personal Details */}
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Personal Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={profileData.fullName}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, fullName: e.target.value })
-                }
-                className="border rounded p-2"
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={profileData.email}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, email: e.target.value })
-                }
-                className="border rounded p-2"
-              />
-              <input
-                type="tel"
-                placeholder="Phone"
-                value={profileData.phone}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, phone: e.target.value })
-                }
-                className="border rounded p-2"
-              />
-              <input
-                type="text"
-                placeholder="Location"
-                value={profileData.location}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, location: e.target.value })
-                }
-                className="border rounded p-2"
-              />
-              <input
-                type="text"
-                placeholder="Title"
-                value={profileData.title}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, title: e.target.value })
-                }
-                className="border rounded p-2"
-              />
-              <input
-                type="number"
-                placeholder="Age"
-                value={profileData.age}
-                onChange={(e) =>
-                  setProfileData({
-                    ...profileData,
-                    age: parseInt(e.target.value),
-                  })
-                }
-                className="border rounded p-2"
-              />
-              <select
-                value={profileData.gender}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, gender: e.target.value })
-                }
-                className="border rounded p-2"
-              >
-                <option value="">Select Gender</option>
-                <option value="Female">Female</option>
-                <option value="Male">Male</option>
-                <option value="Other">Other</option>
-              </select>
-              <input
-                type="date"
-                placeholder="Date of Birth"
-                value={profileData.dateOfBirth}
-                onChange={(e) =>
-                  setProfileData({
-                    ...profileData,
-                    dateOfBirth: e.target.value,
-                  })
-                }
-                className="border rounded p-2"
-              />
-            </div>
-          </div>
-
-          {/* Professional Details */}
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Professional Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Current Job"
-                value={profileData.currentJob}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, currentJob: e.target.value })
-                }
-                className="border rounded p-2"
-              />
-              <input
-                type="text"
-                placeholder="Company"
-                value={profileData.company}
-                onChange={(e) =>
-                  setProfileData({ ...profileData, company: e.target.value })
-                }
-                className="border rounded p-2"
-              />
-              <input
-                type="number"
-                placeholder="Experience (years)"
-                value={profileData.experience}
-                onChange={(e) =>
-                  setProfileData({
-                    ...profileData,
-                    experience: parseInt(e.target.value),
-                  })
-                }
-                className="border rounded p-2"
-              />
-            </div>
-          </div>
-
-          {/* Bio */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Bio
-            </label>
-            <textarea
-              value={profileData.bio}
-              onChange={(e) =>
-                setProfileData({ ...profileData, bio: e.target.value })
-              }
-              className="border rounded p-2 w-full h-24"
-              placeholder="Short bio..."
+  return (
+    <div className="min-h-screen bg-gray-50 overflow-y-auto">
+      <div className="max-w-7xl mx-auto px-4 pt-24">
+        {/* Cover */}
+        <div className="relative">
+          <div className="h-80 rounded-b-lg overflow-hidden">
+            <img
+              src={profileInfo.coverPhoto || userProfile.coverPhoto}
+              alt="Cover"
+              className="w-full h-full object-cover"
+            />
+            <button
+              className="absolute bottom-4 right-4 bg-white px-4 py-2 rounded-md shadow text-sm font-medium"
+              onClick={() => coverInputRef.current.click()}
+            >
+              <FiCamera className="inline mr-2" />
+              Edit cover photo
+            </button>
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              ref={coverInputRef}
+              onChange={handleCoverChange}
             />
           </div>
-          {/* Smoking Status */}
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Smoking Status</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="number"
-                placeholder="Cigarettes per Day"
-                value={smokingStatus.cigarettesPerDay}
-                onChange={(e) =>
-                  setSmokingStatus({
-                    ...smokingStatus,
-                    cigarettesPerDay: parseInt(e.target.value),
-                  })
-                }
-                className="border rounded p-2"
+        </div>
+
+        {/* Avatar + Name */}
+        <div className="mt-6 px-4 flex justify-between items-center flex-wrap">
+          <div className="flex items-center space-x-4">
+            <div className="relative">
+              <img
+                src={profileInfo.avatar || userProfile.avatar}
+                alt={userProfile.name}
+                className="w-32 h-32 rounded-full border-4 border-white object-cover"
               />
-              <input
-                type="text"
-                placeholder="Frequency"
-                value={smokingStatus.frequency}
-                onChange={(e) =>
-                  setSmokingStatus({
-                    ...smokingStatus,
-                    frequency: e.target.value,
-                  })
-                }
-                className="border rounded p-2"
-              />
-              <input
-                type="number"
-                placeholder="Package ID"
-                value={smokingStatus.packageId}
-                onChange={(e) =>
-                  setSmokingStatus({
-                    ...smokingStatus,
-                    packageId: parseInt(e.target.value),
-                  })
-                }
-                className="border rounded p-2"
-              />
-              <input
-                type="number"
-                placeholder="Price per Pack"
-                value={smokingStatus.pricePerPack}
-                onChange={(e) =>
-                  setSmokingStatus({
-                    ...smokingStatus,
-                    pricePerPack: parseFloat(e.target.value),
-                  })
-                }
-                className="border rounded p-2"
-              />
-              <input
-                type="date"
-                placeholder="Record Date"
-                value={smokingStatus.recordDate}
-                onChange={(e) =>
-                  setSmokingStatus({
-                    ...smokingStatus,
-                    recordDate: e.target.value,
-                  })
-                }
-                className="border rounded p-2"
-              />
-            </div>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-4 justify-end">
-            <button
-              type="button"
-              onClick={() => {
-                setShowModal(false);
-                setIsEditing(false);
-              }}
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              onClick={async (e) => {
-                e.preventDefault();
-                setShowModal(false);
-                setIsEditing(false);
-
-                try {
-                  const response = await fetch("/api/smoking-status", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(smokingStatus),
-                  });
-
-                  if (!response.ok) {
-                    throw new Error("Failed to update smoking status");
-                  }
-
-                  console.log("Smoking status updated successfully.");
-                } catch (err) {
-                  console.error(err.message);
-                }
-              }}
-            >
-              Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          {/* Header */}
-          <div className="relative h-48 bg-gradient-to-r from-blue-500 to-purple-600">
-            <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2">
-              <div className="relative group">
-                <img
-                  src={profileData.profileImage}
-                  alt="Profile"
-                  className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
-                />
-                <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                  <input
-                    type="file"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                  />
-                  <FiEdit2 className="text-white text-2xl" />
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="pt-20 px-6 pb-6">
-            <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold text-gray-900">
-                {profileData.fullName}
-              </h1>
-              <p className="text-gray-600 mt-1">{profileData.title}</p>
-              <p className="text-gray-500 mt-2">{profileData.bio}</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="flex items-center justify-center space-x-2 text-gray-600">
-                <FiMail className="text-blue-500" />
-                <span>{profileData.email}</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-gray-600">
-                <FiPhone className="text-blue-500" />
-                <span>{profileData.phone}</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-gray-600">
-                <FiMapPin className="text-blue-500" />
-                <span>{profileData.location}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Personal Details</h2>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <FiUser className="text-blue-500" />
-                    <span className="text-gray-600">
-                      Age: {profileData.age}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <FiUser className="text-blue-500" />
-                    <span className="text-gray-600">
-                      Gender: {profileData.gender}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <FiCalendar className="text-blue-500" />
-                    <span className="text-gray-600">
-                      DOB: {profileData.dateOfBirth}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">
-                  Professional Details
-                </h2>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <FiBriefcase className="text-blue-500" />
-                    <span className="text-gray-600">
-                      Current Job: {profileData.currentJob}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <FiBriefcase className="text-blue-500" />
-                    <span className="text-gray-600">
-                      Company: {profileData.company}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <FiBriefcase className="text-blue-500" />
-                    <span className="text-gray-600">
-                      Experience: {profileData.experience} years
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-4">
               <button
-                onClick={handleEdit}
-                className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="absolute bottom-2 right-2 bg-white p-1.5 rounded-full shadow"
+                onClick={() => avatarInputRef.current.click()}
               >
-                <FiEdit2 />
-                <span>Edit Profile</span>
+                <FiCamera className="w-4 h-4 text-gray-600" />
               </button>
-              <button className="flex items-center space-x-2 px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                <FiLock />
-                <span>Change Password</span>
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                ref={avatarInputRef}
+                onChange={handleAvatarChange}
+              />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {currentUser?.login}
+              </h1>
+              <p className="text-gray-600">0 friends</p>
+            </div>
+          </div>
+
+          <div className="flex space-x-2 mt-4 sm:mt-0">
+            <button className="bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700">
+              + Add to story
+            </button>
+            <button className="bg-gray-200 px-4 py-2 rounded-md font-medium text-gray-800 hover:bg-gray-300 flex items-center space-x-1">
+              <FiCamera />
+              <span>Edit profile</span>
+            </button>
+            <button className="bg-gray-200 w-10 h-10 rounded-md flex items-center justify-center hover:bg-gray-300">
+              ⋮
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="mt-2 border-t border-gray-300 px-4">
+          <div className="flex items-center space-x-6 overflow-x-auto text-gray-600 font-medium pt-4">
+            {[
+              { label: "Posts" },
+              { label: "About" },
+              { label: "Status", onClick: () => navigate("/status") },
+              { label: "Photos" },
+              { label: "Videos" },
+              { label: "Reels" },
+              { label: "More ▾" },
+            ].map((item, index) => (
+              <button
+                key={index}
+                onClick={item.onClick}
+                className={`pb-2 ${
+                  item.label === "Posts"
+                    ? "text-blue-600 border-b-2 border-blue-600 font-semibold"
+                    : "hover:text-blue-600 hover:border-b-2 hover:border-blue-400"
+                }`}
+              >
+                {item.label}
               </button>
-              <button className="flex items-center space-x-2 px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                <FiSettings />
-                <span>Privacy Settings</span>
-              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Main content */}
+        <div className="mt-10 grid grid-cols-3 gap-6 px-4">
+          {/* Left column */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">About</h2>
+              {!isEditing ? (
+                <div className="space-y-3 text-gray-600">
+                  <div className="flex items-center space-x-3">
+                    <FiMapPin className="h-5 w-5" />
+                    <span>Lives in {profileInfo.location || "..."}</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <FiBriefcase className="h-5 w-5" />
+                    <span>{profileInfo.occupation || "..."}</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <FiCalendar className="h-5 w-5" />
+                    <span>
+                      Smoke-free since {profileInfo.smokeFreeDate || "..."}
+                    </span>
+                  </div>
+                  <button
+                    className="mt-4 w-full py-2 px-4 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    Edit Details
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3 mt-4">
+                  <input
+                    type="text"
+                    placeholder="Location"
+                    className="w-full border px-3 py-2 rounded"
+                    value={profileInfo.location}
+                    onChange={(e) =>
+                      setProfileInfo({
+                        ...profileInfo,
+                        location: e.target.value,
+                      })
+                    }
+                  />
+                  <input
+                    type="text"
+                    placeholder="Occupation"
+                    className="w-full border px-3 py-2 rounded"
+                    value={profileInfo.occupation}
+                    onChange={(e) =>
+                      setProfileInfo({
+                        ...profileInfo,
+                        occupation: e.target.value,
+                      })
+                    }
+                  />
+                  <input
+                    type="date"
+                    className="w-full border px-3 py-2 rounded"
+                    value={profileInfo.smokeFreeDate}
+                    onChange={(e) =>
+                      setProfileInfo({
+                        ...profileInfo,
+                        smokeFreeDate: e.target.value,
+                      })
+                    }
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="flex-1 bg-blue-600 text-white py-2 rounded"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="flex-1 border py-2 rounded"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Progress Stats</h2>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Smoke-free days</span>
+                  <span className="font-semibold text-green-600">
+                    {userProfile.stats.daysSmokeFree}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Money saved</span>
+                  <span className="font-semibold text-green-600">
+                    ${userProfile.stats.moneySaved}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Health score</span>
+                  <span className="font-semibold text-blue-600">
+                    {userProfile.stats.healthScore}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right column (posts) */}
+          <div className="col-span-2">
+            <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2 scrollbar-hide">
+              {currentUser && (
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex space-x-4">
+                    <img
+                      src={
+                        localStorage.getItem("custom_avatar") ||
+                        user?.avatar ||
+                        "/images/avatar.jpg"
+                      }
+                      alt={user?.fullName}
+                      className="h-10 w-10 rounded-full"
+                    />
+                    <div
+                      className="flex-1 text-left px-4 py-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 cursor-pointer"
+                      onClick={() => setIsModalOpen(true)}
+                    >
+                      What's on your mind?
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {posts.map((post) => (
+                <div
+                  key={post.postId}
+                  className="bg-white rounded-lg shadow p-6"
+                >
+                  <div className="flex items-center space-x-3 mb-4">
+                    <img
+                      onClick={() => handleViewPost(post.postId)}
+                      src={
+                        localStorage.getItem("custom_avatar") ||
+                        user?.avatar ||
+                        "/images/avatar.jpg"
+                      }
+                      alt={user?.fullName}
+                      className="h-10 w-10 rounded-full cursor-pointer hover:opacity-80"
+                    />
+                    <div>
+                      <h3 className="font-semibold">
+                        {post.userName || "Anonymous"}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {new Date(post.postDate).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-gray-800 mb-4">{post.content}</p>
+
+                  {/* Vùng hiển thị comment nếu được bật */}
+                  {visibleComments[post.postId] && (
+                    <div className="space-y-2 border-t pt-4 mt-2">
+                      {(comments[post.postId] || []).map((cmt) => (
+                        <div
+                          key={cmt.commentId}
+                          className="text-sm text-gray-700 bg-gray-100 px-3 py-2 rounded"
+                        >
+                          <strong>{cmt.userName || "Ẩn danh"}:</strong>{" "}
+                          {cmt.content}
+                        </div>
+                      ))}
+
+                      {/* Ô nhập comment mới */}
+                      <div className="flex items-center mt-2">
+                        <input
+                          type="text"
+                          className="flex-1 border rounded px-2 py-1 text-sm"
+                          placeholder="Nhập bình luận..."
+                          value={newComments[post.postId] || ""}
+                          onChange={(e) =>
+                            setNewComments((prev) => ({
+                              ...prev,
+                              [post.postId]: e.target.value,
+                            }))
+                          }
+                        />
+                        <button
+                          onClick={() => handleCommentSubmit(post.postId)}
+                          className="ml-2 text-blue-600 text-sm font-medium hover:underline"
+                        >
+                          Send
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-6 text-gray-500 mt-4">
+                    <button
+                      onClick={() => toggleComments(post.postId)}
+                      className="flex items-center space-x-2 hover:text-blue-600"
+                    >
+                      <FiMessageSquare className="h-5 w-5" />
+                      <span className="text-sm">Comments</span>
+                    </button>
+
+                    <button className="flex items-center space-x-2 hover:text-blue-600">
+                      <FiShare2 className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleViewPost(post.postId)}
+                      className="text-sm text-blue-600 hover:underline ml-auto"
+                    >
+                      Details
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
-      <EditModal />
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-xl p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Create post</h2>
+              <button onClick={() => setIsModalOpen(false)}>✕</button>
+            </div>
+            <textarea
+              className="w-full h-32 border border-gray-300 rounded-lg p-2 resize-none"
+              placeholder="What's on your mind?"
+              value={newContent}
+              onChange={(e) => setNewContent(e.target.value)}
+            />
+            <button
+              className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              onClick={handlePostSubmit}
+            >
+              Post
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,8 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
-
-
 import storage from 'redux-persist/lib/storage' // defaults to localStorage for web
- 
 import rootReducer from './rootReducer'
 import persistReducer from 'redux-persist/es/persistReducer'
 import persistStore from 'redux-persist/es/persistStore'

@@ -8,7 +8,9 @@ const Verify = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
+  // Lấy email từ URL
   useEffect(() => {
     const emailFromUrl = searchParams.get("email");
     if (emailFromUrl) {
@@ -19,9 +21,18 @@ const Verify = () => {
     }
   }, [searchParams, navigate]);
 
+  // Đếm ngược gửi lại OTP
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  // Gửi mã xác thực
   const onFinish = async (values) => {
     try {
-      const response = await api.post("/auth/email/verify", {
+      await api.post("/auth/email/verify", {
         email: email,
         otp: values.otp,
       });
@@ -34,12 +45,29 @@ const Verify = () => {
     }
   };
 
+  // Gửi lại mã OTP
+  const handleResendOTP = async () => {
+    if (!email) return;
+
+    try {
+      await api.post("/auth/email/resend-otp", { email });
+      message.success("Mã OTP đã được gửi lại!");
+      setResendCooldown(60); // Khóa nút 60s
+    } catch (error) {
+      const errMsg =
+        error.response?.data || "Gửi lại mã OTP thất bại!";
+      message.error(errMsg);
+      console.error("Resend OTP error:", error);
+    }
+  };
+
   return (
     <div style={{ maxWidth: 400, margin: "0 auto", paddingTop: 100 }}>
-      <h2>Email Verification</h2>
+      <h2>Xác thực Email</h2>
       <p>
         Chúng tôi đã gửi mã xác thực đến: <strong>{email}</strong>
       </p>
+
       <Form layout="vertical" onFinish={onFinish}>
         <Form.Item
           name="otp"
@@ -59,6 +87,19 @@ const Verify = () => {
         <Form.Item>
           <Button type="primary" htmlType="submit" block>
             Xác thực email
+          </Button>
+        </Form.Item>
+
+        <Form.Item>
+          <Button
+            type="link"
+            onClick={handleResendOTP}
+            disabled={resendCooldown > 0}
+            block
+          >
+            {resendCooldown > 0
+              ? `Gửi lại sau ${resendCooldown}s`
+              : "Gửi lại mã OTP"}
           </Button>
         </Form.Item>
       </Form>
