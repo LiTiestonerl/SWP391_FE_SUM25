@@ -133,7 +133,7 @@ const Dashbroad = () => {
           </div>
         </Content>
         <Footer style={{ textAlign: "center" }}>
-          Ant Design ©{new Date().getFullYear()} Created by Ant UED
+          NoSmoking ©{new Date().getFullYear()} Created by love
         </Footer>
       </Layout>
     </Layout>

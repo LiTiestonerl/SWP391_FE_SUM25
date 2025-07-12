@@ -11,6 +11,7 @@ import { BsFillCircleFill } from "react-icons/bs";
 import { Line } from "react-chartjs-2";
 import { Chart as ChartJS } from "chart.js/auto";
 import api from "../../configs/axios";
+import { useSelector } from "react-redux";
 
 const StatusPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,19 +24,36 @@ const StatusPage = () => {
   });
   const [userData, setUserData] = useState(null);
 
-  const userId = localStorage.getItem("userId");
+  const userId = useSelector((state) => state.user?.id);
 
   useEffect(() => {
+    if (!userId) return;
+
     const fetchStatus = async () => {
       try {
-        const res = await api.get(`/smoking-status/user/${userId}`);
-        setUserData(res.data);
+        // Bước 1: Lấy danh sách smoking-status
+        const listRes = await api.get("/smoking-status");
+        const allStatuses = listRes.data;
+
+        // Bước 2: Tìm record có userId trùng
+        const matchedStatus = allStatuses.find((s) => s.userId === userId);
+
+        if (matchedStatus) {
+          const statusId = matchedStatus.statusId;
+
+          // Bước 3: Lấy chi tiết bằng statusId
+          const detailRes = await api.get(`/smoking-status/${statusId}`);
+          setUserData(detailRes.data);
+        } else {
+          console.warn("No matching status found for userId:", userId);
+        }
       } catch (error) {
         console.error("API error:", error);
       }
     };
+
     fetchStatus();
-  }, []);
+  }, [userId]);
 
   const chartData = {
     labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
@@ -64,11 +82,11 @@ const StatusPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`smoking-status/${statusId}`, {
+      await api.put(`smoking-status/${userData.statusId}`, {
         ...userData,
         ...formData,
       });
-      const res = await api.get(`smoking-status/${statusId}`);
+      const res = await api.get(`smoking-status/${userData.statusId}`);
       setUserData(res.data);
       alert("Progress updated successfully!");
       setIsModalOpen(false);
