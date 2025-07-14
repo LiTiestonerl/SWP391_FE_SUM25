@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Checkbox, Form, Input, message } from "antd";
+import { Button, Checkbox, Form, Input, message, Modal } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { login } from "../../redux/features/userSlice";
@@ -12,56 +12,129 @@ function LoginForm() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const showBlockedAccountModal = () => {
+    Modal.error({
+      title: "Tài khoản đã bị khóa",
+      content: (
+        <div>
+          Vui lòng liên hệ với admin qua email:{" "}
+          <a href="mailto:tiennmse173628@fpt.edu.vn">
+            tiennmse173628@fpt.edu.vn
+          </a>
+        </div>
+      ),
+    });
+  };
+
   const onFinish = async (values) => {
-  try {
-const response = await api.post("/auth/login", {
-  login: values.username,
-  password: values.password,
-});
+    try {
+      const response = await api.post("/auth/login", {
+        login: values.username,
+        password: values.password,
+      });
 
-const data = {
-  id: response.data.userId,            // ✅ CHUYỂN userId → id
-  fullName: response.data.fullName,
-  email: response.data.email,
-  role: response.data.role,
-  token: response.data.token,
-  login: values.username               // ✅ gán thủ công vì backend không trả
-};
+      // ✅ Kiểm tra nếu tài khoản bị admin khóa
+      if (
+        response.data.status === "inactive" ||
+        response.data?.user?.status === "inactive"
+      ) {
+        showBlockedAccountModal();
+        return;
+      }
 
-console.log("✅ Dispatching user:", data);
+      const data = {
+        id: response.data.userId,
+        fullName: response.data.fullName,
+        email: response.data.email,
+        role: response.data.role,
+        token: response.data.token,
+        login: values.username,
+      };
 
-dispatch(login(data));
-localStorage.setItem("token", data.token);
+      dispatch(login(data));
+      localStorage.setItem("token", data.token);
+      message.success("Đăng nhập thành công!");
+      navigate("/membership");
+    } catch (err) {
+      console.error("❌ Lỗi đăng nhập:", err);
 
+      const errorData = err.response?.data;
+      const errorMessage =
+        typeof errorData === "string"
+          ? errorData
+          : errorData?.message ||
+            "Tài khoản đang bị khóa, vui lòng liên hệ với admin qua email: tiennmse173628@fpt.edu.vn";
 
-    message.success("Đăng nhập thành công!");
-    navigate("/membership");
-  } catch (err) {
-    console.error(err);
-    message.error(err.response?.data?.message || "Đăng nhập thất bại!");
-  }
-};
+      Modal.error({
+        title: "Không thể đăng nhập",
+        content: errorMessage,
+      });
+    }
+  };
 
-  // Đăng nhập bằng Google
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  // ✅ Đăng nhập bằng Google
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
+        
+        console.log("djihjkhf", clientId)
+
         const response = await api.post("/auth/google", {
-          idToken: tokenResponse.credential || tokenResponse.access_token,
+          idToken: clientId,
         });
 
-        const data = response.data;
+        const resData = response.data;
+
+        // ✅ Nếu trả về chuỗi chứa "bị khóa"
+        if (
+          typeof resData === "string" &&
+          resData.toLowerCase().includes("bị khóa")
+        ) {
+          Modal.error({
+            title: "Tài khoản Google đã bị khóa",
+            content: (
+              <div>
+                Vui lòng liên hệ với admin qua email:{" "}
+                <a href="mailto:tiennmse173628@fpt.edu.vn">
+                  tiennmse173628@fpt.edu.vn
+                </a>
+              </div>
+            ),
+          });
+          return;
+        }
+
+        // ✅ Nếu trả về object có status
+        if (resData.status === "inactive") {
+          showBlockedAccountModal();
+          return;
+        }
+
+        const data = resData;
         dispatch(login(data));
         localStorage.setItem("token", data.token);
         message.success("Đăng nhập Google thành công!");
         navigate("/membership");
       } catch (err) {
         console.error(err);
-        message.error("Đăng nhập Google thất bại!");
+        const errorData = err.response?.data;
+        const errorMessage =
+          typeof errorData === "string"
+            ? errorData
+            : errorData?.message || "Đăng nhập Google thất bại!";
+        Modal.error({
+          title: "Không thể đăng nhập bằng Google",
+          content: errorMessage,
+        });
       }
     },
     onError: () => {
-      message.error("Google login thất bại");
+      Modal.error({
+        title: "Google login thất bại",
+        content: "Không thể xác thực tài khoản Google.",
+      });
     },
     flow: "implicit",
   });

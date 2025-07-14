@@ -241,7 +241,7 @@ const UserProfile = () => {
           <div className="flex items-center space-x-6 overflow-x-auto text-gray-600 font-medium pt-4">
             {[
               { label: "Posts" },
-              { label: "About" },
+              { label: "Chat", onClick: () => navigate("/chat") }, // ✅ Thay ở đây
               { label: "Status", onClick: () => navigate("/status") },
               { label: "Photos" },
               { label: "Videos" },

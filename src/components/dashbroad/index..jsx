@@ -45,6 +45,7 @@ const items = [
   getItem("ManageRating", "managerating", <DesktopOutlined />),
   getItem("ManageAccount", "manageaccount", <UserOutlined />),
   getItem("Membership", "membership", <MobileOutlined />),
+  getItem("CigarettePackages", "cigarettepackages", <FileOutlined />),
   
   
 ];

@@ -5,12 +5,12 @@ import {
   InputNumber,
   Modal,
   Table,
-  Switch,
   Space,
   Popconfirm,
 } from "antd";
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import dayjs from "dayjs";
 import api from "../../../configs/axios";
 
 function Membership() {
@@ -19,13 +19,40 @@ function Membership() {
   const [editId, setEditId] = useState(null);
   const [form] = Form.useForm();
   const [data, setData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchData = async () => {
     try {
       const response = await api.get("member-packages");
-      setData(response.data);
+      const list = response.data || [];
+
+      // Kiểm tra gói hết hạn
+      const validPlans = await Promise.all(
+        list.map(async (pkg) => {
+          const created = dayjs(pkg.createdAt);
+          const expireDate = created.add(pkg.duration, "day");
+          const now = dayjs();
+
+          if (expireDate.isBefore(now)) {
+            try {
+              await api.delete(`member-packages/${pkg.memberPackageId}`);
+              console.log(`🗑️ Deleted expired package: ${pkg.packageName}`);
+            } catch (err) {
+              console.error("❌ Failed to delete expired package:", err);
+            }
+            return null;
+          }
+
+          return pkg;
+        })
+      );
+
+      const filtered = validPlans.filter(Boolean); // xóa null
+      setData(filtered);
+      toast.dismiss();
       toast.success("Data fetched successfully!");
     } catch (error) {
+      toast.dismiss();
       toast.error("Error fetching data");
     }
   };
@@ -34,31 +61,14 @@ function Membership() {
     fetchData();
   }, []);
 
-  const handleToggleActive = async (checked, record) => {
-    try {
-      const updatedData = {
-        packageName: record.packageName,
-        price: record.price,
-        duration: record.duration,
-        featuresDescription: record.featuresDescription,
-        active: checked,
-      };
-
-      await api.put(`member-packages/${record.memberPackageId}`, updatedData);
-      toast.success("Status updated successfully!");
-      fetchData();
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Error updating status");
-    }
-  };
-
   const handleDelete = async (id) => {
     try {
       await api.delete(`member-packages/${id}`);
+      toast.dismiss();
       toast.success("Deleted successfully!");
       await fetchData();
     } catch (error) {
+      toast.dismiss();
       toast.error("Delete failed!");
     }
   };
@@ -74,9 +84,11 @@ function Membership() {
     try {
       if (isEditing && editId !== null) {
         await api.put(`member-packages/${editId}`, values);
+        toast.dismiss();
         toast.success("Membership package updated successfully!");
       } else {
         await api.post("member-packages", values);
+        toast.dismiss();
         toast.success("Membership package added successfully!");
       }
       form.resetFields();
@@ -86,6 +98,7 @@ function Membership() {
       await fetchData();
     } catch (error) {
       console.error("Error submitting form:", error);
+      toast.dismiss();
       toast.error("Failed to submit form");
     }
   };
@@ -95,15 +108,8 @@ function Membership() {
       title: "Package Name",
       dataIndex: "packageName",
       key: "packageName",
-      filters: [
-        { text: "Health", value: "Health" },
-        { text: "Health+", value: "Health+" },
-        { text: "Others", value: "Others" },
-      ],
-      onFilter: (value, record) => record.packageName.includes(value),
       sorter: (a, b) => a.packageName.localeCompare(b.packageName),
     },
-
     {
       title: "Price",
       dataIndex: "price",
@@ -120,23 +126,6 @@ function Membership() {
       title: "Features Description",
       dataIndex: "featuresDescription",
       key: "featuresDescription",
-      filters: [
-        { text: "Basic tracking", value: "Basic tracking" },
-        { text: "Coach support", value: "Coach support" },
-      ],
-      onFilter: (value, record) =>
-        record.featuresDescription.toLowerCase().includes(value.toLowerCase()),
-    },
-    {
-      title: "Active",
-      dataIndex: "active",
-      key: "active",
-      render: (_, record) => (
-        <Switch
-          checked={record.active}
-          onChange={(checked) => handleToggleActive(checked, record)}
-        />
-      ),
     },
     {
       title: "Actions",
@@ -157,20 +146,42 @@ function Membership() {
     },
   ];
 
+  const filteredData = data.filter((item) =>
+    item.packageName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div>
-      <h1 className="text-3x1 font-bold underline">Membership Management</h1>
-      <Button
-        onClick={() => {
-          setIsOpen(true);
-          setIsEditing(false);
-          setEditId(null);
-          form.resetFields();
-        }}
-      >
-        Add Membership Package
-      </Button>
-      <Table dataSource={data} columns={columns} rowKey="memberPackageId" />
+      <h1 className="text-3xl font-bold underline mb-4">
+        Membership Management
+      </h1>
+
+      <div className="flex justify-between items-center mb-4">
+        <Input.Search
+          placeholder="Search by package name"
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ width: 300 }}
+          allowClear
+        />
+        <Button
+          type="primary"
+          onClick={() => {
+            setIsOpen(true);
+            setIsEditing(false);
+            setEditId(null);
+            form.resetFields();
+          }}
+        >
+          Add Membership Package
+        </Button>
+      </div>
+
+      <Table
+        dataSource={filteredData}
+        columns={columns}
+        rowKey="memberPackageId"
+      />
+
       <Modal
         open={isOpen}
         onCancel={() => {
@@ -213,7 +224,7 @@ function Membership() {
 
           <Form.Item
             name="duration"
-            label="Duration"
+            label="Duration (days)"
             rules={[{ required: true, message: "Please enter the duration." }]}
           >
             <InputNumber style={{ width: "100%" }} min={0} />
@@ -222,12 +233,7 @@ function Membership() {
           <Form.Item
             name="featuresDescription"
             label="Features Description"
-            rules={[
-              {
-                required: true,
-                message: "Please enter the features description.",
-              },
-            ]}
+            rules={[{ required: true, message: "Please enter features." }]}
           >
             <Input.TextArea rows={4} />
           </Form.Item>
