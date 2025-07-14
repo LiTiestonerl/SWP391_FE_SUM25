@@ -42,19 +42,34 @@ const Payment = () => {
   }, [memberPackageId, navigate]);
 
   const handlePayment = async () => {
-    setLoading(true);
-    try {
-      const response = await api.post("/payment", {
-        memberPackageId: parseInt(memberPackageId),
-      });
-      const { paymentUrl } = response.data;
-      window.location.href = paymentUrl; // Chuyển hướng đến VNPay
-    } catch (error) {
-      console.error("Lỗi khi tạo thanh toán:", error);
-      alert("Có lỗi xảy ra, vui lòng thử lại!");
-      setLoading(false);
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    alert("Bạn cần đăng nhập để thanh toán.");
+    navigate("/login");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const response = await api.post("payment", {
+      memberPackageId: parseInt(memberPackageId),
+    });
+
+    const { paymentUrl } = response.data;
+    if (paymentUrl) {
+      window.location.href = paymentUrl;
+    } else {
+      throw new Error("Không nhận được link thanh toán.");
     }
-  };
+  } catch (error) {
+    console.error("Lỗi khi tạo thanh toán:", error);
+    alert("Có lỗi xảy ra, vui lòng thử lại!");
+    setLoading(false);
+  }
+};
+
 
   const handleCancel = () => {
     navigate("/membership");
