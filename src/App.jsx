@@ -30,7 +30,8 @@ import StatusPage from "./pages/status";
 import NewsDetailPage from "./pages/newsdetail";
 import CigarettePackages from "./pages/dashboard-admin/cigarettepackages";
 import Payment from "./pages/payment-result/Payment";
-
+import Achievement from "./pages/achievement";
+import ManageAachiement from "./pages/dashboard-admin/achievement";
 
 function App() {
   const router = createBrowserRouter([
@@ -68,6 +69,7 @@ function App() {
           path: "/becomecoach",
           element: <BecomeCoachPage />,
         },
+
         {
           path: "/membership",
           element: <MembershipPackages />,
@@ -95,6 +97,10 @@ function App() {
          {
           path: "/payment",
           element: <Payment />,
+        },
+        {
+          path: "/achievement",
+          element: <Achievement />,
         },
       ], //element show lên cho giao diện
     },
@@ -125,6 +131,10 @@ function App() {
          {
           path: "cigarettepackages",
           element: <CigarettePackages />,
+        },
+        {
+          path: "achievement",
+          element: <ManageAachiement />,
         },
       ],
     },

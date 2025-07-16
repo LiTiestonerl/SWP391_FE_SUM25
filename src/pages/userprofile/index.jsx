@@ -261,7 +261,7 @@ dispatch(login({
               { label: "Posts" },
               { label: "Chat", onClick: () => navigate("/chat") }, // ✅ Thay ở đây
               { label: "Status", onClick: () => navigate("/status") },
-              { label: "Photos" },
+              { label: "Achivement", onClick: () => navigate("/achievement") },
               { label: "Videos" },
               { label: "Reels" },
               { label: "More ▾" },

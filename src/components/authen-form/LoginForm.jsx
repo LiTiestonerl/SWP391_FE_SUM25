@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button, Form, Input, Modal } from "antd";
+import { useNavigate, Link } from "react-router-dom";
+import { Button, Form, Input } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { login } from "../../redux/features/userSlice";
 import api from "../../configs/axios";
+import baseAxios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./login.css";
@@ -80,7 +81,12 @@ function LoginForm() {
     }
 
     try {
-      const res = await api.post("/auth/google", { idToken });
+      const publicApi = baseAxios.create({
+        baseURL: api.defaults.baseURL,
+      });
+
+      const res = await publicApi.post("/auth/google", { idToken });
+
       const data = res.data;
 
       if (data.status === "inactive") {
@@ -111,9 +117,15 @@ function LoginForm() {
           <Form.Item
             label="Username or Email"
             name="username"
-            rules={[{ required: true, message: "Vui lòng nhập username hoặc email!" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập username hoặc email!" },
+            ]}
           >
-            <Input prefix={<UserOutlined />} placeholder="Tên đăng nhập hoặc email" size="large" />
+            <Input
+              prefix={<UserOutlined />}
+              placeholder="Tên đăng nhập hoặc email"
+              size="large"
+            />
           </Form.Item>
 
           <Form.Item
@@ -121,7 +133,11 @@ function LoginForm() {
             name="password"
             rules={[{ required: true, message: "Vui lòng nhập mật khẩu!" }]}
           >
-            <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu" size="large" />
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder="Mật khẩu"
+              size="large"
+            />
           </Form.Item>
 
           <Form.Item>
@@ -132,10 +148,15 @@ function LoginForm() {
 
           <div className="or-divider">hoặc</div>
 
-          <div id="googleLoginDiv" style={{ display: "flex", justifyContent: "center" }}></div>
+          <div
+            id="googleLoginDiv"
+            style={{ display: "flex", justifyContent: "center" }}
+          ></div>
 
-          <div className="login-footer" style={{ marginTop: 16 }}>
-            <a href="/register">Chưa có tài khoản? Đăng ký!</a>
+          <div className="login-footer" style={{ marginTop: 16, textAlign: "center" }}>
+            <Link to="/register">Chưa có tài khoản? Đăng ký!</Link>
+            <br />
+            <Link to="/forgot-password">Quên mật khẩu?</Link>
           </div>
         </Form>
       </div>

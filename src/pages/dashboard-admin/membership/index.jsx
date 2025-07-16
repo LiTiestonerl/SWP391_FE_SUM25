@@ -23,7 +23,7 @@ function Membership() {
 
   const fetchData = async () => {
     try {
-      const response = await api.get("member-packages");
+      const response = await api.get("/member-packages");
       const list = response.data || [];
 
       // Kiểm tra gói hết hạn
@@ -35,7 +35,7 @@ function Membership() {
 
           if (expireDate.isBefore(now)) {
             try {
-              await api.delete(`member-packages/${pkg.memberPackageId}`);
+              await api.delete(`/member-packages/${pkg.memberPackageId}`);
               console.log(`🗑️ Deleted expired package: ${pkg.packageName}`);
             } catch (err) {
               console.error("❌ Failed to delete expired package:", err);

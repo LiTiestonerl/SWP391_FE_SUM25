@@ -5,53 +5,48 @@ import dayjs from 'dayjs';
 import PlanSummaryCard from './PlanSummaryCard';
 import StatsSection from './StatsSection';
 import StageList from './StageList';
-import QuitJournal from './QuitJournal';
-import { CoachSuggestionCard, CoachFeedbackCard } from './CoachCard';
 import CreatePlanModal from './CreatePlanModal';
 import HistoryDrawer from './HistoryDrawer';
+import { EditPlanModal, ConfirmDeleteModal } from './PlanActions';
+import AchievementBadges from './AchievementBadges';
+import HealthProgressTimeline from './HealthProgressTimeline';
+import CoachBox, { coachList } from './CoachBox';
+import { CoachFeedbackCard } from './CoachCard';
+// import SmokingStatusSection from './SmokingStatusSection';
 
-// 🔐 Giả lập Membership Duration (90 ngày)
-const useMembershipDuration = () => 90;
+const useMembershipDuration = () => 30;
 
-// 🎯 Mock plan dữ liệu mẫu khi tạo mới
-const getMockPlan = (d) => ({
-  id: 'mock‑1',
-  name: `Quit in ${d} Days`,
-  reason: 'Improve health',
-  coach: 'Coach John',
-  addictionLevel: 'Mild',
-  startDate: dayjs().format('YYYY-MM-DD'),
-  endDate: dayjs().add(d, 'day').format('YYYY-MM-DD'),
+const getMockPlan = (d, startDate) => {
+  const start = dayjs(startDate || dayjs());
+  const end = start.add(d - 1, 'day');
 
-  // 🔢 Dữ liệu thống kê
-  percent: 35,
-  completedDays: 12,
-  moneySaved: 320000,
-  avoidedCigarettes: 5,
-
-  // ⭐ Coach feedback mặc định (do coach đánh giá)
-  rating: 4,
-  savedComment: 'Great effort!',
-
-  // ⭐ User feedback ban đầu là rỗng
-  userRating: 0,
-  userComment: '',
-
-  stages: [
-    {
-      name: 'Reduce to 5/day',
-      start: 'Day 1',
-      end: `Day ${d / 3}`,
-      status: 'Ongoing',
+  return {
+    id: 'mock‑1',
+    name: `Quit in ${d} Days`,
+    reason: 'Improve health',
+    addictionLevel: 'Mild',
+    startDate: start.format('YYYY-MM-DD'),
+    endDate: end.format('YYYY-MM-DD'),
+    durationInDays: d,
+    percent: 35,
+    completedDays: 12,
+    moneySaved: 320000,
+    avoidedCigarettes: 5,
+    rating: 4,
+    savedComment: 'Great effort!',
+    coach: null,
+    quitPlanStages: [],
+    quitProgresses: [],
+    healthStatus: {
+      lung: 70,
+      heart: 60,
+      sense: 75,
+      blood: 65,
     },
-    {
-      name: 'Avoid coffee',
-      start: `Day ${d / 3 + 1}`,
-      end: `Day ${(2 * d) / 3}`,
-      status: 'Upcoming',
-    },
-  ],
-});
+    stagesDescription: 'Plan to reduce gradually in 2 phases.',
+    customNotes: 'Stay hydrated. Walk after meals.',
+  };
+};
 
 const QuitPlanOverview = () => {
   const navigate = useNavigate();
@@ -62,22 +57,27 @@ const QuitPlanOverview = () => {
   );
   const [showCreate, setCreate] = useState(!plan);
   const [showHistory, setHist] = useState(false);
+  const [showEdit, setEdit] = useState(false);
+  const [showDelete, setDel] = useState(false);
 
   useEffect(() => {
     if (plan) localStorage.setItem('quitPlan', JSON.stringify(plan));
   }, [plan]);
 
+  const isExpired = plan && dayjs().isAfter(dayjs(plan.endDate));
+  const noProgress = plan && (plan.completedDays || 0) === 0;
+  const allCompleted = plan && plan.completedDays >= plan.durationInDays;
+  const coachObj = coachList.find(c => c.id === plan?.coach);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#c3e4dd] via-[#dfeee5] to-[#a1cfc1] py-8 px-4 sm:px-8">
       <div className="max-w-5xl mx-auto space-y-10">
-        {/* 🔰 HEADER */}
         <div className="flex items-center justify-between mt-18">
           <h1 className="text-4xl font-extrabold !text-emerald-700 drop-shadow tracking-wide">
             Quit Plan
           </h1>
-
           {plan ? (
-            <div className="flex gap-4">
+            <div className="flex gap-2 flex-wrap">
               <button
                 title="History"
                 onClick={() => setHist(true)}
@@ -86,8 +86,16 @@ const QuitPlanOverview = () => {
                 ⏲
               </button>
               <button
-                onClick={() => navigate('/quit-plan/detail')}
-                className="px-5 py-2 rounded-lg bg-emerald-600 text-white font-semibold shadow hover:bg-emerald-700"
+                onClick={() =>
+                  navigate('/quit-plan/detail', {
+                    state: {
+                      startDate: plan.startDate,
+                      durationInDays: plan.durationInDays || duration,
+                      selectedPlan: 'CUSTOM',
+                    },
+                  })
+                }
+                className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold shadow hover:bg-emerald-700"
               >
                 View Detail
               </button>
@@ -102,26 +110,49 @@ const QuitPlanOverview = () => {
           )}
         </div>
 
-        {!plan && <p className="text-gray-500">You don’t have a quit plan yet.</p>}
-
-        {/* 📦 Nội dung chính */}
         {plan && (
           <>
-            <PlanSummaryCard plan={plan} />
+            {isExpired && (
+              <div className="bg-yellow-100 text-yellow-800 p-3 rounded border border-yellow-300 text-sm">
+                ⚠️ This plan has expired. Consider creating a new one.
+              </div>
+            )}
+            {noProgress && !isExpired && (
+              <div className="bg-blue-50 text-blue-700 p-3 rounded border border-blue-200 text-sm">
+                🚀 You haven’t completed any day yet. Let’s get started!
+              </div>
+            )}
+            {allCompleted && (
+              <div className="bg-green-100 text-green-800 p-3 rounded border border-green-300 text-sm">
+                🎉 Congratulations! You've completed your Quit Plan.
+              </div>
+            )}
+          </>
+        )}
 
-            <div className="grid lg:grid-cols-2 gap-8">
-              <StatsSection plan={plan} />
-              <StageList stages={plan.stages} />
-            </div>
+        {!plan && <p className="text-gray-500">You don’t have a quit plan yet.</p>}
 
-            <div className="grid lg:grid-cols-2 gap-8">
-              <QuitJournal />
+        {plan && (
+          <>
+            <div className="grid lg:grid-cols-2 gap-6">
+              <CoachBox
+                selectedCoachId={plan.coach}
+                onSelect={(coachId) => {
+                  const updated = { ...plan, coach: coachId };
+                  setPlan(updated);
+                  localStorage.setItem('quitPlan', JSON.stringify(updated));
+                }}
+              />
 
-              <div className="grid gap-6">
-                <CoachSuggestionCard level={plan.addictionLevel} />
+              <div className="flex flex-col gap-6">
+                <PlanSummaryCard
+                  plan={plan}
+                  onEdit={() => setEdit(true)}
+                  onDelete={() => setDel(true)}
+                />
 
                 <CoachFeedbackCard
-                  coach={plan.coach}
+                  coach={coachObj?.name || 'Your Coach'}
                   coachComment={plan.savedComment}
                   coachRating={plan.rating}
                   savedRating={plan.userRating}
@@ -138,20 +169,59 @@ const QuitPlanOverview = () => {
                 />
               </div>
             </div>
+
+            <div className="grid lg:grid-cols-2 gap-8">
+              <StatsSection plan={plan} onUpdate={setPlan} />
+              <StageList
+                duration={plan.durationInDays}
+                membership={plan.membership || "HEALTH+"}
+                startDate={plan.startDate}
+                description={plan.stagesDescription}
+              />
+            </div>
+
+            <AchievementBadges
+              completedDays={plan.completedDays}
+              completedStages={
+                JSON.parse(localStorage.getItem("completedStages") || "[]").length
+              }
+            />
+
+            <HealthProgressTimeline startDate={plan.startDate} />
+
+            {/* Smoking Status */}
+            <SmokingStatusSection />
           </>
         )}
 
-        {/* 📦 Modals */}
+        {/* Modals */}
         <CreatePlanModal
           open={showCreate}
           duration={duration}
           onClose={() => setCreate(false)}
           onCreate={(form) => {
-            setPlan({ ...getMockPlan(duration), ...form });
+            setPlan({ ...getMockPlan(duration, form.startDate), ...form });
             setCreate(false);
           }}
         />
-
+        <EditPlanModal
+          open={showEdit}
+          plan={plan}
+          onClose={() => setEdit(false)}
+          onSave={(newData) => {
+            setPlan({ ...plan, ...newData });
+            setEdit(false);
+          }}
+        />
+        <ConfirmDeleteModal
+          open={showDelete}
+          onClose={() => setDel(false)}
+          onConfirm={() => {
+            localStorage.removeItem('quitPlan');
+            setPlan(null);
+            setDel(false);
+          }}
+        />
         <HistoryDrawer open={showHistory} onClose={() => setHist(false)} plan={plan} />
       </div>
     </div>

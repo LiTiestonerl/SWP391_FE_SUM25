@@ -136,7 +136,7 @@ const Social = () => {
             <ul className="space-y-2">
               <li className="flex items-center space-x-3 p-2 hover:bg-blue-50 rounded cursor-pointer">
                 <FiHome className="text-blue-500" />
-                <span>Dashboard</span>
+                <span>Profile</span>
               </li>
               <li className="flex items-center space-x-3 p-2 hover:bg-blue-50 rounded cursor-pointer">
                 <FiTrendingUp className="text-green-500" />

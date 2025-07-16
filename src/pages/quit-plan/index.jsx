@@ -1,4 +1,3 @@
-import React from "react";
 import { Routes, Route } from "react-router-dom";
 import QuitPlanOverview from "../../components/QuitPlan/Overview/QuitPlanOverview";
 import QuitPlan from "../../components/QuitPlan/Detail/QuitPlan";
