@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Badge,
-  Button,
   Card,
   Typography,
   Tabs,
@@ -10,401 +8,184 @@ import {
   Tag,
   Row,
   Col,
-  Statistic,
-  Avatar,
-  Divider,
-  Popover,
-  Skeleton,
+  Button,
+  Select,
+  Badge,
   Progress
 } from 'antd';
 import {
   CheckOutlined,
   ArrowLeftOutlined,
-  TrophyOutlined,
   HeartOutlined,
-  DollarOutlined,
   FireOutlined,
+  TrophyOutlined,
+  DollarOutlined,
   TeamOutlined,
-  BulbOutlined,
   CalendarOutlined,
   SmileOutlined,
-  ArrowUpOutlined,
-  MessageOutlined,
   NotificationOutlined,
-  LikeOutlined,
-  ShareAltOutlined,
-  CommentOutlined,
-  StarFilled,
-  ThunderboltFilled,
-  CrownFilled,
   MedicineBoxOutlined,
-  WalletOutlined,
-  FireFilled
+  ThunderboltFilled,
+  MessageOutlined,
+  StarOutlined,
+  CloseOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import Confetti from 'react-confetti';
+import './NotificationList.css';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
+const { Option } = Select;
 
-// Enhanced Color Palette
-const COLORS = {
-  primary: '#00a65a',       // Fresh green
-  secondary: '#00bcd4',     // Teal
-  accent: '#ff6b6b',        // Coral
-  background: '#f5fbf5',    // Very light green
-  card: '#ffffff',          // White
-  textDark: '#2c3e50',      // Dark blue-gray
-  textLight: '#7f8c8d',     // Gray
-  success: '#27ae60',       // Green
-  warning: '#f39c12',       // Orange
-  danger: '#e74c3c',        // Red
-  info: '#3498db',          // Blue
-  purple: '#9b59b6',        // Purple
-  gold: '#f1c40f'           // Gold
-};
-
-// Enhanced Notification types with colors
+// Notification types configuration
 const NOTIFICATION_TYPES = {
-  achievement: {
-    color: COLORS.gold,
-    icon: <CrownFilled />,
-    gradient: 'linear-gradient(135deg, #f1c40f, #f39c12)'
-  },
   health: {
-    color: COLORS.success,
-    icon: <MedicineBoxOutlined />,
-    gradient: 'linear-gradient(135deg, #27ae60, #2ecc71)'
-  },
-  savings: {
-    color: COLORS.info,
-    icon: <WalletOutlined />,
-    gradient: 'linear-gradient(135deg, #3498db, #2980b9)'
+    color: '#27ae60',
+    icon: <MedicineBoxOutlined style={{ color: '#ffffff' }} />,
+    gradient: 'linear-gradient(135deg, #27ae60, #2ecc71)',
+    borderColor: '#27ae60'
   },
   motivation: {
-    color: COLORS.primary,
-    icon: <FireFilled />,
-    gradient: 'linear-gradient(135deg, #00a65a, #16a085)'
+    color: '#00bcd4',
+    icon: <FireOutlined style={{ color: '#ffffff' }} />,
+    gradient: 'linear-gradient(135deg, #00bcd4, #16a085)',
+    borderColor: '#00bcd4'
+  },
+  achievement: {
+    color: '#f1c40f',
+    icon: <TrophyOutlined style={{ color: '#ffffff' }} />,
+    gradient: 'linear-gradient(135deg, #f1c40f, #f39c12)',
+    borderColor: '#f1c40f'
+  },
+  savings: {
+    color: '#3498db',
+    icon: <DollarOutlined style={{ color: '#ffffff' }} />,
+    gradient: 'linear-gradient(135deg, #3498db, #2980b9)',
+    borderColor: '#3498db'
   },
   community: {
-    color: COLORS.purple,
-    icon: <TeamOutlined />,
-    gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)'
+    color: '#9b59b6',
+    icon: <TeamOutlined style={{ color: '#ffffff' }} />,
+    gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)',
+    borderColor: '#9b59b6'
+  },
+  coach_reply: {
+    color: '#e67e22',
+    icon: <MessageOutlined style={{ color: '#ffffff' }} />,
+    gradient: 'linear-gradient(135deg, #e67e22, #d35400)',
+    borderColor: '#e67e22'
+  },
+  badge: {
+    color: '#d4af37',
+    icon: <StarOutlined style={{ color: '#ffffff' }} />,
+    gradient: 'linear-gradient(135deg, #d4af37, #b8860b)',
+    borderColor: '#d4af37'
   }
-};
-
-// Enhanced Health data calculations
-const HealthStatsPanel = ({ daysSmokeFree }) => {
-  const healthImprovement = Math.min(daysSmokeFree * 3.5, 100).toFixed(1);
-  const cigarettesAvoided = daysSmokeFree * 10;
-  const moneySaved = (daysSmokeFree * 50000).toLocaleString();
-
-  // Milestones
-  const milestones = [7, 14, 30, 60, 90];
-  const reachedMilestones = milestones.filter(m => daysSmokeFree >= m);
-  const nextMilestone = milestones.find(m => daysSmokeFree < m) || 100;
-  const progressPercent = (daysSmokeFree / nextMilestone) * 100;
-
-  return (
-    <Card className="health-stats-panel">
-      <div className="stats-header">
-        <Title level={4} className="stats-title">
-          <FireOutlined style={{ color: COLORS.danger }} /> {daysSmokeFree} Days Smoke-Free
-        </Title>
-        <Tag color={COLORS.success} className="health-percent">
-          {healthImprovement}% Healthier
-        </Tag>
-      </div>
-
-      <Progress 
-        percent={progressPercent} 
-        strokeColor={COLORS.primary}
-        trailColor="#f0f0f0"
-        showInfo={false}
-        className="milestone-progress"
-      />
-      <Text type="secondary" className="next-milestone">
-        Next milestone: {nextMilestone} days ({nextMilestone - daysSmokeFree} days to go)
-      </Text>
-
-      <Row gutter={16} className="stats-row">
-        <Col span={12}>
-          <Statistic
-            title="Cigarettes Avoided"
-            value={cigarettesAvoided}
-            prefix={<FireOutlined style={{ color: COLORS.danger }} />}
-            valueStyle={{ color: COLORS.danger, fontSize: 24 }}
-            className="health-statistic"
-          />
-        </Col>
-        <Col span={12}>
-          <Statistic
-            title="Money Saved"
-            value={moneySaved}
-            prefix={<DollarOutlined style={{ color: COLORS.success }} />}
-            valueStyle={{ color: COLORS.success, fontSize: 24 }}
-            suffix="VND"
-            className="health-statistic"
-          />
-        </Col>
-      </Row>
-
-      <Divider dashed />
-      
-      <div className="milestones-container">
-        <Text strong style={{ marginBottom: 8, display: 'block' }}>Achieved Milestones:</Text>
-        {reachedMilestones.length > 0 ? (
-          reachedMilestones.map(day => (
-            <Tag
-              key={day}
-              icon={<StarFilled />}
-              color="gold"
-              className="milestone-tag"
-            >
-              {day} days
-            </Tag>
-          ))
-        ) : (
-          <Text type="secondary">No milestones reached yet. Keep going!</Text>
-        )}
-      </div>
-
-      <div className="daily-tip">
-        <BulbOutlined className="tip-icon" />
-        <div>
-          <Text strong style={{ display: 'block' }}>Today's Tip</Text>
-          <Text>Drink a glass of water when cravings hit to help reduce the urge to smoke.</Text>
-        </div>
-      </div>
-    </Card>
-  );
 };
 
 const HealthBenefitsPanel = () => (
   <Card className="health-benefits">
     <Title level={4} className="panel-title">
-      <HeartOutlined style={{ color: COLORS.success }} /> Health Benefits Timeline
+      <HeartOutlined /> Health Benefits Timeline
     </Title>
     <div className="benefit-item">
-      <div className="benefit-marker" style={{ backgroundColor: COLORS.success }} />
+      <div className="benefit-marker" />
       <div className="benefit-content">
-        <Text strong>24 hours</Text>
-        <Text type="secondary">Carbon monoxide eliminated from your body</Text>
+        <Text strong>24 hours:</Text>
+        <Text type="secondary"> Carbon monoxide eliminated from your body</Text>
       </div>
     </div>
     <div className="benefit-item">
-      <div className="benefit-marker" style={{ backgroundColor: COLORS.success }} />
+      <div className="benefit-marker" />
       <div className="benefit-content">
-        <Text strong>2 weeks</Text>
-        <Text type="secondary">Lung function improves up to 30%</Text>
+        <Text strong>2 weeks:</Text>
+        <Text type="secondary"> Lung function improves up to 30%</Text>
       </div>
     </div>
     <div className="benefit-item">
-      <div className="benefit-marker" style={{ backgroundColor: COLORS.success }} />
+      <div className="benefit-marker" />
       <div className="benefit-content">
-        <Text strong>1 year</Text>
-        <Text type="secondary">Risk of heart disease cut in half</Text>
+        <Text strong>1 year:</Text>
+        <Text type="secondary"> Risk of heart disease cut in half</Text>
       </div>
     </div>
     <div className="benefit-item">
-      <div className="benefit-marker" style={{ backgroundColor: COLORS.success }} />
+      <div className="benefit-marker" />
       <div className="benefit-content">
-        <Text strong>5 years</Text>
-        <Text type="secondary">Stroke risk reduced to that of a non-smoker</Text>
+        <Text strong>5 years:</Text>
+        <Text type="secondary"> Stroke risk reduced to that of a non-smoker</Text>
       </div>
     </div>
   </Card>
 );
 
-const CommunityPanel = () => {
-  const [communityPosts, setCommunityPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading data
-    setTimeout(() => {
-      setCommunityPosts([
-        {
-          id: 1,
-          user: 'John D.',
-          avatarColor: '#1890ff',
-          content: 'Just passed 1 month smoke-free! The cravings are much less intense now. For those just starting - it gets easier!',
-          likes: 24,
-          comments: 5,
-          time: '2 hours ago'
-        },
-        {
-          id: 2,
-          user: 'Sarah M.',
-          avatarColor: '#00a65a',
-          content: 'The mobile app really helped me track my progress and stay motivated during the first difficult weeks. Highly recommend using the craving timer feature!',
-          likes: 18,
-          comments: 3,
-          time: '5 hours ago'
-        },
-        {
-          id: 3,
-          user: 'Michael T.',
-          avatarColor: '#9b59b6',
-          content: 'Celebrating 6 months today! Saved over $3,000 and can finally run without getting winded. Best decision ever!',
-          likes: 42,
-          comments: 8,
-          time: '1 day ago'
-        }
-      ]);
-      setLoading(false);
-    }, 1000);
-  }, []);
-
-  const handleLike = (id) => {
-    setCommunityPosts(posts =>
-      posts.map(post =>
-        post.id === id ? { ...post, likes: post.likes + 1 } : post
-      )
-    );
-  };
-
-  return (
-    <Card className="community-panel">
-      <Title level={4} className="panel-title">
-        <TeamOutlined style={{ color: COLORS.purple }} /> Community Feed
-      </Title>
-
-      {loading ? (
-        <>
-          <Skeleton active avatar paragraph={{ rows: 2 }} />
-          <Skeleton active avatar paragraph={{ rows: 2 }} />
-        </>
-      ) : (
-        <div className="community-feed">
-          {communityPosts.map(post => (
-            <div key={post.id} className="community-post">
-              <div className="post-header">
-                <Avatar
-                  size="default"
-                  style={{
-                    backgroundColor: post.avatarColor,
-                    color: 'white',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {post.user.charAt(0)}
-                </Avatar>
-                <div className="post-user">
-                  <Text strong>{post.user}</Text>
-                  <Text type="secondary" className="post-time">{post.time}</Text>
-                </div>
-              </div>
-              <Text className="post-content">{post.content}</Text>
-              <div className="post-actions">
-                <Button
-                  type="text"
-                  icon={<LikeOutlined />}
-                  onClick={() => handleLike(post.id)}
-                  className="post-action-btn"
-                >
-                  {post.likes}
-                </Button>
-                <Button 
-                  type="text" 
-                  icon={<CommentOutlined />} 
-                  className="post-action-btn"
-                >
-                  {post.comments}
-                </Button>
-                <Button 
-                  type="text" 
-                  icon={<ShareAltOutlined />} 
-                  className="post-action-btn"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <Button 
-        type="primary" 
-        block 
-        className="join-button"
-        style={{ background: COLORS.purple, borderColor: COLORS.purple }}
-      >
-        Join Support Group
-      </Button>
-    </Card>
-  );
-};
-
 const MotivationPanel = () => {
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [showEmergencyPopup, setShowEmergencyPopup] = useState(false);
   const [motivationQuote, setMotivationQuote] = useState({
     text: '"Every cigarette not smoked is a victory!"',
     author: 'Anonymous'
   });
+  const [showEmergencyPopup, setShowEmergencyPopup] = useState(false);
+  const [timer, setTimer] = useState(900); // 15 minutes in seconds
+  const [timerActive, setTimerActive] = useState(false);
 
   const quotes = [
-    {
-      text: '"The secret of getting ahead is getting started."',
-      author: 'Mark Twain'
-    },
-    {
-      text: '"You don\'t have to be perfect to be amazing."',
-      author: 'Unknown'
-    },
-    {
-      text: '"Every day is a new opportunity to change your life."',
-      author: 'Unknown'
-    },
-    {
-      text: '"You are stronger than your cravings."',
-      author: 'Unknown'
-    }
+    { text: '"The secret of getting ahead is getting started."', author: 'Mark Twain' },
+    { text: '"You don\'t have to be perfect to be amazing."', author: 'Unknown' },
+    { text: '"Every day is a new opportunity to change your life."', author: 'Unknown' },
+    { text: '"You are stronger than your cravings."', author: 'Unknown' }
   ];
 
   useEffect(() => {
-    const milestones = [7, 14, 21, 30, 60, 90];
-    const daysSmokeFree = 32;
-    if (milestones.includes(daysSmokeFree)) {
-      setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 5000);
-      return () => clearTimeout(timer);
-    }
-
-    // Change quote daily
     const today = new Date().getDate();
     setMotivationQuote(quotes[today % quotes.length]);
   }, []);
 
+  useEffect(() => {
+    let interval;
+    if (timerActive && timer > 0) {
+      interval = setInterval(() => {
+        setTimer(prev => prev - 1);
+      }, 1000);
+    } else if (timer === 0) {
+      setTimerActive(false);
+    }
+    return () => clearInterval(interval);
+  }, [timerActive, timer]);
+
+  const startTimer = () => {
+    setTimer(900);
+    setTimerActive(true);
+  };
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
   return (
     <Card className="motivation-panel">
-      {showConfetti && <Confetti recycle={false} numberOfPieces={200} />}
       <Title level={4} className="panel-title">
-        <FireFilled style={{ color: COLORS.warning }} /> Daily Motivation
+        <FireOutlined /> Daily Motivation
       </Title>
-      
       <div className="motivation-quote">
         <Text className="motivation-text">{motivationQuote.text}</Text>
         <Text className="motivation-author">— {motivationQuote.author}</Text>
       </div>
-
-      <Divider />
-      
       <div className="motivation-facts">
         <div className="motivation-fact">
-          <CheckOutlined style={{ color: COLORS.success }} />
-          <Text>Your lung capacity has increased by 15%</Text>
+          <CheckOutlined />
+          <Text>Your lung capacity has increased significantly</Text>
         </div>
         <div className="motivation-fact">
-          <CheckOutlined style={{ color: COLORS.success }} />
+          <CheckOutlined />
           <Text>Your risk of heart disease is decreasing</Text>
         </div>
         <div className="motivation-fact">
-          <CheckOutlined style={{ color: COLORS.success }} />
+          <CheckOutlined />
           <Text>Your sense of taste and smell has improved</Text>
         </div>
       </div>
-
       <Button
         type="primary"
         danger
@@ -415,12 +196,10 @@ const MotivationPanel = () => {
       >
         Emergency Craving Help
       </Button>
-
-      {/* Emergency Popup */}
       {showEmergencyPopup && (
         <div className="emergency-popup-overlay">
           <div className="emergency-popup-content">
-            <h3><ThunderboltFilled style={{ color: COLORS.danger }} /> Emergency Craving Help</h3>
+            <h3><ThunderboltFilled /> Emergency Craving Help</h3>
             <div className="emergency-tip">
               <div className="emergency-tip-icon">1</div>
               <p>Drink a glass of cold water slowly</p>
@@ -437,9 +216,30 @@ const MotivationPanel = () => {
               <div className="emergency-tip-icon">4</div>
               <p>Distract yourself for 15 minutes (craving will pass)</p>
             </div>
-            <Button 
-              type="default" 
-              onClick={() => setShowEmergencyPopup(false)}
+            <div className="emergency-timer">
+              <Text strong>Distraction Timer: </Text>
+              <Progress
+                percent={(1 - timer / 900) * 100}
+                showInfo={false}
+                strokeColor="#e74c3c"
+                className="timer-progress"
+              />
+              <Text>{timer > 0 ? formatTime(timer) : 'You did it! The craving has passed!'}</Text>
+              <Button
+                type="primary"
+                onClick={startTimer}
+                disabled={timerActive && timer > 0}
+                className="start-timer-btn"
+              >
+                {timer > 0 ? 'Timer Running' : 'Start Timer'}
+              </Button>
+            </div>
+            <Button
+              type="default"
+              onClick={() => {
+                setShowEmergencyPopup(false);
+                setTimerActive(false);
+              }}
               className="close-popup-btn"
             >
               I Feel Better Now
@@ -451,57 +251,49 @@ const MotivationPanel = () => {
   );
 };
 
-const NotificationItem = ({ notification, onMarkAsRead }) => {
-  const notificationType = NOTIFICATION_TYPES[notification.type];
+const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
+  const notificationType = NOTIFICATION_TYPES[notification.notificationType];
 
   return (
-    <div className={`notification-item ${notification.isRead ? 'read' : 'unread'}`}>
-      <div 
-        className="notification-badge" 
-        style={{ background: notificationType.gradient }}
-      >
+    <div
+      className={`notification-item ${notification.status === 'READ' ? 'read' : 'unread'}`}
+      style={{ borderLeft: `3px solid ${notificationType.borderColor}` }}
+    >
+      <div className="notification-badge" style={{ background: notificationType.gradient }}>
         {notificationType.icon}
       </div>
       <div className="notification-content">
         <div className="notification-header">
-          <Text strong className="notification-title">
-            {notification.title}
-          </Text>
-          <Tag 
-            color={notificationType.color}
-            style={{ 
-              fontWeight: 500,
-              textTransform: 'capitalize'
-            }}
-          >
-            {notification.type}
+          <Text strong className="notification-title">{notification.content.split('.')[0]}</Text>
+          <Tag color={notificationType.color} style={{ fontWeight: 500, textTransform: 'capitalize' }}>
+            {notification.notificationType.replace('_', ' ')}
           </Tag>
         </div>
-        <Text className="notification-message">{notification.content}</Text>
+        <Text className="notification-message" style={{ backgroundColor: `${notificationType.color}10` }}>
+          {notification.content}
+        </Text>
         <div className="notification-footer">
-          <CalendarOutlined style={{ color: COLORS.textLight }} />
-          <Text type="secondary">{notification.date} • {notification.time}</Text>
+          <CalendarOutlined />
+          <Text type="secondary">{new Date(notification.sendDate).toLocaleString('en-US', {
+            dateStyle: 'medium',
+            timeStyle: 'short'
+          })}</Text>
           <div className="notification-actions">
-            {!notification.isRead && (
+            {notification.status !== 'READ' && (
               <Button
                 type="text"
                 icon={<CheckOutlined />}
-                onClick={() => onMarkAsRead(notification.id)}
+                onClick={() => onMarkAsRead(notification.notificationId)}
                 className="mark-read-button"
                 title="Mark as read"
               />
             )}
-            <Button 
-              type="text" 
-              icon={<LikeOutlined />} 
-              className="action-button"
-              title="Like"
-            />
-            <Button 
-              type="text" 
-              icon={<CommentOutlined />} 
-              className="action-button"
-              title="Comment"
+            <Button
+              type="text"
+              icon={<CloseOutlined />}
+              onClick={() => onDelete(notification.notificationId)}
+              className="delete-button"
+              title="Delete notification"
             />
           </div>
         </div>
@@ -510,70 +302,136 @@ const NotificationItem = ({ notification, onMarkAsRead }) => {
   );
 };
 
-const NotificationCenter = () => {
+const NotificationList = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('unread');
-  const [daysSmokeFree] = useState(32);
+  const [filterType, setFilterType] = useState('all');
 
   useEffect(() => {
-    // Simulate loading data
+    // Simulate API call with sample data matching NotificationResponse schema
     setTimeout(() => {
       setNotifications([
         {
-          id: 1,
-          type: 'achievement',
-          title: '7 Days Smoke-Free Milestone Reached!',
-          content: "Congratulations! Your lung function has improved by 15% compared to when you started. Keep up the great work!",
-          isRead: false,
-          time: "10:30 AM",
-          date: "Today",
+          notificationId: 1,
+          notificationType: 'health',
+          content: 'Your blood oxygen levels have normalized to healthy ranges.',
+          sendDate: '2025-07-20T08:30:00.000Z',
+          status: 'UNREAD',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: null
         },
         {
-          id: 2,
-          type: 'health',
-          title: 'Health Improvement Detected',
-          content: "Medical reports indicate your blood oxygen levels have normalized to healthy ranges.",
-          isRead: false,
-          time: "Yesterday",
-          date: "Jun 14",
+          notificationId: 2,
+          notificationType: 'motivation',
+          content: 'Keep it up! You’re stronger than your cravings.',
+          sendDate: '2025-07-19T15:45:00.000Z',
+          status: 'UNREAD',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: null
         },
         {
-          id: 3,
-          type: 'savings',
-          title: 'Significant Savings Achieved',
-          content: "You've saved approximately ₫1,750,000 this month by not purchasing cigarettes.",
-          isRead: true,
-          time: "9:15 AM",
-          date: "Jun 13",
+          notificationId: 3,
+          notificationType: 'achievement',
+          content: 'Congratulations! You’ve reached 7 days smoke-free and earned the "One Week Strong" badge!',
+          sendDate: '2025-07-18T09:15:00.000Z',
+          status: 'READ',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: 1073741824
         },
         {
-          id: 4,
-          type: 'motivation',
-          title: 'Weekly Motivation',
-          content: "Remember why you started this journey. You're stronger than your cravings!",
-          isRead: true,
-          time: "3:45 PM",
-          date: "Jun 12",
+          notificationId: 4,
+          notificationType: 'savings',
+          content: 'You’ve saved $50 by not smoking this week!',
+          sendDate: '2025-07-17T14:20:00.000Z',
+          status: 'READ',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: null
         },
         {
-          id: 5,
-          type: 'community',
-          title: 'New Support Group Available',
-          content: "A new support group has started in your area. Meet others on the same journey every Thursday at 6PM.",
-          isRead: false,
-          time: "11:20 AM",
-          date: "Jun 11",
+          notificationId: 5,
+          notificationType: 'community',
+          content: 'Join our weekly support group meeting this Friday at 7 PM.',
+          sendDate: '2025-07-16T11:00:00.000Z',
+          status: 'UNREAD',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: null
         },
         {
-          id: 6,
-          type: 'achievement',
-          title: '30 Days Smoke-Free!',
-          content: "Amazing achievement! Your risk of heart disease has decreased significantly.",
-          isRead: true,
-          time: "8:00 AM",
-          date: "Jun 5",
+          notificationId: 6,
+          notificationType: 'coach_reply',
+          content: 'Your coach replied: "Great progress! Try reducing to 5 cigarettes per day this week."',
+          sendDate: '2025-07-15T10:30:00.000Z',
+          status: 'UNREAD',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: null
+        },
+        {
+          notificationId: 7,
+          notificationType: 'badge',
+          content: 'You’ve earned the "First Step" badge for completing your first quit plan stage!',
+          sendDate: '2025-07-14T16:00:00.000Z',
+          status: 'READ',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: 1073741825
+        },
+        {
+          notificationId: 8,
+          notificationType: 'health',
+          content: 'Your lung function has improved by 20% since quitting.',
+          sendDate: '2025-07-13T12:45:00.000Z',
+          status: 'UNREAD',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: null
+        },
+        {
+          notificationId: 9,
+          notificationType: 'savings',
+          content: 'You’ve saved $120 this month by staying smoke-free!',
+          sendDate: '2025-07-12T09:00:00.000Z',
+          status: 'UNREAD',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: null
+        },
+        {
+          notificationId: 10,
+          notificationType: 'community',
+          content: 'New post in the community: "Tips for Handling Stress Without Smoking"',
+          sendDate: '2025-07-11T17:30:00.000Z',
+          status: 'UNREAD',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: null
+        },
+        {
+          notificationId: 11,
+          notificationType: 'coach_reply',
+          content: 'Your coach suggests: "Incorporate daily walks to reduce stress."',
+          sendDate: '2025-07-10T14:00:00.000Z',
+          status: 'READ',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: null
+        },
+        {
+          notificationId: 12,
+          notificationType: 'badge',
+          content: 'You’ve earned the "Two Weeks Smoke-Free" badge!',
+          sendDate: '2025-07-09T08:00:00.000Z',
+          status: 'UNREAD',
+          userId: 9007199254740991,
+          quitPlanId: 1073741824,
+          achievementBadgeId: 1073741826
         }
       ]);
       setLoading(false);
@@ -581,38 +439,38 @@ const NotificationCenter = () => {
   }, []);
 
   const handleMarkAsRead = (id) => {
-    const updatedNotifications = notifications.map(noti =>
-      noti.id === id ? { ...noti, isRead: true } : noti
-    );
-    setNotifications(updatedNotifications);
+    setNotifications(notifications.map(noti =>
+      noti.notificationId === id ? { ...noti, status: 'READ' } : noti
+    ));
+  };
+
+  const handleDelete = (id) => {
+    setNotifications(notifications.filter(noti => noti.notificationId !== id));
   };
 
   const handleMarkAllAsRead = () => {
-    const updatedNotifications = notifications.map(noti =>
-      !noti.isRead ? { ...noti, isRead: true } : noti
-    );
-    setNotifications(updatedNotifications);
+    setNotifications(notifications.map(noti =>
+      noti.status !== 'READ' ? { ...noti, status: 'READ' } : noti
+    ));
   };
 
-  const filteredNotifications = notifications.filter(noti =>
-    activeTab === 'unread' ? !noti.isRead : true
-  );
+  const filteredNotifications = notifications.filter(noti => {
+    const matchesTab = activeTab === 'unread' ? noti.status !== 'READ' : true;
+    const matchesType = filterType === 'all' || noti.notificationType === filterType;
+    return matchesTab && matchesType;
+  });
 
-  const unreadCount = notifications.filter(noti => !noti.isRead).length;
+  const unreadCount = notifications.filter(noti => noti.status !== 'READ').length;
 
-  // Group notifications by date
   const groupedNotifications = filteredNotifications.reduce((acc, noti) => {
-    const date = noti.date;
-    if (!acc[date]) {
-      acc[date] = [];
-    }
+    const date = new Date(noti.sendDate).toLocaleDateString('en-US', { dateStyle: 'medium' });
+    if (!acc[date]) acc[date] = [];
     acc[date].push(noti);
     return acc;
   }, {});
 
   return (
     <div className="no-smoking-dashboard">
-      {/* Common Header */}
       <div className="global-header">
         <Button
           type="text"
@@ -631,38 +489,46 @@ const NotificationCenter = () => {
       </div>
 
       <Row gutter={24} className="content-row">
-        {/* Left Column - Health Stats */}
         <Col xs={24} md={8} className="left-panel">
-          <HealthStatsPanel daysSmokeFree={daysSmokeFree} />
           <HealthBenefitsPanel />
           <MotivationPanel />
         </Col>
 
-        {/* Main Content - Notifications */}
         <Col xs={24} md={16}>
           <div className="notification-main-container">
             <div className="notification-tabs-container">
               <Tabs activeKey={activeTab} onChange={setActiveTab} className="notification-tabs">
-                <TabPane 
-                  tab={
-                    <span>
-                      <Badge dot={unreadCount > 0}>Unread</Badge>
-                    </span>
-                  } 
-                  key="unread" 
+                <TabPane
+                  tab={<span><Badge dot={unreadCount > 0}>Unread</Badge></span>}
+                  key="unread"
                 />
                 <TabPane tab="All" key="all" />
               </Tabs>
-              {activeTab === 'unread' && unreadCount > 0 && (
-                <Button
-                  type="link"
-                  onClick={handleMarkAllAsRead}
-                  className="mark-all-button"
-                  icon={<CheckOutlined />}
+              <div className="notification-controls">
+                <Select
+                  value={filterType}
+                  onChange={setFilterType}
+                  className="notification-filter"
+                  placeholder="Filter by type"
                 >
-                  Mark All as Read
-                </Button>
-              )}
+                  <Option value="all">All Types</Option>
+                  {Object.keys(NOTIFICATION_TYPES).map(type => (
+                    <Option key={type} value={type}>
+                      {type.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                    </Option>
+                  ))}
+                </Select>
+                {activeTab === 'unread' && unreadCount > 0 && (
+                  <Button
+                    type="link"
+                    onClick={handleMarkAllAsRead}
+                    className="mark-all-button"
+                    icon={<CheckOutlined />}
+                  >
+                    Mark All as Read
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="notification-content-container">
@@ -674,8 +540,7 @@ const NotificationCenter = () => {
                       <Text type="secondary">
                         {activeTab === 'unread'
                           ? "You're all caught up! No unread notifications."
-                          : "No notifications available"
-                        }
+                          : "No notifications available"}
                       </Text>
                     }
                     className="empty-notifications"
@@ -684,18 +549,15 @@ const NotificationCenter = () => {
                   <div className="notification-list">
                     {Object.entries(groupedNotifications).map(([date, notis]) => (
                       <div key={date} className="notification-group">
-                        <Divider orientation="left">
+                        <div className="notification-group-header">
                           <Text strong>{date}</Text>
-                        </Divider>
+                        </div>
                         {notis.map(notification => (
-                          <Card
-                            key={notification.id}
-                            className="notification-card"
-                            hoverable
-                          >
+                          <Card key={notification.notificationId} className="notification-card" hoverable>
                             <NotificationItem
                               notification={notification}
                               onMarkAsRead={handleMarkAsRead}
+                              onDelete={handleDelete}
                             />
                           </Card>
                         ))}
@@ -706,619 +568,10 @@ const NotificationCenter = () => {
               </Spin>
             </div>
           </div>
-
-          {/* Community Panel moved below notifications */}
-          <CommunityPanel />
         </Col>
       </Row>
-
-      <style jsx global>{`
-        .no-smoking-dashboard {
-          padding: 24px;
-          max-width: 1600px;
-          margin: 0 auto;
-          background-color: ${COLORS.background};
-          min-height: 100vh;
-          font-family: 'Segoe UI', 'Roboto', sans-serif;
-          color: ${COLORS.textDark};
-        }
-        
-        /* Global Header */
-        .global-header {
-          display: flex;
-          align-items: center;
-          margin-bottom: 24px;
-          padding: 16px 24px;
-          background: linear-gradient(135deg, ${COLORS.primary}, ${COLORS.secondary});
-          border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0, 166, 90, 0.15);
-        }
-        
-        .back-button {
-          font-size: 20px;
-          color: white;
-          padding: 0;
-          margin-right: 16px;
-          width: 40px;
-          height: 40px;
-          transition: all 0.3s;
-        }
-        
-        .back-button:hover {
-          color: white;
-          transform: translateX(-2px);
-        }
-        
-        .title-container {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-grow: 1;
-        }
-        
-        .main-title {
-          color: white;
-          margin: 0;
-          font-size: 28px;
-          text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        
-        .unread-badge {
-          background-color: ${COLORS.accent};
-          color: white;
-          font-size: 14px;
-          font-weight: 600;
-          box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
-        }
-        
-        /* Left Panel Cards */
-        .health-stats-panel,
-        .health-benefits,
-        .community-panel,
-        .motivation-panel {
-          margin-bottom: 24px;
-          padding: 20px;
-          border-radius: 12px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-          border: none;
-          background-color: ${COLORS.card};
-          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        
-        .health-stats-panel {
-          border-top: 4px solid ${COLORS.primary};
-        }
-        
-        .health-benefits {
-          border-top: 4px solid ${COLORS.secondary};
-        }
-        
-        .community-panel {
-          border-top: 4px solid ${COLORS.purple};
-          margin-top: 24px;
-        }
-        
-        .motivation-panel {
-          border-top: 4px solid ${COLORS.warning};
-        }
-        
-        .health-stats-panel:hover,
-        .health-benefits:hover,
-        .community-panel:hover,
-        .motivation-panel:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Stats Section */
-        .stats-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-        }
-        
-        .stats-title {
-          color: ${COLORS.textDark};
-          margin: 0;
-          font-size: 18px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        
-        .health-percent {
-          background: ${COLORS.success} !important;
-          color: white !important;
-          padding: 0 8px;
-          border-radius: 4px;
-          font-size: 14px;
-        }
-        
-        .milestone-progress {
-          margin: 12px 0;
-        }
-        
-        .next-milestone {
-          display: block;
-          margin-bottom: 16px;
-          font-size: 13px;
-          color: ${COLORS.textLight};
-        }
-        
-        .stats-row {
-          margin: 20px 0;
-        }
-        
-        .health-statistic .ant-statistic-title {
-          font-size: 14px;
-          color: ${COLORS.textLight};
-        }
-        
-        .health-statistic .ant-statistic-content {
-          margin-top: 8px;
-        }
-        
-        .milestones-container {
-          margin: 16px 0;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        
-        .milestone-tag {
-          font-weight: 500;
-          padding: 4px 10px;
-          border-radius: 20px;
-        }
-        
-        .daily-tip {
-          display: flex;
-          align-items: flex-start;
-          background: rgba(0, 166, 90, 0.08);
-          padding: 16px;
-          border-radius: 8px;
-          margin-top: 20px;
-          border-left: 4px solid ${COLORS.primary};
-          gap: 12px;
-        }
-        
-        .tip-icon {
-          color: ${COLORS.primary};
-          font-size: 20px;
-          margin-top: 2px;
-        }
-        
-        /* Panel Titles */
-        .panel-title {
-          color: ${COLORS.textDark};
-          margin-bottom: 16px;
-          font-size: 18px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        
-        /* Benefit Items */
-        .benefit-item {
-          display: flex;
-          gap: 12px;
-          margin: 16px 0;
-          font-size: 15px;
-        }
-        
-        .benefit-marker {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          margin-top: 7px;
-          flex-shrink: 0;
-        }
-        
-        .benefit-content {
-          flex: 1;
-        }
-        
-        .benefit-content strong {
-          color: ${COLORS.textDark};
-        }
-        
-        /* Community Feed */
-        .community-feed {
-          margin: 16px 0;
-        }
-        
-        .community-post {
-          margin-bottom: 16px;
-          padding-bottom: 12px;
-          border-bottom: 1px solid #f0f0f0;
-        }
-        
-        .post-header {
-          display: flex;
-          align-items: center;
-          margin-bottom: 8px;
-        }
-        
-        .post-user {
-          margin-left: 12px;
-        }
-        
-        .post-time {
-          font-size: 12px;
-          display: block;
-        }
-        
-        .post-content {
-          margin-left: 44px;
-          color: ${COLORS.textDark};
-          margin-bottom: 8px;
-        }
-        
-        .post-actions {
-          margin-left: 44px;
-          margin-top: 8px;
-        }
-        
-        .post-action-btn {
-          color: ${COLORS.textLight};
-        }
-        
-        .post-action-btn:hover {
-          color: ${COLORS.primary};
-        }
-        
-        /* Join Button */
-        .join-button {
-          height: 40px;
-          font-weight: 500;
-          margin-top: 16px;
-        }
-        
-        /* Motivation Panel */
-        .motivation-quote {
-          background: rgba(255, 214, 102, 0.1);
-          padding: 16px;
-          border-radius: 8px;
-          margin-bottom: 16px;
-          border-left: 4px solid ${COLORS.warning};
-        }
-        
-        .motivation-text {
-          font-style: italic;
-          color: ${COLORS.textDark};
-          font-size: 16px;
-          display: block;
-          margin-bottom: 4px;
-        }
-        
-        .motivation-author {
-          color: ${COLORS.textLight};
-          font-size: 14px;
-        }
-        
-        .motivation-facts {
-          margin: 16px 0;
-        }
-        
-        .motivation-fact {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin: 12px 0;
-          color: ${COLORS.textDark};
-        }
-        
-        /* Emergency Button */
-        .emergency-button {
-          background: ${COLORS.danger};
-          border-color: ${COLORS.danger};
-          margin-top: 16px;
-          height: 40px;
-          font-weight: 500;
-        }
-        
-        .emergency-button:hover {
-          background: #c0392b;
-          border-color: #c0392b;
-        }
-
-        /* Emergency Popup */
-        .emergency-popup-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 1000;
-        }
-
-        .emergency-popup-content {
-          background: white;
-          padding: 24px;
-          border-radius: 12px;
-          border: 2px solid ${COLORS.danger};
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-          max-width: 450px;
-          width: 90%;
-          text-align: left;
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        .emergency-popup-content h3 {
-          color: ${COLORS.danger};
-          margin-bottom: 20px;
-          font-size: 20px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .emergency-tip {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin: 16px 0;
-        }
-
-        .emergency-tip-icon {
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: ${COLORS.danger};
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: bold;
-          flex-shrink: 0;
-        }
-
-        .emergency-tip p {
-          margin: 0;
-          color: ${COLORS.textDark};
-        }
-
-        .close-popup-btn {
-          margin-top: 20px;
-          border-color: ${COLORS.danger};
-          color: ${COLORS.danger};
-          width: 100%;
-        }
-
-        .close-popup-btn:hover {
-          background: #ffeeee;
-          border-color: ${COLORS.danger};
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* Notification Container */
-        .notification-main-container {
-          border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          background: ${COLORS.card};
-          border: 1px solid #000; /* Added black border */
-        }
-        
-        .notification-tabs-container {
-          background: ${COLORS.card};
-          padding: 16px 24px 0;
-          border-bottom: 1px solid #000; /* Added black border */
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        
-        .notification-content-container {
-          background: ${COLORS.card};
-          padding: 16px 24px;
-          min-height: 500px;
-        }
-        
-        /* Tabs */
-        .notification-tabs {
-          flex: 1;
-        }
-        
-        .notification-tabs .ant-tabs-nav {
-          margin: 0;
-        }
-        
-        .notification-tabs .ant-tabs-tab {
-          font-size: 15px;
-          padding: 12px 20px;
-          color: ${COLORS.textLight};
-          transition: all 0.3s;
-        }
-        
-        .notification-tabs .ant-tabs-tab:hover {
-          color: ${COLORS.primary};
-        }
-        
-        .notification-tabs .ant-tabs-tab-active {
-          font-weight: 600;
-          color: ${COLORS.primary};
-        }
-        
-        .notification-tabs .ant-tabs-ink-bar {
-          background: ${COLORS.primary};
-          height: 3px;
-        }
-        
-        .mark-all-button {
-          color: ${COLORS.primary};
-          font-weight: 500;
-          font-size: 15px;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-        
-        /* Notification List */
-        .notification-list {
-          margin-top: 16px;
-        }
-        
-        .notification-group {
-          margin-bottom: 24px;
-        }
-        
-        .notification-card {
-          margin-bottom: 12px;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          border: none;
-          transition: all 0.3s;
-        }
-        
-        .notification-card:hover {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        .notification-card .ant-card-body {
-          padding: 0;
-        }
-        
-        /* Notification Item */
-        .notification-item {
-          display: flex;
-          padding: 16px;
-        }
-        
-        .notification-item.unread {
-          background: rgba(0, 166, 90, 0.03);
-          border-left: 3px solid ${COLORS.primary};
-        }
-        
-        .notification-badge {
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-right: 16px;
-          color: white;
-          font-size: 20px;
-          flex-shrink: 0;
-        }
-        
-        .notification-content {
-          flex: 1;
-        }
-        
-        .notification-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        
-        .notification-title {
-          font-size: 16px;
-          color: ${COLORS.textDark};
-          font-weight: 600;
-        }
-        
-        .notification-message {
-          font-size: 15px;
-          color: ${COLORS.textDark};
-          margin-bottom: 12px;
-          line-height: 1.5;
-        }
-        
-        .notification-footer {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: ${COLORS.textLight};
-          font-size: 14px;
-          flex-wrap: wrap;
-        }
-        
-        .notification-actions {
-          margin-left: auto;
-          display: flex;
-          gap: 4px;
-        }
-        
-        .mark-read-button {
-          color: ${COLORS.success};
-        }
-        
-        .action-button {
-          color: ${COLORS.textLight};
-        }
-        
-        .action-button:hover {
-          color: ${COLORS.primary};
-        }
-        
-        /* Empty State */
-        .empty-notifications {
-          margin-top: 60px;
-          padding: 40px 0;
-        }
-        
-        .empty-icon {
-          font-size: 48px;
-          color: ${COLORS.primary};
-          margin-bottom: 16px;
-        }
-        
-        /* Animations */
-        @keyframes pulse {
-          0% { box-shadow: 0 0 0 0 rgba(0, 166, 90, 0.3); }
-          70% { box-shadow: 0 0 0 8px rgba(0, 166, 90, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(0, 166, 90, 0); }
-        }
-        
-        /* Responsive */
-        @media (max-width: 992px) {
-          .no-smoking-dashboard {
-            padding: 16px;
-          }
-          
-          .global-header {
-            padding: 12px 16px;
-          }
-          
-          .main-title {
-            font-size: 22px;
-          }
-          
-          .left-panel {
-            padding-right: 0;
-            margin-bottom: 24px;
-          }
-          
-          .notification-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .mark-all-button {
-            margin-left: 0;
-            margin-top: 8px;
-          }
-        }
-      `}</style>
     </div>
   );
 };
 
-export default NotificationCenter;
+export default NotificationList;

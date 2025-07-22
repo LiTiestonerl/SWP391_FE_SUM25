@@ -113,21 +113,23 @@ const UserProfile = () => {
     navigate(`/posts/${postId}`);
   };
 
-  useEffect(() => {
-    if (!currentUser?.id) return;
+useEffect(() => {
+  const userId = currentUser?.id || currentUser?.userId;
+  if (!userId) return;
 
-    const fetchPosts = async () => {
-      try {
-        const res = await api.get(`posts/user/${currentUser.id}`);
-        const postsData = Array.isArray(res.data) ? res.data : [];
-        setPosts(postsData);
-      } catch (error) {
-        console.error("❌ Error fetching posts", error);
-      }
-    };
+  const fetchPosts = async () => {
+    try {
+      const res = await api.get(`posts/user/${userId}`);
+      const postsData = Array.isArray(res.data) ? res.data : [];
+      setPosts(postsData);
+    } catch (error) {
+      console.error("❌ Error fetching posts", error);
+    }
+  };
 
-    fetchPosts();
-  }, [currentUser?.id]);
+  fetchPosts();
+}, [currentUser?.id, currentUser?.userId]);
+
   const toggleComments = async (postId) => {
     const isVisible = visibleComments[postId];
     setVisibleComments((prev) => ({ ...prev, [postId]: !isVisible }));
@@ -161,7 +163,21 @@ const UserProfile = () => {
     } catch (err) {
       console.error("❌ Không thể gửi comment:", err);
     }
+    const response = await api.post("/auth/google", { credential: googleCredential });
+
+// Kiểm tra dữ liệu trả về
+console.log("✅ Google login response:", response.data);
+
+// Dispatch vào Redux
+dispatch(login({
+  userId: response.data.userId || response.data.id,
+  email: response.data.email,
+  fullName: response.data.fullName || response.data.name,
+  avatar: response.data.avatar || response.data.picture,
+}));
+
   };
+  
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-y-auto">
@@ -216,7 +232,9 @@ const UserProfile = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                {currentUser?.login}
+                {currentUser?.fullName ||
+                  currentUser?.userName ||
+                  currentUser?.email}
               </h1>
               <p className="text-gray-600">0 friends</p>
             </div>
@@ -241,9 +259,9 @@ const UserProfile = () => {
           <div className="flex items-center space-x-6 overflow-x-auto text-gray-600 font-medium pt-4">
             {[
               { label: "Posts" },
-              { label: "About" },
+              { label: "Chat", onClick: () => navigate("/chat") }, // ✅ Thay ở đây
               { label: "Status", onClick: () => navigate("/status") },
-              { label: "Photos" },
+              { label: "Achivement", onClick: () => navigate("/achievement") },
               { label: "Videos" },
               { label: "Reels" },
               { label: "More ▾" },

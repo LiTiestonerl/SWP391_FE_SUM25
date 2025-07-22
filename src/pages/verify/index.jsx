@@ -24,7 +24,10 @@ const Verify = () => {
   // Đếm ngược gửi lại OTP
   useEffect(() => {
     if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      const timer = setTimeout(
+        () => setResendCooldown(resendCooldown - 1),
+        1000
+      );
       return () => clearTimeout(timer);
     }
   }, [resendCooldown]);
@@ -54,8 +57,7 @@ const Verify = () => {
       message.success("Mã OTP đã được gửi lại!");
       setResendCooldown(60); // Khóa nút 60s
     } catch (error) {
-      const errMsg =
-        error.response?.data || "Gửi lại mã OTP thất bại!";
+      const errMsg = error.response?.data || "Gửi lại mã OTP thất bại!";
       message.error(errMsg);
       console.error("Resend OTP error:", error);
     }

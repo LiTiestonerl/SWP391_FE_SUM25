@@ -14,15 +14,16 @@ import {
   EditOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
-import { format, differenceInDays } from "date-fns";
 import api from "../../../configs/axios";
 
 const { Option } = Select;
 
 const statusColors = {
-  "health+": "green",
-  health: "gold",
-  others: "default",
+  active: "green",
+  inactive: "volcano",
+  HEALTH: "gold",
+  "HEALTH+": "green",
+  OTHER: "default",
 };
 
 const ManageAccount = () => {
@@ -33,8 +34,8 @@ const ManageAccount = () => {
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [tempRoleId, setTempRoleId] = useState(1073741824);
-  const [tempStatus, setTempStatus] = useState("others");
+  const [tempRoleId, setTempRoleId] = useState("");
+  const [tempStatus, setTempStatus] = useState("inactive");
 
   useEffect(() => {
     fetchUsers();
@@ -43,8 +44,8 @@ const ManageAccount = () => {
   useEffect(() => {
     const filtered = users.filter(
       (u) =>
-        (filterStatus === "all" || u.complianceStatus === filterStatus) &&
-        (u.name?.toLowerCase().includes(search.toLowerCase()) ||
+        (filterStatus === "all" || u.status === filterStatus) &&
+        (u.userName?.toLowerCase().includes(search.toLowerCase()) ||
           u.email?.toLowerCase().includes(search.toLowerCase()))
     );
     setFilteredUsers(filtered);
@@ -53,7 +54,7 @@ const ManageAccount = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await api.get("admin/users");
+      const res = await api.get("/admin/users");
       setUsers(res.data);
     } catch (err) {
       message.error("Không thể tải danh sách người dùng.");
@@ -77,24 +78,44 @@ const ManageAccount = () => {
       message.error("Không tìm thấy người dùng cần cập nhật.");
       return;
     }
+
+    if (!tempRoleId || !tempStatus) {
+      message.error("Vui lòng chọn đầy đủ vai trò và trạng thái.");
+      return;
+    }
+
     try {
-      await api.put(`/admin/users/${selectedUser.userId}/update-role-status`, {
-        newRoleId: tempRoleId,
-        newStatus: tempStatus,
-      });
-      message.success("Cập nhật thành công!");
-      fetchUsers();
-      setModalVisible(false);
+      const res = await api.put(
+        `/admin/users/${selectedUser.userId}/update-role-status`,
+        {
+          newRoleId: tempRoleId,
+          newStatus: tempStatus,
+        }
+      );
+
+      if (res.status === 200) {
+        message.success("Cập nhật vai trò và trạng thái thành công!");
+        fetchUsers();
+        setModalVisible(false);
+      } else {
+        message.error("Cập nhật thất bại. Vui lòng thử lại.");
+      }
     } catch (err) {
-      message.error("Cập nhật thất bại.");
+      const backendError = err.response?.data;
+      console.error("Lỗi chi tiết từ backend:", err);
+      message.error(
+        backendError?.message ||
+          backendError?.error ||
+          "Cập nhật thất bại do lỗi không xác định."
+      );
     }
   };
 
   const columns = [
     {
-      title: "Họ tên",
-      dataIndex: "name",
-      key: "name",
+      title: "Username",
+      dataIndex: "userName",
+      key: "userName",
     },
     {
       title: "Email",
@@ -103,15 +124,15 @@ const ManageAccount = () => {
     },
     {
       title: "Trạng thái",
-      dataIndex: "complianceStatus",
+      dataIndex: "status",
       key: "status",
       render: (status) => <Tag color={statusColors[status]}>{status}</Tag>,
     },
     {
-      title: "Xác minh lần cuối",
-      dataIndex: "lastVerified",
-      key: "lastVerified",
-      render: (date) => (date ? format(new Date(date), "dd/MM/yyyy") : "N/A"),
+      title: "Vai trò",
+      dataIndex: "roleName",
+      key: "roleName",
+      render: (role) => role || "Không rõ",
     },
     {
       title: "Hành động",
@@ -122,9 +143,9 @@ const ManageAccount = () => {
             icon={<EditOutlined />}
             className="mr-2"
             onClick={() => {
-              setSelectedUser({ ...record, userId: record.userId });
-              setTempRoleId(record.roleId || 1073741824);
-              setTempStatus(record.complianceStatus || "others");
+              setSelectedUser({ ...record });
+              setTempRoleId(record.roleId);
+              setTempStatus(record.status || "inactive");
               setModalVisible(true);
             }}
           />
@@ -145,20 +166,19 @@ const ManageAccount = () => {
     <div className="p-6">
       <div className="flex gap-4 mb-4">
         <Input
-          placeholder="Tìm kiếm người dùng"
+          placeholder="Tìm kiếm theo Username hoặc Email"
           prefix={<SearchOutlined />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <Select
+          className="w-60"
           value={filterStatus}
           onChange={(value) => setFilterStatus(value)}
-          style={{ width: 150 }}
         >
           <Option value="all">Tất cả</Option>
-          <Option value="health+">Health+</Option>
-          <Option value="health">Health</Option>
-          <Option value="others">Others</Option>
+          <Option value="active">Active</Option>
+          <Option value="inactive">Inactive</Option>
         </Select>
       </div>
 
@@ -185,21 +205,20 @@ const ManageAccount = () => {
               value={tempRoleId}
               onChange={(value) => setTempRoleId(value)}
             >
-              <Option value={1073741824}>User</Option>
-              <Option value={1073741825}>Coach</Option>
+              <Option value={1}>User</Option>
+              <Option value={3}>Coach</Option>
             </Select>
           </div>
 
           <div>
-            <label className="block mb-1">Trạng thái tuân thủ</label>
+            <label className="block mb-1">Trạng thái tài khoản</label>
             <Select
               className="w-full"
               value={tempStatus}
               onChange={(value) => setTempStatus(value)}
             >
-              <Option value="health+">Health+</Option>
-              <Option value="health">Health</Option>
-              <Option value="others">Others</Option>
+              <Option value="active">Active</Option>
+              <Option value="inactive">Inactive</Option>
             </Select>
           </div>
         </div>

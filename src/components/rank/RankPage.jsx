@@ -173,7 +173,7 @@ const RankPage = () => {
       >
         <div className="absolute inset-0 bg-black opacity-50"></div>
         <div className="relative text-center z-10 px-4">
-          <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
+          <h1 className="text-3xl md:text-5xl font-extrabold !text-white mb-4 tracking-tight">
             Smoke-Free Champions
           </h1>
           <p className="text-lg md:text-xl text-white max-w-2xl mx-auto">

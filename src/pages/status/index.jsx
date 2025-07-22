@@ -2,56 +2,67 @@ import React, { useState, useEffect } from "react";
 import {
   FiDollarSign,
   FiEdit2,
-  FiInfo,
   FiTrendingDown,
   FiPackage,
   FiCalendar,
 } from "react-icons/fi";
-import { BsFillCircleFill } from "react-icons/bs";
 import { Line } from "react-chartjs-2";
 import { Chart as ChartJS } from "chart.js/auto";
 import api from "../../configs/axios";
-import { useSelector } from "react-redux";
 
 const StatusPage = () => {
+  const persistedRoot = JSON.parse(localStorage.getItem("persist:root"));
+  const user = JSON.parse(persistedRoot.user);
+  const userId = user.id;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showTooltip, setShowTooltip] = useState("");
   const [formData, setFormData] = useState({
     cigarettesPerDay: "",
-    previousConsumption: "",
-    daysWithoutSmoking: "",
-    moneySaved: "",
+    pricePerPack: "",
+    packageId: "",
+    frequency: "daily",
+    recordDate: new Date().toISOString().split("T")[0],
   });
   const [userData, setUserData] = useState(null);
+  const [packages, setPackages] = useState([]);
 
-  const userId = useSelector((state) => state.user?.id);
-
+  // Load từ localStorage nếu có
   useEffect(() => {
-    if (!userId) return;
+    const saved = localStorage.getItem("smokingStatus");
+    if (saved) {
+      setUserData(JSON.parse(saved));
+    }
+  }, []);
 
-    const fetchStatus = async () => {
+  // Lấy danh sách packages
+  useEffect(() => {
+    const fetchPackages = async () => {
       try {
-        // Bước 1: Lấy danh sách smoking-status
-        const listRes = await api.get("/smoking-status");
-        const allStatuses = listRes.data;
-
-        // Bước 2: Tìm record có userId trùng
-        const matchedStatus = allStatuses.find((s) => s.userId === userId);
-
-        if (matchedStatus) {
-          const statusId = matchedStatus.statusId;
-
-          // Bước 3: Lấy chi tiết bằng statusId
-          const detailRes = await api.get(`/smoking-status/${statusId}`);
-          setUserData(detailRes.data);
-        } else {
-          console.warn("No matching status found for userId:", userId);
-        }
-      } catch (error) {
-        console.error("API error:", error);
+        const res = await api.get("/cigarette-packages");
+        if (Array.isArray(res.data)) setPackages(res.data);
+      } catch (err) {
+        console.error("Package API error:", err);
       }
     };
+    fetchPackages();
+  }, []);
 
+  // Lấy dữ liệu status từ API
+  useEffect(() => {
+    if (!userId) return;
+    const fetchStatus = async () => {
+      try {
+        const listRes = await api.get("/smoking-status");
+        const matched = listRes.data.find((s) => s.userId === userId);
+        if (matched) {
+          const detail = await api.get(`/smoking-status/${matched.statusId}`);
+          setUserData(detail.data);
+          localStorage.setItem("smokingStatus", JSON.stringify(detail.data)); // ✅ lưu
+        }
+      } catch (err) {
+        console.error("Status API error:", err);
+      }
+    };
     fetchStatus();
   }, [userId]);
 
@@ -71,28 +82,102 @@ const StatusPage = () => {
     if (userData) {
       setFormData({
         cigarettesPerDay: userData.cigarettesPerDay || "",
-        previousConsumption: userData.previousConsumption || "",
-        daysWithoutSmoking: userData.daysWithoutSmoking || "",
-        moneySaved: userData.moneySaved || "",
+        pricePerPack: userData.pricePerPack || "",
+        packageId: userData.packageId || "",
+        frequency: userData.frequency || "daily",
+        recordDate:
+          userData.recordDate || new Date().toISOString().split("T")[0],
       });
     }
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleCreate = async () => {
     try {
-      await api.put(`smoking-status/${userData.statusId}`, {
-        ...userData,
-        ...formData,
-      });
-      const res = await api.get(`smoking-status/${userData.statusId}`);
+      const cigarettesPerDay = Number(formData.cigarettesPerDay);
+      const pricePerPack = Number(formData.pricePerPack);
+      const packageId = Number(formData.packageId);
+      const frequency = formData.frequency || "daily";
+
+      if (!cigarettesPerDay || cigarettesPerDay < 1 || cigarettesPerDay > 200) {
+        alert("Cigarettes per day must be between 1 and 200");
+        return;
+      }
+
+      if (!pricePerPack || pricePerPack < 1000) {
+        alert("Price per pack must be greater than 1000");
+        return;
+      }
+
+      if (!packageId) {
+        alert("Please select a valid cigarette package");
+        return;
+      }
+
+      if (!userId) {
+        alert("User ID is missing. Please log in again.");
+        return;
+      }
+
+      const data = {
+        userId,
+        cigarettesPerDay,
+        pricePerPack,
+        packageId,
+        frequency,
+        recordDate: new Date().toISOString().split("T")[0],
+      };
+
+      const res = await api.post("/smoking-status", data);
+      alert("Status created successfully!");
       setUserData(res.data);
-      alert("Progress updated successfully!");
+      localStorage.setItem("smokingStatus", JSON.stringify(res.data)); // ✅ lưu
       setIsModalOpen(false);
     } catch (err) {
-      console.error("Update failed", err.response?.status, err.response?.data);
-      alert("Update failed. Please check your input or try again.");
+      console.error("Creation failed", err.response?.status, err.response?.data);
+      alert(`Create failed: ${err.response?.data?.message || "Unknown error"}`);
+    }
+  };
+
+  const handleUpdate = async () => {
+    try {
+      const updated = {
+        ...userData,
+        ...formData,
+      };
+      await api.put(`/smoking-status/${userData.statusId}`, updated);
+      const res = await api.get(`/smoking-status/${userData.statusId}`);
+      setUserData(res.data);
+      localStorage.setItem("smokingStatus", JSON.stringify(res.data)); // ✅ lưu
+      alert("Progress updated!");
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error("Update failed:", err.response?.data || err.message);
+      alert("Update failed. Please try again.");
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this progress?");
+    if (!confirmDelete) return;
+
+    try {
+      await api.delete(`/smoking-status/${userData.statusId}`);
+      alert("Progress deleted successfully!");
+      setUserData(null);
+      localStorage.removeItem("smokingStatus"); // ✅ xóa
+    } catch (err) {
+      console.error("Delete failed:", err.response?.data || err.message);
+      alert("Delete failed. Please try again.");
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (userData?.statusId) {
+      handleUpdate();
+    } else {
+      handleCreate();
     }
   };
 
@@ -101,40 +186,44 @@ const StatusPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  if (!userData) {
-    return <div className="text-center pt-24">Loading...</div>;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 md:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-green-600 to-green-800 p-6">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl md:text-3xl font-bold text-white">
-                Smoking Cessation Progress
-              </h1>
+          <div className="bg-gradient-to-r from-green-600 to-green-800 p-6 flex justify-between items-center">
+            <h1 className="text-2xl md:text-3xl font-bold text-white">
+              Smoking Cessation Progress
+            </h1>
+            <div className="flex items-center gap-4">
               <button
                 onClick={handleEdit}
                 className="bg-white text-green-600 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-50 transition-colors"
               >
-                <FiEdit2 /> Update Progress
+                <FiEdit2 />
+                {userData?.statusId ? "Update Progress" : "Create Progress"}
               </button>
+
+              {userData?.statusId && (
+                <button
+                  onClick={handleDelete}
+                  className="bg-red-100 text-red-600 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors"
+                >
+                  🗑️ Delete Progress
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-50 rounded-xl p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Achievement Highlights
-              </h2>
-              <div className="space-y-4">
+          {userData && (
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gray-50 rounded-xl p-6 space-y-4">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Achievement Highlights
+                </h2>
                 <div className="flex items-center gap-3">
                   <FiTrendingDown className="text-green-600 w-5 h-5" />
                   <div>
-                    <p className="text-sm text-gray-500">
-                      Days Without Smoking
-                    </p>
+                    <p className="text-sm text-gray-500">Days Without Smoking</p>
                     <p className="font-medium text-xl text-green-600">
                       {userData.daysWithoutSmoking} days
                     </p>
@@ -149,65 +238,17 @@ const StatusPage = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <FiInfo className="text-green-600 w-5 h-5" />
-                  <div>
-                    <p className="text-sm text-gray-500">Reduction Progress</p>
-                    <p className="font-medium">
-                      From {userData.previousConsumption} to{" "}
-                      {userData.cigarettesPerDay} per day
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <FiCalendar className="text-green-600 w-5 h-5" />
-                  <div>
-                    <p className="text-sm text-gray-500">Quit Date</p>
-                    <p className="font-medium">
-                      {new Date(userData.quitDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
               </div>
-            </div>
 
-            <div className="bg-gray-50 rounded-xl p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Status Details
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <BsFillCircleFill className="text-indigo-600 w-5 h-5" />
-                  <div>
-                    <p className="text-sm text-gray-500">Status ID</p>
-                    <p className="font-medium">{userData.statusId}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <FiInfo
-                    className="text-indigo-600 w-5 h-5 cursor-help"
-                    onMouseEnter={() => setShowTooltip("cpd")}
-                    onMouseLeave={() => setShowTooltip("")}
-                  />
-                  <div className="relative">
-                    <p className="text-sm text-gray-500">Cigarettes Per Day</p>
-                    <p className="font-medium">{userData.cigarettesPerDay}</p>
-                    {showTooltip === "cpd" && (
-                      <div className="absolute z-10 bg-gray-800 text-white text-sm p-2 rounded mt-1">
-                        Average daily consumption
-                      </div>
-                    )}
-                  </div>
-                </div>
+              <div className="bg-gray-50 rounded-xl p-6 space-y-4">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Status Details
+                </h2>
                 <div className="flex items-center gap-3">
                   <FiPackage className="text-indigo-600 w-5 h-5" />
                   <div>
-                    <p className="text-sm text-gray-500">Package Details</p>
+                    <p className="text-sm text-gray-500">Package</p>
                     <p className="font-medium">{userData.packageName}</p>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <FiDollarSign className="w-4 h-4" />
-                      {userData.pricePerPack}/pack
-                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -220,31 +261,17 @@ const StatusPage = () => {
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="md:col-span-2 bg-gray-50 rounded-xl p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Progress Chart
-              </h2>
-              <div className="h-64">
-                <Line
-                  data={chartData}
-                  options={{
-                    maintainAspectRatio: false,
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        title: {
-                          display: true,
-                          text: "Cigarettes per Day",
-                        },
-                      },
-                    },
-                  }}
-                />
+              <div className="md:col-span-2 bg-gray-50 rounded-xl p-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                  Progress Chart
+                </h2>
+                <div className="h-64">
+                  <Line data={chartData} options={{ maintainAspectRatio: false }} />
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -252,39 +279,98 @@ const StatusPage = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">
-              Update Progress
+              {userData?.statusId ? "Update Progress" : "Create Progress"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {Object.entries(formData).map(([key, value]) => (
-                <div key={key}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {key
-                      .replace(/([A-Z])/g, " $1")
-                      .replace(/^./, (str) => str.toUpperCase())}
-                  </label>
-                  <input
-                    type="number"
-                    name={key}
-                    value={value}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                    required
-                  />
-                </div>
-              ))}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Cigarettes Per Day
+                </label>
+                <input
+                  type="number"
+                  name="cigarettesPerDay"
+                  value={formData.cigarettesPerDay}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  min={1}
+                  max={200}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Price Per Pack
+                </label>
+                <input
+                  type="number"
+                  name="pricePerPack"
+                  value={formData.pricePerPack}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  min={1000}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Cigarette Package
+                </label>
+                <select
+                  name="packageId"
+                  value={formData.packageId}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  required
+                >
+                  <option value="">-- Select a package --</option>
+                  {packages.map((pkg) => (
+                    <option key={pkg.cigaretteId} value={pkg.cigaretteId}>
+                      {pkg.cigaretteName} ({pkg.price}₫ - {pkg.sticksPerPack} sticks)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Frequency</label>
+                <select
+                  name="frequency"
+                  value={formData.frequency}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Record Date</label>
+                <input
+                  type="date"
+                  name="recordDate"
+                  value={formData.recordDate}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                />
+              </div>
+
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                 >
-                  Save Changes
+                  {userData?.statusId ? "Update" : "Create"}
                 </button>
               </div>
             </form>

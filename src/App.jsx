@@ -9,11 +9,9 @@ import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import OverviewPage from "./pages/dashboard-admin/overview";
 import ManageRating from "./pages/dashboard-admin/managerating";
-
 import ForgotPasswordPage from "./pages/dashboard-admin/forgot-password";
 import NotificationsPage from "./pages/notifications";
 import QuitPlanPage from "./pages/quit-plan";
-
 import Footer from "./components/footer";
 import Header from "./components/header/index ";
 import NewsPage from "./pages/news";
@@ -30,6 +28,10 @@ import PaymentResult from "./pages/payment-result/PaymentResult";
 import Social from "./pages/social";
 import StatusPage from "./pages/status";
 import NewsDetailPage from "./pages/newsdetail";
+import CigarettePackages from "./pages/dashboard-admin/cigarettepackages";
+import Payment from "./pages/payment-result/Payment";
+import Achievement from "./pages/achievement";
+import ManageAachiement from "./pages/dashboard-admin/achievement";
 
 function App() {
   const router = createBrowserRouter([
@@ -67,6 +69,7 @@ function App() {
           path: "/becomecoach",
           element: <BecomeCoachPage />,
         },
+
         {
           path: "/membership",
           element: <MembershipPackages />,
@@ -90,6 +93,14 @@ function App() {
         {
           path: "/news/:id",
           element: <NewsDetailPage />,
+        },
+         {
+          path: "/payment",
+          element: <Payment />,
+        },
+        {
+          path: "/achievement",
+          element: <Achievement />,
         },
       ], //element show lên cho giao diện
     },
@@ -116,6 +127,14 @@ function App() {
         {
           path: "membership",
           element: <Membership />,
+        },
+         {
+          path: "cigarettepackages",
+          element: <CigarettePackages />,
+        },
+        {
+          path: "achievement",
+          element: <ManageAachiement />,
         },
       ],
     },
