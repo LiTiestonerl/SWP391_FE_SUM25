@@ -20,13 +20,53 @@ export const ConfirmDeleteModal = ({ open, onClose, onConfirm }) => (
         >
           <h3 className="text-lg font-bold text-red-600">Delete Plan?</h3>
           <p className="text-sm text-gray-600">This action cannot be undone.</p>
-
           <div className="flex gap-3 pt-3">
             <button
               onClick={onConfirm}
               className="flex-1 py-2 bg-red-600 text-white rounded hover:bg-red-700"
             >
               Delete
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-2 border rounded hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+export const ConfirmCompleteModal = ({ open, onClose, onConfirm }) => (
+  <AnimatePresence>
+    {open && (
+      <motion.div
+        className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <motion.div
+          className="bg-white rounded-xl p-6 shadow-xl max-w-sm w-full space-y-4"
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          exit={{ scale: 0.8 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-lg font-bold text-emerald-700">Complete Plan?</h3>
+          <p className="text-sm text-gray-600">
+            Are you sure you want to mark this plan as completed?
+          </p>
+          <div className="flex gap-3 pt-3">
+            <button
+              onClick={onConfirm}
+              className="flex-1 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+            >
+              Complete
             </button>
             <button
               onClick={onClose}

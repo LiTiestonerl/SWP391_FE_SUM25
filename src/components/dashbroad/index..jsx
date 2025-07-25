@@ -13,7 +13,7 @@ import {
   PieChartOutlined,
   TeamOutlined,
   UserOutlined,
-  
+  TrophyOutlined,
 } from "@ant-design/icons";
 import { Breadcrumb, Layout, Menu, theme } from "antd";
 import { Link, Outlet } from "react-router-dom";
@@ -46,9 +46,7 @@ const items = [
   getItem("ManageAccount", "manageaccount", <UserOutlined />),
   getItem("Membership", "membership", <MobileOutlined />),
   getItem("CigarettePackages", "cigarettepackages", <FileOutlined />),
-  getItem("Achievement", "achievement", <FileOutlined />),
-  
-  
+  getItem("Achievement", "achievement", <TrophyOutlined />),
 ];
 const Dashbroad = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -119,10 +117,6 @@ const Dashbroad = () => {
         </Header>
 
         <Content style={{ margin: "0 16px" }}>
-          <Breadcrumb
-            style={{ margin: "16px 0" }}
-            items={[{ title: "User" }, { title: "Bill" }]}
-          />
           <div
             style={{
               padding: 24,

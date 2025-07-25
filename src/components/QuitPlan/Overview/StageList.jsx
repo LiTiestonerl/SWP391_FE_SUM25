@@ -88,7 +88,7 @@ const StageList = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-6 max-h-[540px] overflow-y-auto ring-1 ring-emerald-100">
+    <div className="bg-white rounded-2xl shadow-xl p-6 max-h-[570px] overflow-y-auto ring-1 ring-emerald-100">
       <h3 className="text-lg font-semibold text-emerald-700 mb-3">🧩 Plan Stages</h3>
 
       {description && (

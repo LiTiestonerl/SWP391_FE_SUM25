@@ -7,12 +7,15 @@ import StatsSection from './StatsSection';
 import StageList from './StageList';
 import CreatePlanModal from './CreatePlanModal';
 import HistoryDrawer from './HistoryDrawer';
-import { EditPlanModal, ConfirmDeleteModal } from './PlanActions';
+import {
+  EditPlanModal,
+  ConfirmDeleteModal,
+  ConfirmCompleteModal
+} from './PlanActions';
 import AchievementBadges from './AchievementBadges';
 import HealthProgressTimeline from './HealthProgressTimeline';
 import CoachBox, { coachList } from './CoachBox';
-import { CoachFeedbackCard } from './CoachCard';
-// import SmokingStatusSection from './SmokingStatusSection';
+import { CoachFeedbackCard, CoachSuggestionCard } from './CoachCard';
 
 const useMembershipDuration = () => 30;
 
@@ -21,7 +24,7 @@ const getMockPlan = (d, startDate) => {
   const end = start.add(d - 1, 'day');
 
   return {
-    id: 'mock‑1',
+    id: 'mock-1',
     name: `Quit in ${d} Days`,
     reason: 'Improve health',
     addictionLevel: 'Mild',
@@ -59,6 +62,7 @@ const QuitPlanOverview = () => {
   const [showHistory, setHist] = useState(false);
   const [showEdit, setEdit] = useState(false);
   const [showDelete, setDel] = useState(false);
+  const [showComplete, setComplete] = useState(false); // ✅ NEW
 
   useEffect(() => {
     if (plan) localStorage.setItem('quitPlan', JSON.stringify(plan));
@@ -70,8 +74,8 @@ const QuitPlanOverview = () => {
   const coachObj = coachList.find(c => c.id === plan?.coach);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#c3e4dd] via-[#dfeee5] to-[#a1cfc1] py-8 px-4 sm:px-8">
-      <div className="max-w-5xl mx-auto space-y-10">
+    <div className="min-h-screen bg-gradient-to-br from-[#c3e4dd] via-[#dfeee5] to-[#a1cfc1] py-8 px-2 sm:px-4">
+      <div className="max-w-7xl mx-auto space-y-10">
         <div className="flex items-center justify-between mt-18">
           <h1 className="text-4xl font-extrabold !text-emerald-700 drop-shadow tracking-wide">
             Quit Plan
@@ -149,7 +153,10 @@ const QuitPlanOverview = () => {
                   plan={plan}
                   onEdit={() => setEdit(true)}
                   onDelete={() => setDel(true)}
+                  onComplete={() => setComplete(true)} // ✅ NEW
                 />
+
+                <CoachSuggestionCard level={plan.addictionLevel} />
 
                 <CoachFeedbackCard
                   coach={coachObj?.name || 'Your Coach'}
@@ -174,7 +181,7 @@ const QuitPlanOverview = () => {
               <StatsSection plan={plan} onUpdate={setPlan} />
               <StageList
                 duration={plan.durationInDays}
-                membership={plan.membership || "HEALTH+"}
+                membership={plan.membership || 'HEALTH+'}
                 startDate={plan.startDate}
                 description={plan.stagesDescription}
               />
@@ -183,14 +190,11 @@ const QuitPlanOverview = () => {
             <AchievementBadges
               completedDays={plan.completedDays}
               completedStages={
-                JSON.parse(localStorage.getItem("completedStages") || "[]").length
+                JSON.parse(localStorage.getItem('completedStages') || '[]').length
               }
             />
 
             <HealthProgressTimeline startDate={plan.startDate} />
-
-            {/* Smoking Status */}
-            <SmokingStatusSection />
           </>
         )}
 
@@ -220,6 +224,16 @@ const QuitPlanOverview = () => {
             localStorage.removeItem('quitPlan');
             setPlan(null);
             setDel(false);
+          }}
+        />
+        <ConfirmCompleteModal
+          open={showComplete}
+          onClose={() => setComplete(false)}
+          onConfirm={() => {
+            const updated = { ...plan, status: 'COMPLETED' };
+            setPlan(updated);
+            localStorage.setItem('quitPlan', JSON.stringify(updated));
+            setComplete(false);
           }}
         />
         <HistoryDrawer open={showHistory} onClose={() => setHist(false)} plan={plan} />

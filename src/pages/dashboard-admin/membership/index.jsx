@@ -26,7 +26,6 @@ function Membership() {
       const response = await api.get("/member-packages");
       const list = response.data || [];
 
-      // Kiểm tra gói hết hạn
       const validPlans = await Promise.all(
         list.map(async (pkg) => {
           const created = dayjs(pkg.createdAt);
@@ -47,7 +46,7 @@ function Membership() {
         })
       );
 
-      const filtered = validPlans.filter(Boolean); // xóa null
+      const filtered = validPlans.filter(Boolean);
       setData(filtered);
       toast.dismiss();
       toast.success("Data fetched successfully!");
@@ -81,6 +80,10 @@ function Membership() {
   };
 
   const onFinish = async (values) => {
+    values.featuresDescription = values.featuresDescription
+      .replace(/\. /g, ".\n")
+      .replace(/; /g, ";\n");
+
     try {
       if (isEditing && editId !== null) {
         await api.put(`member-packages/${editId}`, values);
@@ -122,11 +125,40 @@ function Membership() {
       key: "duration",
       sorter: (a, b) => a.duration - b.duration,
     },
-    {
-      title: "Features Description",
-      dataIndex: "featuresDescription",
-      key: "featuresDescription",
-    },
+   {
+  title: "Features Description",
+  dataIndex: "featuresDescription",
+  key: "featuresDescription",
+  render: (text) => (
+    <ul
+      style={{
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        maxWidth: 800,
+        lineHeight: 1.6,
+        padding: "6px 0",
+        margin: 0,
+      }}
+    >
+      {text
+        .split(/(?<=[.!?])\s+/) 
+        .map((line, index) => (
+          <li
+            key={index}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <span style={{ color: "green" }}>✔</span>
+            <span>{line.trim()}</span>
+          </li>
+        ))}
+    </ul>
+  ),
+},
+
     {
       title: "Actions",
       key: "actions",
@@ -151,7 +183,7 @@ function Membership() {
   );
 
   return (
-    <div>
+    <div style={{ padding: "20px" }}>
       <h1 className="text-3xl font-bold underline mb-4">
         Membership Management
       </h1>
@@ -180,6 +212,7 @@ function Membership() {
         dataSource={filteredData}
         columns={columns}
         rowKey="memberPackageId"
+        scroll={{ x: "max-content" }} // ✅ chống cắt nội dung dài
       />
 
       <Modal
@@ -233,9 +266,14 @@ function Membership() {
           <Form.Item
             name="featuresDescription"
             label="Features Description"
-            rules={[{ required: true, message: "Please enter features." }]}
+            rules={[
+              { required: true, message: "Please enter features." },
+            ]}
           >
-            <Input.TextArea rows={4} />
+            <Input.TextArea
+              rows={6}
+              placeholder="Viết mỗi dòng 1 tính năng, hoặc dùng dấu chấm hoặc chấm phẩy để tự xuống dòng."
+            />
           </Form.Item>
 
           <Form.Item>

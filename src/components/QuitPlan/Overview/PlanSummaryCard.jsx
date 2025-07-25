@@ -1,6 +1,6 @@
 import React from 'react';
 import dayjs from 'dayjs';
-import { FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiCheckCircle } from 'react-icons/fi';
 
 const coachList = [
   { id: 1, name: "Dr. Sarah Johnson" },
@@ -11,7 +11,18 @@ const coachList = [
   { id: 6, name: "Dr. David Lee" },
 ];
 
-const PlanSummaryCard = ({ plan, onEdit, onDelete }) => {
+// Format money to VND
+const formatMoney = (amount) => {
+  if (!amount && amount !== 0) return '0 ₫';
+  const num = Number(String(amount).replace(/[.,]/g, ''));
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    minimumFractionDigits: 0
+  }).format(num);
+};
+
+const PlanSummaryCard = ({ plan, onEdit, onDelete, onComplete }) => {
   const allTasks = plan.weeks?.flatMap(week =>
     week.days?.flatMap(day => day.tasks ?? []) ?? []
   ) ?? [];
@@ -20,14 +31,33 @@ const PlanSummaryCard = ({ plan, onEdit, onDelete }) => {
   const percent = plan.percent ?? (Math.round((completedTasks / allTasks.length) * 100) || 0);
 
   const selectedCoach = coachList.find(c => c.id === plan.coach);
+  const isCompleted = plan?.status?.toLowerCase?.() === 'completed';
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 ring-1 ring-emerald-200/60 hover:shadow-2xl transition relative min-h-[260px]">
+      {/* Action buttons */}
       <div className="absolute top-3 right-3 flex gap-2">
-        <button onClick={onEdit} className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Edit Plan" >
+        {!isCompleted && (
+          <button
+            onClick={onComplete}
+            className="p-2 rounded-full bg-gray-100 hover:bg-emerald-100 text-emerald-600"
+            title="Mark as Completed"
+          >
+            <FiCheckCircle />
+          </button>
+        )}
+        <button
+          onClick={onEdit}
+          className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
+          title="Edit Plan"
+        >
           <FiEdit2 />
         </button>
-        <button onClick={onDelete} className="p-2 rounded-full bg-gray-100 hover:bg-red-100 text-red-600" title="Delete Plan" >
+        <button
+          onClick={onDelete}
+          className="p-2 rounded-full bg-gray-100 hover:bg-red-100 text-red-600"
+          title="Delete Plan"
+        >
           <FiTrash2 />
         </button>
       </div>
@@ -41,6 +71,7 @@ const PlanSummaryCard = ({ plan, onEdit, onDelete }) => {
         <div><b className="text-gray-800">Start:</b> {dayjs(plan.startDate).format('DD/MM/YYYY')}</div>
         <div><b className="text-gray-800">End:</b> {dayjs(plan.endDate).format('DD/MM/YYYY')}</div>
       </div>
+
       <div className="mt-4">
         <div className="text-sm mb-3">Progress: {percent}%</div>
         <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
