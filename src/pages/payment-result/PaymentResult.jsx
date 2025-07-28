@@ -26,7 +26,7 @@ const PaymentResult = () => {
 
     // Gọi API để lấy thông tin giao dịch
     api
-      .get(`/payment/vnpay-return?vnp_TxnRef=${txnRef}`)
+  .get(`/payment/status?vnp_TxnRef=${txnRef}`)
       .then((response) => {
         const status = responseCode === "00" ? "success" : "failed";
         setPaymentStatus(status);

@@ -17,6 +17,14 @@ const CoachProfile = () => {
   const { id } = useParams();
   const [coachData, setCoachData] = useState(null);
   const [showAllComments, setShowAllComments] = useState(false);
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [ratingValue, setRatingValue] = useState(0);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     const fetchCoach = async () => {
@@ -30,17 +38,15 @@ const CoachProfile = () => {
     fetchCoach();
   }, [id]);
 
-  if (!coachData) {
-    return <div className="p-8 text-center">Loading coach profile...</div>;
-  }
+  useEffect(() => {
+    if (coachData?.fullName) {
+      document.title = `${coachData.fullName} - Profile | NoSmoking`;
+    }
+  }, [coachData]);
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-  };
+  const copyToClipboard = (text) => navigator.clipboard.writeText(text);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   const handleShare = () => {
     if (navigator.share) {
@@ -66,16 +72,25 @@ const CoachProfile = () => {
     return stars;
   };
 
+  if (!coachData) {
+    return <div className="p-8 text-center pt-[7.5rem]">Loading coach profile...</div>;
+  }
+
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8 bg-gray-50">
+    <div className="max-w-4xl mx-auto mt-[10rem] p-4 md:p-8 bg-gray-50">
+      {/* Avatar & Info */}
       <div className="flex flex-col md:flex-row items-center gap-6 mb-8">
         <div className="relative">
           <img
-            src={coachData.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330"}
+            src={
+              coachData.avatar ||
+              "https://images.unsplash.com/photo-1494790108377-be9c29b29330"
+            }
             alt={coachData.fullName}
             className="w-32 h-32 rounded-full object-cover shadow-lg"
             onError={(e) => {
-              e.target.src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde";
+              e.target.src =
+                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde";
             }}
           />
           <span
@@ -96,102 +111,105 @@ const CoachProfile = () => {
         </div>
       </div>
 
+      {/* Contact Info */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
         <div className="space-y-4">
           <div className="flex items-center gap-4">
             <FaEnvelope className="text-blue-600" />
             <span>{coachData.email}</span>
-            <button
-              onClick={() => copyToClipboard(coachData.email)}
-              className="ml-auto text-blue-600 hover:text-blue-800"
-              title="Copy email"
-            >
-              <FaCopy />
-            </button>
+            <button onClick={() => copyToClipboard(coachData.email)} className="ml-auto text-blue-600 hover:text-blue-800" title="Copy email"><FaCopy /></button>
           </div>
           <div className="flex items-center gap-4">
             <FaPhone className="text-blue-600" />
-            <a href={`tel:${coachData.phone}`} className="hover:text-blue-600">
-              {coachData.phone}
-            </a>
-            <button
-              onClick={() => copyToClipboard(coachData.phone)}
-              className="ml-auto text-blue-600 hover:text-blue-800"
-              title="Copy phone"
-            >
-              <FaCopy />
-            </button>
+            <a href={`tel:${coachData.phone}`} className="hover:text-blue-600">{coachData.phone}</a>
+            <button onClick={() => copyToClipboard(coachData.phone)} className="ml-auto text-blue-600 hover:text-blue-800" title="Copy phone"><FaCopy /></button>
           </div>
           <div className="flex items-center gap-4">
             <FaCalendar className="text-blue-600" />
             <span>
               Registered on{" "}
-              {format(
-                new Date(coachData.registrationDate || "2023-01-01"),
-                "MMMM dd, yyyy"
-              )}
+              {format(new Date(coachData.registrationDate || "2023-01-01"), "MMMM dd, yyyy")}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Rating breakdown - optional */}
-      {coachData.ratingBreakdown && (
+      {/* Leave Feedback Button */}
+      <div className="text-center mt-6 mb-8">
+        <button
+          onClick={() => setShowFeedbackForm(true)}
+          className="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600"
+        >
+          Leave Feedback
+        </button>
+      </div>
+
+      {/* Feedback Form */}
+      {showFeedbackForm && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Rating Breakdown</h2>
-          {Object.entries(coachData.ratingBreakdown)
-            .reverse()
-            .map(([rating, count]) => (
-              <div key={rating} className="flex items-center gap-4 mb-2">
-                <span className="w-4">{rating}</span>
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-yellow-400 rounded-full h-2"
-                    style={{
-                      width: `${(count / coachData.totalRatings) * 100}%`,
-                    }}
-                  ></div>
-                </div>
-                <span className="w-12 text-right">{count}</span>
-              </div>
+          <h2 className="text-xl font-semibold mb-4">Your Feedback</h2>
+
+          <div className="flex gap-2 mb-4">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onClick={() => setRatingValue(star)}
+                className={`text-2xl ${star <= ratingValue ? "text-yellow-400" : "text-gray-300"}`}
+              >
+                <FaStar />
+              </button>
             ))}
-        </div>
-      )}
-
-      {/* Comments - optional */}
-      {coachData.comments && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Client Comments</h2>
-          <div className="space-y-4 max-h-[400px] overflow-y-auto">
-            {coachData.comments
-              .slice(0, showAllComments ? undefined : 2)
-              .map((comment) => (
-                <div key={comment.id} className="border-b pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">{comment.name}</span>
-                    <span className="text-sm text-gray-500">
-                      {format(new Date(comment.date), "MMM dd, yyyy")}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 mb-2">
-                    {renderStars(comment.rating)}
-                  </div>
-                  <p className="text-gray-700">{comment.text}</p>
-                </div>
-              ))}
           </div>
-          {coachData.comments.length > 2 && (
+
+          <textarea
+            value={feedbackText}
+            onChange={(e) => setFeedbackText(e.target.value)}
+            className="w-full border p-2 rounded mb-4"
+            rows="4"
+            placeholder="Write your feedback..."
+          />
+
+          <div className="flex justify-end gap-2">
             <button
-              onClick={() => setShowAllComments(!showAllComments)}
-              className="mt-4 text-blue-600 hover:text-blue-800"
+              onClick={() => setShowFeedbackForm(false)}
+              className="text-gray-600 px-4 py-2 border rounded hover:bg-gray-100"
             >
-              {showAllComments ? "Show Less" : "Show More"}
+              Cancel
             </button>
-          )}
+            <button
+              onClick={async () => {
+                if (ratingValue === 0 || !feedbackText.trim()) return;
+                setSubmitting(true);
+                try {
+                  await api.post("/rating", {
+                    ratingValue,
+                    feedbackText,
+                    ratingType: "COACH",
+                    coachId: coachData.userId,
+                    postId: null,
+                    planId: null,
+                  });
+                  alert("Feedback submitted successfully!");
+                  setShowFeedbackForm(false);
+                  setFeedbackText("");
+                  setRatingValue(0);
+                } catch (err) {
+                  console.error(err);
+                  alert("Failed to submit feedback.");
+                }
+                setSubmitting(false);
+              }}
+              disabled={submitting}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              {submitting ? "Submitting..." : "Submit"}
+            </button>
+          </div>
         </div>
       )}
 
+      {/* Print & Share */}
       <div className="fixed bottom-4 right-4 flex gap-2">
         <button
           onClick={handleShare}

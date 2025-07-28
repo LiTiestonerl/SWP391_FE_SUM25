@@ -3,44 +3,79 @@ import axios from "axios";
 const api = axios.create({
   baseURL: 'http://localhost:8080/api/',
 });
+
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else prom.resolve(token);
+  });
+  failedQueue = [];
+};
+
 api.interceptors.request.use(
-    function (config) {
-      // Do something before request is sent
-      const token = localStorage.getItem("token");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    function (error) {
-      return Promise.reject(error);
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-  );
-  api.interceptors.response.use(
-  // (1) Nếu response thành công (status 2xx), chỉ cần trả về response
-  function (response) {
-    return response;
+    return config;
   },
-  // (2) Nếu response có lỗi, xử lý lỗi ở đây
-  function (error) {
-    // Kiểm tra xem có phải lỗi 401 (Unauthorized) không
-    if (error.response && error.response.status === 401) {
-      // Xóa token và thông tin người dùng khỏi localStorage
-      localStorage.removeItem("token");
-      localStorage.removeItem("accountId"); // Hoặc bất kỳ key nào khác bạn dùng
+  (error) => Promise.reject(error)
+);
 
-      // Chuyển hướng người dùng về trang đăng nhập
-      // Dùng window.location.href để đảm bảo reload lại toàn bộ ứng dụng
-      // và xóa sạch state cũ.
-      window.location.href = "/login"; 
-      
-      // Bạn cũng có thể hiển thị một thông báo
-      alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      isRefreshing = true;
+      const refreshToken = localStorage.getItem("refreshToken");
+
+      try {
+        const res = await axios.post("http://localhost:8080/api/auth/refresh", {
+          refreshToken: refreshToken,
+        });
+
+        const newToken = res.data.accessToken;
+
+        // Lưu token mới vào localStorage
+        localStorage.setItem("token", newToken);
+        api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+
+        processQueue(null, newToken);
+
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch (err) {
+        processQueue(err, null);
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        window.location.href = "/login";
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
+      }
     }
 
-    // Với các lỗi khác (400, 404, 500...), chỉ cần trả về lỗi
-    // để component cụ thể có thể xử lý nếu cần.
     return Promise.reject(error);
   }
 );
+
 export default api;
