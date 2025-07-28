@@ -14,7 +14,7 @@ import {
   FaDollarSign,
   FaMedal,
 } from "react-icons/fa";
-import api from "../../../configs/axios";
+import api from "../../configs/axios";
 
 const Overview = () => {
   const [data, setData] = useState(null);

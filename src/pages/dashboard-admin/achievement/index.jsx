@@ -132,15 +132,20 @@ const ManageAachiement = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Badge Type</label>
-              <input
-                type="text"
+              <select
                 value={currentBadge.badgeType}
                 onChange={(e) =>
                   setCurrentBadge({ ...currentBadge, badgeType: e.target.value })
                 }
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
                 required
-              />
+              >
+                <option value="">-- Select Badge Type --</option>
+                <option value="STREAK">STREAK 🥇</option>
+                <option value="FINANCE">FINANCE 💎</option>
+                <option value="ACHIEVEMENT">ACHIEVEMENT 🏆</option>
+              </select>
+
             </div>
             <div className="flex space-x-4">
               <button

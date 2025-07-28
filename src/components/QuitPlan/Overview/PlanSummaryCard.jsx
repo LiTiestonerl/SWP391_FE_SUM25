@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import { FiEdit2, FiTrash2, FiCheckCircle } from 'react-icons/fi';
 
 const coachList = [
-  { id: 1, name: "Dr. Sarah Johnson" },   
+  { id: 1, name: "Dr. Sarah Johnson" },
   { id: 2, name: "Michael Chen" },
   { id: 3, name: "Emma Williams" },
   { id: 4, name: "Dr. Robert Anderson" },
@@ -12,7 +12,7 @@ const coachList = [
 ];
 
 const formatMoney = (amount) => {
-  if (!amount && amount !== 0) return '0 ₫';
+  if (!amount && amount !== 0) return '0 VND';
   const num = Number(String(amount).replace(/[.,]/g, ''));
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -22,7 +22,6 @@ const formatMoney = (amount) => {
 };
 
 const PlanSummaryCard = ({ plan, onEdit, onDelete, onComplete }) => {
-  // Calculate progress based on days passed
   const daysPassed = dayjs().diff(dayjs(plan.startDate), 'day') + 1;
   const totalDays = dayjs(plan.endDate).diff(dayjs(plan.startDate), 'day') + 1;
   const percent = Math.min(100, Math.max(0, Math.round((daysPassed / totalDays) * 100)));
@@ -66,6 +65,13 @@ const PlanSummaryCard = ({ plan, onEdit, onDelete, onComplete }) => {
         <div><b className="text-gray-800">Addiction:</b> {plan.addictionLevel}</div>
         <div><b className="text-gray-800">Start:</b> {dayjs(plan.startDate).format('DD/MM/YYYY')}</div>
         <div><b className="text-gray-800">End:</b> {dayjs(plan.endDate).format('DD/MM/YYYY')}</div>
+        <div><b className="text-gray-800">Brand:</b> {plan.brand || 'N/A'}</div>
+        <div><b className="text-gray-800">Flavor:</b> {plan.flavor || 'N/A'}</div>
+        <div><b className="text-gray-800">Nicotine Level:</b> {plan.nicotineLevel || 'N/A'}</div>
+        <div><b className="text-gray-800">Nicotine (mg):</b> {plan.nicotineMg || 'N/A'}</div>
+        <div><b className="text-gray-800">Sticks/Pack:</b> {plan.sticksPerPack || 'N/A'}</div>
+        <div><b className="text-gray-800">Daily Spending:</b> {formatMoney(plan.averageSpending)}</div>
+        <div><b className="text-gray-800">Price/Cigarette:</b> {formatMoney(plan.pricePerCigarette)}</div>
       </div>
 
       <div className="mt-4">

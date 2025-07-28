@@ -24,25 +24,45 @@ const PaymentResult = () => {
       return;
     }
 
-    // Gọi API để lấy thông tin giao dịch
     api
       .get(`/payment/vnpay-return?vnp_TxnRef=${txnRef}`)
-      .then((response) => {
+      .then(async (response) => {
         const status = responseCode === "00" ? "success" : "failed";
         setPaymentStatus(status);
+
         setOrderDetails({
           orderNumber: txnRef,
           amount: amount ? parseFloat(amount) / 100 : 0,
           paymentMethod: "VNPAY",
           transactionDate: transactionDate
             ? format(
-              new Date(
-                `${transactionDate.slice(0, 4)}-${transactionDate.slice(4, 6)}-${transactionDate.slice(6, 8)}T${transactionDate.slice(8, 10)}:${transactionDate.slice(10, 12)}:${transactionDate.slice(12, 14)}`
-              ),
-              "PPpp"
-            )
+                new Date(
+                  `${transactionDate.slice(0, 4)}-${transactionDate.slice(4, 6)}-${transactionDate.slice(6, 8)}T${transactionDate.slice(8, 10)}:${transactionDate.slice(10, 12)}:${transactionDate.slice(12, 14)}`
+                ),
+                "PPpp"
+              )
             : format(new Date(), "PPpp"),
         });
+
+        // 👉 Nếu thanh toán thành công, lấy duration
+        if (status === "success") {
+          const storedPackageId = localStorage.getItem("memberPackageId");
+          if (storedPackageId) {
+            try {
+              const packagesRes = await api.get("/member-packages");
+              const selected = packagesRes.data.find(
+                (p) => p.memberPackageId === Number(storedPackageId)
+              );
+              if (selected) {
+                localStorage.setItem("duration", selected.duration);
+                localStorage.setItem("packageName", selected.packageName);
+              }
+            } catch (error) {
+              console.error("Không lấy được thông tin gói:", error);
+            }
+          }
+        }
+
         setLoading(false);
       })
       .catch((error) => {
@@ -87,9 +107,7 @@ const PaymentResult = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Số tiền:</span>
-                  <span className="font-semibold">
-                    {orderDetails?.amount.toLocaleString("vi-VN")} VND
-                  </span>
+                  <span className="font-semibold">{orderDetails?.amount.toLocaleString()} VND</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Phương thức:</span>

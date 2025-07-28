@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 import PlanSummaryCard from './PlanSummaryCard';
 import StatsSection from './StatsSection';
 import StageList from './StageList';
 import CreatePlanModal from './CreatePlanModal';
-import HistoryDrawer from './HistoryDrawer';
 import {
   EditPlanModal,
   ConfirmDeleteModal,
@@ -16,16 +15,14 @@ import AchievementBadges from './AchievementBadges';
 import HealthProgressTimeline from './HealthProgressTimeline';
 import CoachBox, { coachList } from './CoachBox';
 import { CoachFeedbackCard, CoachSuggestionCard } from './CoachCard';
+import api from '../../../configs/axios';
 
-const useMembershipDuration = () => 30;
-
-const getMockPlan = (d, startDate, addictionLevel = 'Mild') => {
+const getMockPlan = (d, startDate, addictionLevel = 'Mild', packageName = 'HEALTH+') => {
   const start = dayjs(startDate || dayjs());
   const end = start.add(d - 1, 'day');
 
-  // Xác định mô tả giai đoạn dựa trên mức độ nghiện
   const getStagesDescription = (level) => {
-    switch(level) {
+    switch (level) {
       case 'Severe':
         return 'Intensive 5-stage reduction plan (25 → 13 → 9 → 5 → 1 cigs/day)';
       case 'Moderate':
@@ -38,7 +35,7 @@ const getMockPlan = (d, startDate, addictionLevel = 'Mild') => {
 
   return {
     id: 'mock-1',
-    name: `Quit in ${d} Days`,
+    name: `Quit in ${d} Days - ${packageName || 'HEALTH+'}`,
     reason: 'Improve health',
     addictionLevel: addictionLevel,
     startDate: start.format('YYYY-MM-DD'),
@@ -61,36 +58,80 @@ const getMockPlan = (d, startDate, addictionLevel = 'Mild') => {
     },
     stagesDescription: getStagesDescription(addictionLevel),
     customNotes: 'Stay hydrated. Walk after meals.',
-    averageCigarettes: addictionLevel === 'Severe' ? 25 : 
-                       addictionLevel === 'Moderate' ? 15 : 8,
+    averageCigarettes:
+      addictionLevel === 'Severe' ? 25 :
+        addictionLevel === 'Moderate' ? 15 : 8,
     pricePerCigarette: 1000,
-    averageSpending: addictionLevel === 'Severe' ? 25000 : 
-                    addictionLevel === 'Moderate' ? 15000 : 8000,
-    membership: 'HEALTH+' // Thêm membership mặc định
+    averageSpending:
+      addictionLevel === 'Severe' ? 25000 :
+        addictionLevel === 'Moderate' ? 15000 : 8000,
+    membership: packageName,
   };
 };
 
+// ... import như cũ
+
 const QuitPlanOverview = () => {
+  const location = useLocation();
   const navigate = useNavigate();
-  const duration = useMembershipDuration();
+  const memberPackageId = location?.state?.memberPackageId;
 
   const [plan, setPlan] = useState(() =>
-    JSON.parse(localStorage.getItem('quitPlan') || 'null')
+    JSON.parse(localStorage.getItem("quitPlan") || "null")
   );
-  const [showCreate, setCreate] = useState(!plan);
-  const [showHistory, setHist] = useState(false);
+  const [duration, setDuration] = useState(30);
+  const [membership, setMembership] = useState("HEALTH+");
+  const [loading, setLoading] = useState(true);
+
+  const [showCreate, setCreate] = useState(!plan)
   const [showEdit, setEdit] = useState(false);
   const [showDelete, setDel] = useState(false);
   const [showComplete, setComplete] = useState(false);
 
   useEffect(() => {
-    if (plan) localStorage.setItem('quitPlan', JSON.stringify(plan));
+    if (plan) {
+      setLoading(false);
+      return;
+    }
+
+    if (!memberPackageId) {
+      setLoading(false);
+      return;
+    }
+
+    api
+      .get("/member-packages")
+      .then((res) => {
+        const packages = res.data || [];
+        const selected = packages.find((p) => p.memberPackageId === memberPackageId);
+        if (selected) {
+          setDuration(selected.duration || 30);
+          setMembership(selected.packageName || "HEALTH+");
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch membership packages", err);
+        setDuration(7);
+        setMembership("FREE"); // gói FREE thì chỉ 7 ngày
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [memberPackageId, plan]);
+
+  useEffect(() => {
+    if (plan) localStorage.setItem("quitPlan", JSON.stringify(plan));
   }, [plan]);
+
+  if (loading) {
+    return <div className="p-10 text-center text-gray-600">Loading...</div>;
+  }
 
   const isExpired = plan && dayjs().isAfter(dayjs(plan.endDate));
   const noProgress = plan && (plan.completedDays || 0) === 0;
-  const allCompleted = plan && plan.completedDays >= plan.durationInDays;
-  const coachObj = coachList.find(c => c.id === plan?.coach);
+  const completedDays = dayjs().diff(dayjs(plan?.startDate), "day") + 1;
+  const allCompleted = plan && completedDays >= plan.durationInDays;
+  const coachObj = coachList.find((c) => c.id === plan?.coach);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#c3e4dd] via-[#dfeee5] to-[#a1cfc1] py-8 px-2 sm:px-4">
@@ -102,19 +143,12 @@ const QuitPlanOverview = () => {
           {plan ? (
             <div className="flex gap-2 flex-wrap">
               <button
-                title="History"
-                onClick={() => setHist(true)}
-                className="p-2 bg-white rounded-full shadow hover:shadow-md text-gray-600 hover:text-emerald-600"
-              >
-                ⏲
-              </button>
-              <button
                 onClick={() =>
-                  navigate('/quit-plan/detail', {
+                  navigate("/quit-plan/detail", {
                     state: {
                       startDate: plan.startDate,
                       durationInDays: plan.durationInDays || duration,
-                      selectedPlan: 'CUSTOM',
+                      selectedPlan: "CUSTOM",
                     },
                   })
                 }
@@ -133,8 +167,11 @@ const QuitPlanOverview = () => {
           )}
         </div>
 
+        {!plan && <p className="text-gray-500">You don't have a quit plan yet.</p>}
+
         {plan && (
           <>
+            {/* Alerts */}
             {isExpired && (
               <div className="bg-yellow-100 text-yellow-800 p-3 rounded border border-yellow-300 text-sm">
                 ⚠️ This plan has expired. Consider creating a new one.
@@ -146,26 +183,29 @@ const QuitPlanOverview = () => {
               </div>
             )}
             {allCompleted && (
-              <div className="bg-green-100 text-green-800 p-3 rounded border border-green-300 text-sm">
+              <div className="bg-green-100 text-green-800 p-5 rounded-lg border border-green-300 text-xl font-semibold shadow-md">
                 🎉 Congratulations! You've completed your Quit Plan.
               </div>
             )}
-          </>
-        )}
 
-        {!plan && <p className="text-gray-500">You don't have a quit plan yet.</p>}
-
-        {plan && (
-          <>
             <div className="grid lg:grid-cols-2 gap-6">
-              <CoachBox
-                selectedCoachId={plan.coach}
-                onSelect={(coachId) => {
-                  const updated = { ...plan, coach: coachId };
-                  setPlan(updated);
-                  localStorage.setItem('quitPlan', JSON.stringify(updated));
-                }}
-              />
+              <div className="space-y-6">
+                <CoachBox
+                  selectedCoachId={plan.coach}
+                  onSelect={(coachId) => {
+                    const updated = { ...plan, coach: coachId };
+                    setPlan(updated);
+                    localStorage.setItem("quitPlan", JSON.stringify(updated));
+                  }}
+                />
+
+                <CoachFeedbackCard
+                  coachId={plan.coach}
+                  coachName={coachObj?.name || "Your Coach"}
+                  planId={plan.id}
+                  memberId={1}
+                />
+              </div>
 
               <div className="flex flex-col gap-6">
                 <PlanSummaryCard
@@ -174,43 +214,25 @@ const QuitPlanOverview = () => {
                   onDelete={() => setDel(true)}
                   onComplete={() => setComplete(true)}
                 />
-
-                <CoachSuggestionCard level={plan.addictionLevel} />
-
-                <CoachFeedbackCard
-                  coach={coachObj?.name || 'Your Coach'}
-                  coachComment={plan.savedComment}
-                  coachRating={plan.rating}
-                  savedRating={plan.userRating}
-                  savedComment={plan.userComment}
-                  onSave={(rating, comment) => {
-                    const updated = {
-                      ...plan,
-                      userRating: rating,
-                      userComment: comment,
-                    };
-                    setPlan(updated);
-                    localStorage.setItem('quitPlan', JSON.stringify(updated));
-                  }}
-                />
+                <CoachSuggestionCard planId={plan.id} level={plan.addictionLevel} />
               </div>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-8">
               <StatsSection plan={plan} onUpdate={setPlan} />
               <StageList
-                duration={plan.durationInDays}
-                membership={plan.membership || 'HEALTH+'}
+                durationInDays={plan.durationInDays || duration}
+                membership={plan.membership}
                 startDate={plan.startDate}
-                description={plan.stagesDescription}
                 addictionLevel={plan.addictionLevel}
+                planId={plan.id}
               />
             </div>
 
             <AchievementBadges
               completedDays={plan.completedDays}
               completedStages={
-                JSON.parse(localStorage.getItem('completedStages') || '[]').length
+                JSON.parse(localStorage.getItem("completedStages_" + plan.id) || "[]").length
               }
             />
 
@@ -218,16 +240,23 @@ const QuitPlanOverview = () => {
           </>
         )}
 
-        {/* Modals */}
         <CreatePlanModal
           open={showCreate}
           duration={duration}
+          membership={membership}
           onClose={() => setCreate(false)}
           onCreate={(form) => {
-            setPlan({ ...getMockPlan(duration, form.startDate, form.addictionLevel), ...form });
+            const planMembership = membership || "FREE";
+            const mockPlan = getMockPlan(duration, form.startDate, form.addictionLevel, planMembership);
+            setPlan({
+              ...mockPlan,
+              ...form,
+              membership: planMembership,
+            });
             setCreate(false);
           }}
         />
+
         <EditPlanModal
           open={showEdit}
           plan={plan}
@@ -237,26 +266,27 @@ const QuitPlanOverview = () => {
             setEdit(false);
           }}
         />
+
         <ConfirmDeleteModal
           open={showDelete}
           onClose={() => setDel(false)}
           onConfirm={() => {
-            localStorage.removeItem('quitPlan');
+            localStorage.removeItem("quitPlan");
             setPlan(null);
             setDel(false);
           }}
         />
+
         <ConfirmCompleteModal
           open={showComplete}
           onClose={() => setComplete(false)}
           onConfirm={() => {
-            const updated = { ...plan, status: 'COMPLETED' };
+            const updated = { ...plan, status: "COMPLETED" };
             setPlan(updated);
-            localStorage.setItem('quitPlan', JSON.stringify(updated));
+            localStorage.setItem("quitPlan", JSON.stringify(updated));
             setComplete(false);
           }}
         />
-        <HistoryDrawer open={showHistory} onClose={() => setHist(false)} plan={plan} />
       </div>
     </div>
   );

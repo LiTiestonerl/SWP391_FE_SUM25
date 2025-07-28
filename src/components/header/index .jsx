@@ -11,12 +11,17 @@ const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [notifications, setNotifications] = useState([]); // 🌟 Danh sách thông báo thực
+  const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const user = useSelector((state) => state.user);
 
-  const userId = Number(localStorage.getItem("accountId")); // 🌟 Lấy userId từ localStorage
+  // ✅ Lấy userId an toàn
+  const user = useSelector((state) => state.user);
+  const userId =
+    user?.id ||
+    user?.user?.id ||
+    Number(localStorage.getItem("accountId")) ||
+    null;
 
   const navItems = [
     { id: 1, label: "Home", href: "home" },
@@ -37,16 +42,14 @@ const Header = () => {
     setShowDropdown(false);
   };
 
-  // 🌟 Gọi API để lấy danh sách thông báo thật từ BE
   useEffect(() => {
     if (userId) {
-      fetchUserNotifications(userId).then(data => {
-        setNotifications(data);
+      fetchUserNotifications(userId).then((data) => {
+        setNotifications(data || []);
       });
     }
   }, [userId]);
 
-  // 🌙 Thay đổi theme toàn trang
   useEffect(() => {
     document.body.className = isDarkMode ? "dark" : "light";
   }, [isDarkMode]);
@@ -54,7 +57,9 @@ const Header = () => {
   return (
     <>
       <header
-        className={`fixed w-full top-0 z-50 transition-all duration-300 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-gray-800"}`}
+        className={`fixed w-full top-0 z-50 transition-all duration-300 ${
+          isDarkMode ? "bg-gray-900 text-white" : "bg-white text-gray-800"
+        }`}
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
@@ -68,7 +73,9 @@ const Header = () => {
                   e.target.src = "https://via.placeholder.com/32";
                 }}
               />
-              <span className="text-sm font-bold tracking-wide">NoSmoking</span>
+              <span className="text-sm font-bold tracking-wide">
+                NoSmoking
+              </span>
             </Link>
 
             <nav className="hidden md:flex space-x-6">
@@ -85,9 +92,12 @@ const Header = () => {
 
             <div className="flex items-center space-x-3">
               {/* 🔔 Chuông thông báo */}
-              <NotificationBell notifications={notifications} isDarkMode={isDarkMode} />
+              <NotificationBell
+                notifications={notifications}
+                isDarkMode={isDarkMode}
+              />
 
-              {/* 🌙 Nút đổi theme */}
+              {/* 🌙 Đổi theme */}
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
@@ -95,12 +105,16 @@ const Header = () => {
                 {isDarkMode ? <FiSun size={20} /> : <FiMoon size={20} />}
               </button>
 
-              {/* 👤 Avatar người dùng */}
+              {/* 👤 Avatar */}
               {user ? (
                 <div className="relative">
                   <button onClick={toggleDropdown} className="flex items-center">
                     <img
-                      src={localStorage.getItem("custom_avatar") || user?.avatar || "/images/avatar.jpg"}
+                      src={
+                        localStorage.getItem("custom_avatar") ||
+                        user?.avatar ||
+                        "/images/avatar.jpg"
+                      }
                       alt={user?.fullName}
                       className="h-8 w-8 rounded-full object-cover"
                       onError={(e) => {

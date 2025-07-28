@@ -13,6 +13,7 @@ import {
   PieChartOutlined,
   TeamOutlined,
   UserOutlined,
+  BellOutlined
   
 } from "@ant-design/icons";
 import { Breadcrumb, Layout, Menu, theme } from "antd";
@@ -42,13 +43,14 @@ const headerMenu = (
 
 const items = [
   getItem("Overview", "overview", <PieChartOutlined />),
-  getItem("ManageRating", "managerating", <DesktopOutlined />),
-  getItem("ManageAccount", "manageaccount", <UserOutlined />),
+  getItem("Manage Rating", "managerating", <DesktopOutlined />),
+  getItem("Manage Account", "manageaccount", <UserOutlined />),
   getItem("Membership", "membership", <MobileOutlined />),
-  getItem("CigarettePackages", "cigarettepackages", <FileOutlined />),
+  getItem("Cigarette Packages", "cigarettepackages", <FileOutlined />),
   getItem("Achievement", "achievement", <FileOutlined />),
-  
-  
+  getItem("Notification", "notification", <BellOutlined />),
+  getItem("Quit Plan", "quitplan", <FileOutlined />),
+
 ];
 const Dashbroad = () => {
   const [collapsed, setCollapsed] = useState(false);

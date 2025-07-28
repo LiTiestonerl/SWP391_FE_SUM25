@@ -1,24 +1,38 @@
 import api from "../configs/axios";
 
-// 🧪 Dữ liệu mẫu chỉ dùng cho dev/test
+// 🧪 Dữ liệu mẫu để ghép nếu thiếu
 const mockNotifications = [
   {
-    notificationId: 1,
+    notificationId: -1,
     content: "Welcome to the quit smoking program!",
     notificationType: "WELCOME",
     sendDate: "2025-07-19T10:00:00Z",
+    status: "UNREAD",
+    userId: 1
+  },
+  {
+    notificationId: -2,
+    content: "Remember to check your quit plan today!",
+    notificationType: "REMINDER",
+    sendDate: "2025-07-22T09:00:00Z",
     status: "UNREAD",
     userId: 1
   }
 ];
 
 /**
- * 📥 Lấy danh sách thông báo của user
+ * 📥 Lấy danh sách thông báo người dùng
  */
 export const fetchUserNotifications = async (userId) => {
   try {
     const response = await api.get("/notifications/me");
-    return response.data;
+    const realData = response.data || [];
+
+    const missingMock = mockNotifications.filter(
+      mock => !realData.some(real => real.content === mock.content)
+    );
+
+    return [...realData, ...missingMock];
   } catch (error) {
     console.error("API failed. Using mock notifications", error);
     return mockNotifications.filter(noti => noti.userId === userId);
@@ -26,7 +40,7 @@ export const fetchUserNotifications = async (userId) => {
 };
 
 /**
- * ✅ Đánh dấu 1 thông báo đã đọc
+ * ✅ Đánh dấu đã đọc
  */
 export const markNotificationAsRead = async (notificationId) => {
   try {
@@ -39,18 +53,18 @@ export const markNotificationAsRead = async (notificationId) => {
 };
 
 /**
- * ➕ Tạo một thông báo mới
+ * ➕ Tạo một thông báo mới (tạm disable nếu API đang bị 403)
  */
-export const createNewNotification = async (notificationData) => {
-  try {
-    const response = await api.post("/notifications", {
-      ...notificationData,
-      sendDate: new Date().toISOString(),
-      status: "UNREAD"
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error creating notification", error);
-    return null;
-  }
-};
+// export const createNewNotification = async (notificationData) => {
+//   try {
+//     const response = await api.post("/notifications", {
+//       ...notificationData,
+//       sendDate: new Date().toISOString(),
+//       status: "UNREAD"
+//     });
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error creating notification", error);
+//     return null;
+//   }
+// };

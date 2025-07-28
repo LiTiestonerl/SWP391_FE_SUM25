@@ -29,9 +29,12 @@ import Social from "./pages/social";
 import StatusPage from "./pages/status";
 import NewsDetailPage from "./pages/newsdetail";
 import CigarettePackages from "./pages/dashboard-admin/cigarettepackages";
+import CreateNotification from "./pages/dashboard-admin/notification";
 import Payment from "./pages/payment-result/Payment";
 import Achievement from "./pages/achievement";
 import ManageAachiement from "./pages/dashboard-admin/achievement";
+import QuitPlanAdmin from "./pages/dashboard-admin/quitplan";
+import CoachProfile from "./pages/coachProfile";
 
 function App() {
   const router = createBrowserRouter([
@@ -94,13 +97,17 @@ function App() {
           path: "/news/:id",
           element: <NewsDetailPage />,
         },
-         {
+        {
           path: "/payment",
           element: <Payment />,
         },
         {
           path: "/achievement",
           element: <Achievement />,
+        },
+        {
+          path: "coach/:id",
+          element: <CoachProfile />,
         },
       ], //element show lên cho giao diện
     },
@@ -128,7 +135,7 @@ function App() {
           path: "membership",
           element: <Membership />,
         },
-         {
+        {
           path: "cigarettepackages",
           element: <CigarettePackages />,
         },
@@ -136,6 +143,12 @@ function App() {
           path: "achievement",
           element: <ManageAachiement />,
         },
+        { path: "notification", element: <CreateNotification /> },
+        {
+          path: "quitplan",
+          element: <QuitPlanAdmin />,
+        },
+
       ],
     },
 

@@ -1,39 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import api from "../../configs/axios";
-
-const defaultPlans = [
-  {
-    memberPackageId: "1",
-    packageName: "HEALTH",
-    price: 0,
-    duration: 7,
-    featuresDescription: "Basic tracking,Limited resources,No coach access",
-    color: "bg-blue-50 border border-blue-500",
-    buttonColor: "bg-blue-600 hover:bg-blue-700",
-  },
-  {
-    memberPackageId: "2",
-    packageName: "HEALTH+",
-    price: 100000,
-    duration: 30,
-    featuresDescription:
-      "Full tracking,Access to premium blog,Partial coach support",
-    color: "bg-green-50 border border-green-400",
-    buttonColor: "bg-green-600 hover:bg-green-700",
-    recommended: true,
-  },
-  {
-    memberPackageId: "3",
-    packageName: "OTHERS",
-    price: 200000,
-    duration: 60,
-    featuresDescription: "Custom plan,Full coach support,Detailed statistics",
-    color: "bg-purple-50 border border-purple-500",
-    buttonColor: "bg-purple-600 hover:bg-purple-700",
-  },
-];
 
 const testimonials = [
   {
@@ -52,25 +20,36 @@ const testimonials = [
 ];
 
 const Membership = () => {
-  const [plans, setPlans] = useState(defaultPlans);
+  const [plans, setPlans] = useState([]);
+  const [currentPackageId, setCurrentPackageId] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const fetchPackages = async () => {
     try {
       const response = await api.get("/member-packages");
       const apiPlans = response?.data.map((plan) => ({
         ...plan,
-        color: getCardColor(plan.packageName),
         buttonColor: getButtonColor(plan.packageName),
         recommended: plan.packageName === "HEALTH+",
       }));
       setPlans(apiPlans);
     } catch (error) {
       console.error("Error fetching packages:", error);
-      setPlans(defaultPlans); // fallback nếu lỗi
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCurrentUserPackage = async () => {
+    try {
+      const res = await api.get("/user-membership/me");
+      if (res.data?.memberPackageId) {
+        setCurrentPackageId(Number(res.data.memberPackageId));
+      }
+    } catch (err) {
+      console.error("Lỗi khi lấy gói hiện tại:", err);
     }
   };
 
@@ -79,50 +58,54 @@ const Membership = () => {
     if (token) {
       setLoading(true);
       fetchPackages();
+      fetchCurrentUserPackage();
     } else {
-      setPlans(defaultPlans);
+      setPlans([]);
+      setCurrentPackageId(null);
       setLoading(false);
     }
-  }, []);
+  }, [location]);
 
   const handleChoosePlan = (plan) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Vui lòng đăng nhập để mua gói!");
-      navigate("/login");
-      return;
-    }
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("Vui lòng đăng nhập để mua gói!");
+    navigate("/login");
+    return;
+  }
 
-    if (plan.packageName === "HEALTH") {
-      navigate("/quit-plan");
-    } else {
-      navigate("/payment", {
-        state: { memberPackageId: plan.memberPackageId },
-      });
-    }
-  };
+  const currentPlanData = plans.find(
+    (p) => p.memberPackageId === currentPackageId
+  );
+  const currentPrice = currentPlanData?.price || 0;
 
-  const getCardColor = (packageName) => {
-    switch (packageName) {
-      case "HEALTH":
-        return "bg-blue-50 border border-blue-500";
-      case "HEALTH+":
-        return "bg-green-50 border border-green-400";
-      case "OTHERS":
-        return "bg-purple-50 border border-purple-500";
-      default:
-        return "bg-white border border-gray-200";
-    }
-  };
+  if (plan.price < currentPrice) {
+    alert("Bạn đang sở hữu gói cao hơn. Không thể mua gói thấp hơn.");
+    return;
+  }
+
+  // ✅ LUÔN truyền memberPackageId, kể cả khi là gói FREE
+  if (plan.price === 0) {
+    navigate("/quit-plan", {
+      state: { memberPackageId: plan.memberPackageId },
+    });
+  } else {
+    navigate("/payment", {
+      state: { memberPackageId: plan.memberPackageId },
+    });
+  }
+};
 
   const getButtonColor = (packageName) => {
     switch (packageName) {
       case "HEALTH":
-        return "bg-blue-600 hover:bg-blue-700";
-      case "HEALTH+":
         return "bg-green-600 hover:bg-green-700";
-      case "OTHERS":
-        return "bg-purple-600 hover:bg-purple-700";
+      case "HEALTH+":
+        return "bg-red-600 hover:bg-red-700";
+      case "HEALTH PRO PACKAGE":
+      case "PREMIUM":
+      case "PREMIUM PAID":
+        return "bg-yellow-600 hover:bg-yellow-700";
       default:
         return "bg-gray-600 hover:bg-gray-700";
     }
@@ -130,7 +113,7 @@ const Membership = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* HERO SECTION */}
+      {/* Hero section */}
       <section className="relative w-full h-[75vh] flex items-center justify-center text-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
@@ -144,7 +127,7 @@ const Membership = () => {
           style={{ backgroundColor: "rgba(0, 0, 0, 0.1)" }}
         />
         <div className="relative z-20 max-w-4xl px-4 pt-16">
-          <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6">
+          <h1 className="text-4xl md:text-6xl font-extrabold !text-white mb-6">
             Start Your Smoke-Free Journey
           </h1>
           <p className="text-lg md:text-xl text-white mb-8 max-w-3xl mx-auto">
@@ -157,9 +140,7 @@ const Membership = () => {
               if (el) {
                 const yOffset = -50;
                 const y =
-                  el.getBoundingClientRect().top +
-                  window.pageYOffset +
-                  yOffset;
+                  el.getBoundingClientRect().top + window.pageYOffset + yOffset;
                 window.scrollTo({ top: y, behavior: "smooth" });
               }
             }}
@@ -170,7 +151,7 @@ const Membership = () => {
         </div>
       </section>
 
-      {/* PLANS SECTION */}
+      {/* Plans section */}
       <section id="plans" className="py-16 px-4 max-w-7xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -191,40 +172,71 @@ const Membership = () => {
         </motion.p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {plans.map((plan, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.2 }}
-              className={`relative flex flex-col justify-between rounded-2xl shadow-xl p-8 transition duration-300 pricing-card ${localStorage.getItem("token") ? "" : "min-h-[300px]"
-                } ${plan.color} ${plan.recommended ? "ring-4 ring-green-500" : ""}`}
-            >
-              <div className="flex-grow">
+          {plans.map((plan, index) => {
+            const isCurrentPlan =
+              Number(plan.memberPackageId) === currentPackageId;
+            const currentPlan = plans.find(
+              (p) => p.memberPackageId === currentPackageId
+            );
+            const isDowngrade = currentPlan && plan.price < currentPlan.price;
+
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.2 }}
+                className={`relative flex flex-col justify-between h-full rounded-2xl shadow-md border-2 p-8 transform hover:-translate-y-2 transition duration-300
+                  ${index === 0 ? "bg-green-50 border-green-500" : ""}
+                  ${index === 1 ? "bg-yellow-50 border-yellow-500" : ""}
+                  ${index === 2 ? "bg-blue-50 border-blue-500" : ""}
+                `}
+              >
                 {plan.recommended && (
-                  <span className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-2xl">
+                  <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-2xl">
                     Most Popular
                   </span>
                 )}
-                <h3 className="text-2xl font-extrabold uppercase text-gray-800 mb-4">
+                {isCurrentPlan && (
+                  <span className="absolute top-2 left-2 bg-yellow-400 text-white text-xs font-bold px-3 py-1 rounded">
+                    Current Plan
+                  </span>
+                )}
+
+                <h3 className="text-2xl font-extrabold uppercase text-gray-800 mb-4 flex items-center gap-2">
                   {plan.packageName}
+                  {isCurrentPlan && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-green-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
                 </h3>
+
                 <div className="text-3xl font-bold text-gray-900 mb-2">
                   {plan.price === 0
                     ? "FREE"
-                    : `${(plan.price * 1000).toLocaleString("vi-VN")} VND`}
+                    : `${plan.price.toLocaleString()} VND`}
                 </div>
                 <p className="text-gray-500 mb-6">{plan.duration} ngày</p>
-                <ul className="space-y-3 mb-8">
+
+                <ul className="space-y-3 mb-8 flex-grow">
                   {plan.featuresDescription
-                    .split(/,|\n/)
+                    .split(/(?<=[.!?])\s+/)
                     .map((feature, idx) => (
-                      <li
-                        key={idx}
-                        className="flex items-start text-gray-700"
-                      >
+                      <li key={idx} className="flex items-center text-gray-700">
                         <svg
-                          className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0"
+                          className="w-5 h-5 text-green-500 mr-2"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -236,23 +248,35 @@ const Membership = () => {
                             d="M5 13l4 4L19 7"
                           />
                         </svg>
-                        <span>{feature.trim()}</span>
+                        {feature.trim()}
                       </li>
                     ))}
                 </ul>
-              </div>
-              <button
-                onClick={() => handleChoosePlan(plan)}
-                className={`${plan.buttonColor} text-white w-full py-3 rounded-lg font-semibold transition duration-300 mt-auto`}
-              >
-                Select Plan
-              </button>
-            </motion.div>
-          ))}
+
+                <button
+                  onClick={() => {
+                    if (!isCurrentPlan && !isDowngrade) handleChoosePlan(plan);
+                  }}
+                  disabled={isCurrentPlan || isDowngrade}
+                  className={`w-full py-3 rounded-lg font-semibold transition duration-300 ${
+                    isCurrentPlan || isDowngrade
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : plan.buttonColor + " text-white"
+                  }`}
+                >
+                  {isCurrentPlan
+                    ? "Current Plan"
+                    : isDowngrade
+                    ? "Cannot Downgrade"
+                    : "Select Plan"}
+                </button>
+              </motion.div>
+            );
+          })}
         </div>
       </section>
 
-      {/* TESTIMONIAL SECTION */}
+      {/* Testimonials */}
       <section className="bg-gray-100 py-16 px-4">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}

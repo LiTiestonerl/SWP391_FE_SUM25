@@ -10,7 +10,7 @@ reducers: {
     return action.payload;
   },
   logout: () => {
-    localStorage.removeItem("Token");
+    localStorage.removeItem("token");
     return initialState;
   },
   updateAvatar: (state, action) => {

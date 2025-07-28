@@ -42,33 +42,33 @@ const Payment = () => {
   }, [memberPackageId, navigate]);
 
   const handlePayment = async () => {
-    const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
-    if (!token) {
-      alert("Bạn cần đăng nhập để thanh toán.");
-      navigate("/login");
-      return;
+  if (!token) {
+    alert("Bạn cần đăng nhập để thanh toán.");
+    navigate("/login");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const response = await api.post("payment", {
+      memberPackageId: parseInt(memberPackageId),
+    });
+
+    const { paymentUrl } = response.data;
+    if (paymentUrl) {
+      window.location.href = paymentUrl;
+    } else {
+      throw new Error("Không nhận được link thanh toán.");
     }
-
-    setLoading(true);
-
-    try {
-      const response = await api.post("payment", {
-        memberPackageId: parseInt(memberPackageId),
-      });
-
-      const { paymentUrl } = response.data;
-      if (paymentUrl) {
-        window.location.href = paymentUrl;
-      } else {
-        throw new Error("Không nhận được link thanh toán.");
-      }
-    } catch (error) {
-      console.error("Lỗi khi tạo thanh toán:", error);
-      alert("Có lỗi xảy ra, vui lòng thử lại!");
-      setLoading(false);
-    }
-  };
+  } catch (error) {
+    console.error("Lỗi khi tạo thanh toán:", error);
+    alert("Có lỗi xảy ra, vui lòng thử lại!");
+    setLoading(false);
+  }
+};
 
 
   const handleCancel = () => {
@@ -108,9 +108,7 @@ const Payment = () => {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 font-medium">Giá:</span>
-                <span className="text-gray-900 font-semibold">
-                  {(packageDetails.price * 1000).toLocaleString("vi-VN")} VND
-                </span>
+                <span className="text-gray-900 font-semibold">{packageDetails.price.toLocaleString()} VND</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 font-medium">Thời hạn:</span>
@@ -123,10 +121,11 @@ const Payment = () => {
           <button
             onClick={handlePayment}
             disabled={loading || fetching}
-            className={`flex-1 py-3 px-4 rounded-lg font-semibold text-white transition duration-300 flex items-center justify-center ${loading || fetching
+            className={`flex-1 py-3 px-4 rounded-lg font-semibold text-white transition duration-300 flex items-center justify-center ${
+              loading || fetching
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-green-600 hover:bg-green-700 shadow-md hover:shadow-lg"
-              }`}
+            }`}
           >
             {loading ? (
               <>
