@@ -55,16 +55,16 @@ export const markNotificationAsRead = async (notificationId) => {
 /**
  * ➕ Tạo một thông báo mới (tạm disable nếu API đang bị 403)
  */
-// export const createNewNotification = async (notificationData) => {
-//   try {
-//     const response = await api.post("/notifications", {
-//       ...notificationData,
-//       sendDate: new Date().toISOString(),
-//       status: "UNREAD"
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error creating notification", error);
-//     return null;
-//   }
-// };
+export const createNewNotification = async (notificationData) => {
+  try {
+    const response = await api.post("/notifications", {
+      ...notificationData,
+      sendDate: new Date().toISOString(),
+      status: "UNREAD"
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error creating notification", error);
+    return null;
+  }
+};

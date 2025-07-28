@@ -19,39 +19,65 @@ const CreateNotification = () => {
   const [form] = Form.useForm();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [notificationHistory, setNotificationHistory] = useState([]);
 
-  // ❗API này chỉ gọi được khi người đăng nhập là ADMIN
-  const fetchUsers = async () => {
-    try {
-      const res = await api.get("/admin/users"); // 👈 backend yêu cầu role ADMIN
-      setUsers(res.data);
-    } catch (err) {
-      console.error("Lỗi khi lấy danh sách người dùng:", err);
-      message.error("Không thể tải danh sách người dùng.");
-    }
-  };
-
+  // Lấy danh sách user có role USER
   useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await api.get("/admin/users");
+        const filtered = res.data.filter((user) => user.roleName === "USER");
+        setUsers(filtered);
+      } catch (err) {
+        console.error("Lỗi khi lấy danh sách user:", err);
+      }
+    };
     fetchUsers();
   }, []);
+
+  // Lấy lịch sử thông báo của admin
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await api.get("/notifications/me");
+        setNotificationHistory(res.data.reverse());
+      } catch (err) {
+        console.error("Lỗi khi lấy lịch sử thông báo:", err);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
+  // Tạo map userId → tên để dễ hiển thị trong lịch sử
+  const userMap = users.reduce((acc, user) => {
+    acc[user.userId] = user.fullName || user.userName;
+    return acc;
+  }, {});
 
   const onFinish = async (values) => {
     try {
       setLoading(true);
       const payload = {
-        content: values.content,
-        notificationType: values.notificationType,
+        ...values,
         sendDate: values.sendDate.toISOString(),
-        status: "unread", // default khi tạo
-        userId: values.userId,
+        status: "unread",
       };
 
-      const res = await api.post("/notifications", payload); // ✅ Endpoint đúng, role ADMIN mới được gọi
-      message.success("Tạo thông báo thành công!");
-      form.resetFields();
+      const res = await api.post("/notifications", payload);
+      console.log("Response:", res.data);
+
+      if (res.data?.notificationId) {
+        message.success("Tạo thông báo thành công!");
+        form.resetFields();
+        setNotificationHistory((prev) => [res.data, ...prev]);
+      } else {
+        throw new Error("Invalid response format");
+      }
     } catch (err) {
-      console.error("Lỗi khi gửi thông báo:", err);
-      message.error("Không thể tạo thông báo. Đảm bảo bạn là admin.");
+      console.error("Error details:", err.response?.data || err.message);
+      message.error(
+        `Lỗi: ${err.response?.data?.message || "Không thể tạo thông báo"}`
+      );
     } finally {
       setLoading(false);
     }
@@ -65,14 +91,14 @@ const CreateNotification = () => {
 
       <Form layout="vertical" form={form} onFinish={onFinish}>
         <Form.Item
-          label="Người nhận"
           name="userId"
-          rules={[{ required: true, message: "Vui lòng chọn người nhận" }]}
+          label="Người nhận"
+          rules={[{ required: true }]}
         >
-          <Select placeholder="Chọn user">
+          <Select placeholder="Chọn người nhận">
             {users.map((user) => (
               <Option key={user.userId} value={user.userId}>
-                {user.userName} ({user.email})
+                {user.fullName || user.userName}
               </Option>
             ))}
           </Select>
@@ -88,7 +114,7 @@ const CreateNotification = () => {
             <Option value="coach_reply">Tư vấn</Option>
             <Option value="community">Cộng đồng</Option>
             <Option value="system">Hệ thống</Option>
-            <Option value="motivati on">Động lực</Option>
+            <Option value="motivation">Động lực</Option>
           </Select>
         </Form.Item>
 
@@ -119,6 +145,29 @@ const CreateNotification = () => {
           </Button>
         </Form.Item>
       </Form>
+
+      {/* Lịch sử thông báo */}
+      <div className="mt-10">
+        <Title level={4}>📜 Lịch sử thông báo</Title>
+        {notificationHistory.length === 0 ? (
+          <p>Chưa có thông báo nào.</p>
+        ) : (
+          <ul className="space-y-3 max-h-[300px] overflow-y-auto">
+            {notificationHistory.map((noti) => (
+              <li key={noti.notificationId} className="border rounded p-3">
+                <p className="font-semibold">{noti.content}</p>
+                <p className="text-sm text-gray-500">
+                  Gửi lúc: {dayjs(noti.sendDate).format("HH:mm DD/MM/YYYY")}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Người nhận: {userMap[noti.userId] || "Không rõ"} | Loại:{" "}
+                  {noti.notificationType}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };

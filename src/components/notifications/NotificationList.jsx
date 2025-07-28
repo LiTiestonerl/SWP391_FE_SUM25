@@ -83,7 +83,14 @@ const NOTIFICATION_TYPES = {
     icon: <StarOutlined style={{ color: '#ffffff' }} />,
     gradient: 'linear-gradient(135deg, #d4af37, #b8860b)',
     borderColor: '#d4af37'
+  },
+  system: {
+    color: '#2c3e50',
+    icon: <NotificationOutlined style={{ color: '#ffffff' }} />,
+    gradient: 'linear-gradient(135deg, #34495e, #2c3e50)',
+    borderColor: '#2c3e50'
   }
+
 };
 
 const HealthBenefitsPanel = () => (
@@ -124,8 +131,6 @@ const MotivationPanel = () => {
     author: 'Anonymous'
   });
   const [showEmergencyPopup, setShowEmergencyPopup] = useState(false);
-  const [timer, setTimer] = useState(900);
-  const [timerActive, setTimerActive] = useState(false);
 
   const quotes = [
     { text: '"The secret of getting ahead is getting started."', author: 'Mark Twain' },
@@ -138,27 +143,6 @@ const MotivationPanel = () => {
     const today = new Date().getDate();
     setMotivationQuote(quotes[today % quotes.length]);
   }, []);
-
-  useEffect(() => {
-    let interval;
-    if (timerActive && timer > 0) {
-      interval = setInterval(() => setTimer(prev => prev - 1), 1000);
-    } else if (timer === 0) {
-      setTimerActive(false);
-    }
-    return () => clearInterval(interval);
-  }, [timerActive, timer]);
-
-  const startTimer = () => {
-    setTimer(900);
-    setTimerActive(true);
-  };
-
-  const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-  };
 
   return (
     <Card className="motivation-panel">
@@ -201,15 +185,11 @@ const MotivationPanel = () => {
             <div className="emergency-tip"><div className="emergency-tip-icon">2</div><p>Do 10 deep breaths (inhale 4s, hold 4s, exhale 6s)</p></div>
             <div className="emergency-tip"><div className="emergency-tip-icon">3</div><p>Chew sugar-free gum or eat a healthy snack</p></div>
             <div className="emergency-tip"><div className="emergency-tip-icon">4</div><p>Distract yourself for 15 minutes (craving will pass)</p></div>
-            <div className="emergency-timer">
-              <Text strong>Distraction Timer: </Text>
-              <Progress percent={(1 - timer / 900) * 100} showInfo={false} strokeColor="#e74c3c" />
-              <Text>{timer > 0 ? formatTime(timer) : 'You did it! The craving has passed!'}</Text>
-              <Button type="primary" onClick={startTimer} disabled={timerActive && timer > 0}>
-                {timer > 0 ? 'Timer Running' : 'Start Timer'}
-              </Button>
-            </div>
-            <Button type="default" onClick={() => { setShowEmergencyPopup(false); setTimerActive(false); }}>
+            <Button
+              type="default"
+              onClick={() => setShowEmergencyPopup(false)}
+              style={{ marginTop: 16 }}
+            >
               I Feel Better Now
             </Button>
           </div>
@@ -230,7 +210,7 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
 
   return (
     <div className={`notification-item ${notification.status === 'READ' ? 'read' : 'unread'}`}
-         style={{ borderLeft: `3px solid ${type.borderColor}` }}>
+      style={{ borderLeft: `3px solid ${type.borderColor}` }}>
       <div className="notification-badge" style={{ background: type.gradient }}>
         {type.icon}
       </div>
@@ -269,7 +249,13 @@ const NotificationList = () => {
       setLoading(true);
       const userId = 9007199254740991;
       const data = await fetchUserNotifications(userId);
-      setNotifications(data);
+
+      // Sắp xếp thông báo mới nhất lên đầu
+      const sortedData = data.sort((a, b) => {
+        return new Date(b.sendDate) - new Date(a.sendDate);
+      });
+
+      setNotifications(sortedData);
       setLoading(false);
     };
     loadNotifications();
@@ -296,12 +282,14 @@ const NotificationList = () => {
 
   const unreadCount = notifications.filter(noti => noti.status !== 'READ').length;
 
-  const grouped = filtered.reduce((acc, noti) => {
-    const date = new Date(noti.sendDate).toLocaleDateString();
-    acc[date] = acc[date] || [];
-    acc[date].push(noti);
-    return acc;
-  }, {});
+  const grouped = filtered
+    .sort((a, b) => new Date(b.sendDate) - new Date(a.sendDate)) // Thêm sắp xếp lại
+    .reduce((acc, noti) => {
+      const date = new Date(noti.sendDate).toLocaleDateString();
+      acc[date] = acc[date] || [];
+      acc[date].push(noti);
+      return acc;
+    }, {});
 
   return (
     <div className="no-smoking-dashboard">
