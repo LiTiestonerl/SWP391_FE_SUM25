@@ -45,6 +45,7 @@ const Membership = () => {
   const fetchCurrentUserPackage = async () => {
     try {
       const res = await api.get("/user-membership/me");
+       console.log("Fetched current package:", res.data);
       if (res.data?.memberPackageId) {
         setCurrentPackageId(Number(res.data.memberPackageId));
       }
@@ -64,37 +65,44 @@ const Membership = () => {
       setCurrentPackageId(null);
       setLoading(false);
     }
-  }, [location]);
+  }, [location.key]); // cập nhật khi route reload (dù cùng path)
+
+useEffect(() => {
+  if (location.state?.paymentSuccess) {
+    alert("Thanh toán thành công! Gói của bạn đã được cập nhật.");
+    fetchCurrentUserPackage(); // 🔥 Thêm dòng này để cập nhật lại gói
+    navigate(location.pathname, { replace: true });
+  }
+}, [location.state]);
+
+
 
   const handleChoosePlan = (plan) => {
-  const token = localStorage.getItem("token");
-  if (!token) {
-    alert("Vui lòng đăng nhập để mua gói!");
-    navigate("/login");
-    return;
-  }
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Vui lòng đăng nhập để mua gói!");
+      navigate("/login");
+      return;
+    }
 
-  const currentPlanData = plans.find(
-    (p) => p.memberPackageId === currentPackageId
-  );
-  const currentPrice = currentPlanData?.price || 0;
+    const currentPlanData = plans.find(
+      (p) => p.memberPackageId === currentPackageId
+    );
+    const currentPrice = currentPlanData?.price || 0;
 
-  if (plan.price < currentPrice) {
-    alert("Bạn đang sở hữu gói cao hơn. Không thể mua gói thấp hơn.");
-    return;
-  }
+    if (plan.price < currentPrice) {
+      alert("Bạn đang sở hữu gói cao hơn. Không thể mua gói thấp hơn.");
+      return;
+    }
 
-  // ✅ LUÔN truyền memberPackageId, kể cả khi là gói FREE
-  if (plan.price === 0) {
-    navigate("/quit-plan", {
-      state: { memberPackageId: plan.memberPackageId },
-    });
-  } else {
-    navigate("/payment", {
-      state: { memberPackageId: plan.memberPackageId },
-    });
-  }
-};
+    if (plan.packageName === "HEALTH") {
+      navigate("/dashboard");
+    } else {
+      navigate("/payment", {
+        state: { memberPackageId: plan.memberPackageId },
+      });
+    }
+  };
 
   const getButtonColor = (packageName) => {
     switch (packageName) {
@@ -113,7 +121,7 @@ const Membership = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero section */}
+      {/* Hero */}
       <section className="relative w-full h-[75vh] flex items-center justify-center text-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
@@ -151,7 +159,7 @@ const Membership = () => {
         </div>
       </section>
 
-      {/* Plans section */}
+      {/* Plans */}
       <section id="plans" className="py-16 px-4 max-w-7xl mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}

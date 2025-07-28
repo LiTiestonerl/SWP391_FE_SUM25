@@ -9,10 +9,11 @@ reducers: {
   login: (state, action) => {
     return action.payload;
   },
-  logout: () => {
-    localStorage.removeItem("token");
-    return initialState;
-  },
+ logout: () => {
+  localStorage.removeItem("token"); // ✅ đúng key
+  localStorage.removeItem("refresh"); // xoá refresh nếu cần
+  return initialState;
+},
   updateAvatar: (state, action) => {
     if (state) {
       state.avatar = action.payload;

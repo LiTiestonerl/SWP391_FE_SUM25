@@ -24,12 +24,12 @@ const PaymentResult = () => {
       return;
     }
 
+    // Gọi API để lấy thông tin giao dịch
     api
-      .get(`/payment/vnpay-return?vnp_TxnRef=${txnRef}`)
-      .then(async (response) => {
+  .get(`/payment/status?vnp_TxnRef=${txnRef}`)
+      .then((response) => {
         const status = responseCode === "00" ? "success" : "failed";
         setPaymentStatus(status);
-
         setOrderDetails({
           orderNumber: txnRef,
           amount: amount ? parseFloat(amount) / 100 : 0,
@@ -43,26 +43,6 @@ const PaymentResult = () => {
               )
             : format(new Date(), "PPpp"),
         });
-
-        // 👉 Nếu thanh toán thành công, lấy duration
-        if (status === "success") {
-          const storedPackageId = localStorage.getItem("memberPackageId");
-          if (storedPackageId) {
-            try {
-              const packagesRes = await api.get("/member-packages");
-              const selected = packagesRes.data.find(
-                (p) => p.memberPackageId === Number(storedPackageId)
-              );
-              if (selected) {
-                localStorage.setItem("duration", selected.duration);
-                localStorage.setItem("packageName", selected.packageName);
-              }
-            } catch (error) {
-              console.error("Không lấy được thông tin gói:", error);
-            }
-          }
-        }
-
         setLoading(false);
       })
       .catch((error) => {

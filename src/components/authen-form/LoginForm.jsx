@@ -10,17 +10,14 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./login.css";
 
-const GOOGLE_CLIENT_ID =
-  "661377403321-vckppct3j51pnobtf89o6lh0ou5j8c69.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "661377403321-vckppct3j51pnobtf89o6lh0ou5j8c69.apps.googleusercontent.com";
 
 function LoginForm() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const showBlockedAccountModal = () => {
-    toast.error(
-      "Tài khoản đã bị khóa. Vui lòng liên hệ admin qua email: tiennmse173628@fpt.edu.vn"
-    );
+    toast.error("Tài khoản đã bị khóa. Vui lòng liên hệ admin.");
   };
 
   const onFinish = async (values) => {
@@ -41,13 +38,15 @@ function LoginForm() {
         email: response.data.email,
         role: response.data.role,
         token: response.data.token,
+        refresh: response.data.refreshToken,
         login: values.username,
       };
 
       dispatch(login(data));
       localStorage.setItem("token", data.token);
-      navigate("/membership");
+      localStorage.setItem("refresh", data.refresh);
       toast.success("Đăng nhập thành công!");
+      navigate("/membership");
     } catch (err) {
       const raw = err.response?.data?.message || "";
       let msg = "Đăng nhập thất bại.";
@@ -56,6 +55,57 @@ function LoginForm() {
       else if (raw.includes("xác thực")) msg = "Email chưa xác thực.";
       else if (raw.includes("khóa")) msg = "Tài khoản đã bị khoá.";
       toast.error(msg);
+    }
+  };
+
+  const handleGoogleCredentialResponse = async (response) => {
+    const idToken = response.credential;
+    if (!idToken) {
+      toast.error("Không nhận được mã xác thực Google.");
+      return;
+    }
+
+    try {
+      const publicApi = baseAxios.create({
+        baseURL: api.defaults.baseURL,
+      });
+
+      const res = await publicApi.post("/auth/google", { idToken });
+
+      const {
+        userId,
+        userPublicId,
+        fullName,
+        email,
+        role,
+        status,
+        token,
+        refreshToken,
+      } = res.data;
+
+      if (status === "inactive") {
+        showBlockedAccountModal();
+        return;
+      }
+
+      const userData = {
+        id: userId,
+        fullName,
+        email,
+        role,
+        token,
+        refreshToken,
+        userPublicId,
+      };
+      localStorage.setItem("token", token);
+      localStorage.setItem("refresh", refreshToken);
+      dispatch(login(userData));
+
+      toast.success("Đăng nhập Google thành công!");
+      navigate("/membership");
+    } catch (err) {
+      console.error("❌ Google login failed", err);
+      toast.error("Đăng nhập bằng Google thất bại.");
     }
   };
 
@@ -72,38 +122,6 @@ function LoginForm() {
       { theme: "outline", size: "large" }
     );
   }, []);
-
-  const handleGoogleCredentialResponse = async (response) => {
-    const idToken = response.credential;
-    if (!idToken) {
-      toast.error("Không nhận được mã xác thực Google.");
-      return;
-    }
-
-    try {
-      const publicApi = baseAxios.create({
-        baseURL: api.defaults.baseURL,
-      });
-
-      const res = await publicApi.post("/auth/google", { idToken });
-      const data = res.data;
-
-      if (data.status === "inactive") {
-        showBlockedAccountModal();
-        return;
-      }
-
-      dispatch(login(data));
-      localStorage.setItem("token", data.token);
-      toast.success("Đăng nhập Google thành công!");
-
-      if (data.isNewUser) navigate("/verify");
-      else navigate("/membership");
-    } catch (err) {
-      console.error("❌ Google login failed", err);
-      toast.error("Đăng nhập bằng Google thất bại.");
-    }
-  };
 
   return (
     <div className="login-form">

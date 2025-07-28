@@ -22,11 +22,11 @@ const STAGE_NOTES = (stageNum, targetCigs) => {
 const generateStages = (startDate, durationInDays, membershipType, addictionLevel) => {
   const stages = [];
   const start = dayjs(startDate);
-
-  // ✅ Xác định số tuần
   const isFree = membershipType?.toUpperCase() === "FREE";
-  const totalStages = isFree ? 4 : Math.ceil(durationInDays / 7);
-  const unlockedStages = isFree ? 1 : totalStages;
+
+  // Xác định số stage thực tế và số stage hiển thị
+  const actualStages = isFree ? 1 : Math.ceil(durationInDays / 7);
+  const totalStages = isFree ? 4 : actualStages; // Gói Free luôn hiển thị 4 stages
 
   // Addiction logic
   let initialCigarettes = 8;
@@ -40,20 +40,16 @@ const generateStages = (startDate, durationInDays, membershipType, addictionLeve
       initialCigarettes = 15;
       reductionPerStage = 3;
       break;
-    case "MILD":
-    default:
-      initialCigarettes = 8;
-      reductionPerStage = 2;
   }
 
-  for (let stageNum = 1; stageNum <= totalStages; stageNum++) {
-    const daysCompleted = (stageNum - 1) * 7;
-    const stageStart = start.add(daysCompleted, "day");
-    const stageDays = 7;
+  // Tạo stage thực tế
+  let remainingDays = durationInDays;
+  for (let stageNum = 1; stageNum <= actualStages; stageNum++) {
+    const stageStart = start.add((stageNum - 1) * 7, "day");
+    const stageDays = stageNum === actualStages ? remainingDays : Math.min(7, remainingDays);
     const stageEnd = stageStart.add(stageDays - 1, "day");
-
     const targetCigs = Math.max(0, initialCigarettes - reductionPerStage * (stageNum - 1));
-
+    
     stages.push({
       stageId: stageNum,
       stageName: `Week ${stageNum}`,
@@ -61,9 +57,31 @@ const generateStages = (startDate, durationInDays, membershipType, addictionLeve
       stageEndDate: stageEnd.format("YYYY-MM-DD"),
       targetCigarettesPerDay: targetCigs,
       notes: STAGE_NOTES(stageNum, targetCigs).join("\n"),
-      isLocked: isFree && stageNum > 1,
+      isLocked: false,
       durationInDays: stageDays,
     });
+    
+    remainingDays -= stageDays;
+  }
+
+  // Tạo placeholder stages cho gói Free
+  if (isFree) {
+    for (let stageNum = actualStages + 1; stageNum <= totalStages; stageNum++) {
+      const stageStart = start.add((stageNum - 1) * 7, "day");
+      const stageEnd = stageStart.add(6, "day"); // Luôn 7 ngày cho placeholder
+      const targetCigs = Math.max(0, initialCigarettes - reductionPerStage * (stageNum - 1));
+      
+      stages.push({
+        stageId: stageNum,
+        stageName: `Week ${stageNum}`,
+        stageStartDate: stageStart.format("YYYY-MM-DD"),
+        stageEndDate: stageEnd.format("YYYY-MM-DD"),
+        targetCigarettesPerDay: targetCigs,
+        notes: "Upgrade to unlock full plan",
+        isLocked: true,
+        durationInDays: 7, // Placeholder luôn 7 ngày
+      });
+    }
   }
 
   return stages;
