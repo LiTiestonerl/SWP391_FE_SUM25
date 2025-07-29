@@ -1,61 +1,77 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaCheckCircle, FaTimesCircle, FaHome, FaHistory } from "react-icons/fa";
 import { format } from "date-fns";
 import api from "../../configs/axios";
 
 const PaymentResult = () => {
-  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState(null); // success | failed | not_found
   const [loading, setLoading] = useState(true);
   const [orderDetails, setOrderDetails] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
 
+  const retriesRef = useRef(0);
+  const maxRetries = 3;
+
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
-    const txnRef = queryParams.get("vnp_TxnRef");
+    const rawTxnRef = queryParams.get("vnp_TxnRef");
+    const txnRef = rawTxnRef?.replace(/^0+/, "");
     const responseCode = queryParams.get("vnp_ResponseCode");
     const amount = queryParams.get("vnp_Amount");
     const transactionDate = queryParams.get("vnp_PayDate");
 
-    if (!txnRef) {
+    if (!txnRef || !responseCode || isNaN(Number(txnRef))) {
+      console.error("txnRef hoặc responseCode không hợp lệ:", txnRef, responseCode);
       setLoading(false);
       navigate("/membership");
       return;
     }
 
-    // Gọi API để lấy thông tin giao dịch
-    api
-  .get(`/payment/status?vnp_TxnRef=${txnRef}`)
-      .then((response) => {
-        const status = responseCode === "00" ? "success" : "failed";
-        setPaymentStatus(status);
-        setOrderDetails({
-          orderNumber: txnRef,
-          amount: amount ? parseFloat(amount) / 100 : 0,
-          paymentMethod: "VNPAY",
-          transactionDate: transactionDate
-            ? format(
-                new Date(
-                  `${transactionDate.slice(0, 4)}-${transactionDate.slice(4, 6)}-${transactionDate.slice(6, 8)}T${transactionDate.slice(8, 10)}:${transactionDate.slice(10, 12)}:${transactionDate.slice(12, 14)}`
-                ),
-                "PPpp"
-              )
-            : format(new Date(), "PPpp"),
+    const fetchStatus = () => {
+      api
+        .get(`/payment/status`, {
+          params: {
+            txnRef,
+            vnp_ResponseCode: responseCode,
+          },
+        })
+        .then((res) => {
+          setPaymentStatus(res.data.status === "SUCCESS" ? "success" : "failed");
+          setOrderDetails({
+            orderNumber: res.data.txnRef,
+            amount: res.data.amount ? parseFloat(res.data.amount) : 0,
+            paymentMethod: "VNPAY",
+            transactionDate: res.data.transactionDate
+              ? format(new Date(res.data.transactionDate), "PPpp")
+              : format(new Date(), "PPpp"),
+            memberPackageId: res.data.memberPackageId,
+          });
+          setLoading(false);
+        })
+        .catch((err) => {
+          if (retriesRef.current < maxRetries) {
+            retriesRef.current++;
+            setTimeout(fetchStatus, 2000);
+          } else {
+            console.error("Lỗi khi kiểm tra trạng thái thanh toán:", err);
+
+            const isNotFound = err.response?.status === 404;
+
+            setPaymentStatus(isNotFound ? "not_found" : "failed");
+            setOrderDetails({
+              orderNumber: txnRef,
+              amount: amount ? parseFloat(amount) / 100 : 0,
+              paymentMethod: "VNPAY",
+              transactionDate: format(new Date(), "PPpp"),
+            });
+            setLoading(false);
+          }
         });
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Lỗi khi kiểm tra trạng thái thanh toán:", error);
-        setPaymentStatus("failed");
-        setOrderDetails({
-          orderNumber: txnRef || "N/A",
-          amount: amount ? parseFloat(amount) / 100 : 0,
-          paymentMethod: "VNPAY",
-          transactionDate: format(new Date(), "PPpp"),
-        });
-        setLoading(false);
-      });
+    };
+
+    fetchStatus();
   }, [location, navigate]);
 
   const failureReasons = [
@@ -75,8 +91,22 @@ const PaymentResult = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden transform transition-all duration-300 hover:shadow-xl">
-        <div className={`p-8 ${paymentStatus === "success" ? "bg-green-50" : "bg-red-50"}`}>
-          {paymentStatus === "success" ? (
+        <div className={`p-8 ${
+          paymentStatus === "success"
+            ? "bg-green-50"
+            : paymentStatus === "not_found"
+            ? "bg-yellow-50"
+            : "bg-red-50"
+        }`}>
+          {paymentStatus === "not_found" ? (
+            <div className="text-center">
+              <FaTimesCircle className="mx-auto h-16 w-16 text-yellow-500 animate-bounce" />
+              <h2 className="mt-4 text-3xl font-bold text-yellow-800">Không tìm thấy giao dịch!</h2>
+              <p className="mt-6 text-gray-600">
+                Có thể giao dịch đã hết hạn hoặc không hợp lệ. Vui lòng kiểm tra lại liên kết hoặc liên hệ hỗ trợ.
+              </p>
+            </div>
+          ) : paymentStatus === "success" ? (
             <div className="text-center">
               <FaCheckCircle className="mx-auto h-16 w-16 text-green-500 animate-bounce" />
               <h2 className="mt-4 text-3xl font-bold text-green-800">Thanh toán thành công!</h2>
@@ -137,7 +167,11 @@ const PaymentResult = () => {
           {paymentStatus === "failed" && (
             <button
               className="w-full flex justify-center items-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-              onClick={() => navigate("/payment", { state: { memberPackageId: orderDetails?.memberPackageId } })}
+              onClick={() =>
+                navigate("/payment", {
+                  state: { memberPackageId: orderDetails?.memberPackageId },
+                })
+              }
             >
               Thử lại thanh toán
             </button>

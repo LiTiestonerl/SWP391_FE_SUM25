@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Button, Popconfirm, message } from "antd";
 import api from "../../configs/axios";
 
 const testimonials = [
@@ -45,12 +46,24 @@ const Membership = () => {
   const fetchCurrentUserPackage = async () => {
     try {
       const res = await api.get("/user-membership/me");
-       console.log("Fetched current package:", res.data);
+      console.log("Fetched current package:", res.data);
       if (res.data?.memberPackageId) {
         setCurrentPackageId(Number(res.data.memberPackageId));
       }
     } catch (err) {
       console.error("Lỗi khi lấy gói hiện tại:", err);
+    }
+  };
+
+  const handleCancelPackage = async () => {
+    try {
+      await api.delete("/user-membership/me");
+      message.success("Đã hủy gói hiện tại.");
+      fetchCurrentUserPackage();
+    } catch (error) {
+      message.error(
+        error?.response?.data?.message || "Hủy gói thất bại. Vui lòng thử lại."
+      );
     }
   };
 
@@ -65,17 +78,15 @@ const Membership = () => {
       setCurrentPackageId(null);
       setLoading(false);
     }
-  }, [location.key]); // cập nhật khi route reload (dù cùng path)
+  }, [location.key]);
 
-useEffect(() => {
-  if (location.state?.paymentSuccess) {
-    alert("Thanh toán thành công! Gói của bạn đã được cập nhật.");
-    fetchCurrentUserPackage(); // 🔥 Thêm dòng này để cập nhật lại gói
-    navigate(location.pathname, { replace: true });
-  }
-}, [location.state]);
-
-
+  useEffect(() => {
+    if (location.state?.paymentSuccess) {
+      alert("Thanh toán thành công! Gói của bạn đã được cập nhật.");
+      fetchCurrentUserPackage();
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state]);
 
   const handleChoosePlan = (plan) => {
     const token = localStorage.getItem("token");
@@ -242,7 +253,10 @@ useEffect(() => {
                   {plan.featuresDescription
                     .split(/(?<=[.!?])\s+/)
                     .map((feature, idx) => (
-                      <li key={idx} className="flex items-center text-gray-700">
+                      <li
+                        key={idx}
+                        className="flex items-center text-gray-700"
+                      >
                         <svg
                           className="w-5 h-5 text-green-500 mr-2"
                           fill="none"
@@ -263,7 +277,8 @@ useEffect(() => {
 
                 <button
                   onClick={() => {
-                    if (!isCurrentPlan && !isDowngrade) handleChoosePlan(plan);
+                    if (!isCurrentPlan && !isDowngrade)
+                      handleChoosePlan(plan);
                   }}
                   disabled={isCurrentPlan || isDowngrade}
                   className={`w-full py-3 rounded-lg font-semibold transition duration-300 ${
@@ -278,6 +293,20 @@ useEffect(() => {
                     ? "Cannot Downgrade"
                     : "Select Plan"}
                 </button>
+
+                {/* Nút hủy gói */}
+                {isCurrentPlan && plan.price > 0 && (
+                  <Popconfirm
+                    title="Bạn chắc chắn muốn hủy gói này?"
+                    onConfirm={handleCancelPackage}
+                    okText="Đồng ý"
+                    cancelText="Hủy"
+                  >
+                    <Button danger type="primary" className="mt-4 w-full">
+                      Hủy gói
+                    </Button>
+                  </Popconfirm>
+                )}
               </motion.div>
             );
           })}
@@ -309,7 +338,9 @@ useEffect(() => {
                 className="w-16 h-16 rounded-full object-cover mb-4"
               />
               <p className="text-gray-600 italic mb-4">"{testimonial.quote}"</p>
-              <p className="font-semibold text-gray-800">{testimonial.name}</p>
+              <p className="font-semibold text-gray-800">
+                {testimonial.name}
+              </p>
             </motion.div>
           ))}
         </div>

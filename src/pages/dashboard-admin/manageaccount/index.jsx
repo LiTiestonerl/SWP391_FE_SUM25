@@ -137,28 +137,31 @@ const ManageAccount = () => {
     {
       title: "Hành động",
       key: "action",
-      render: (_, record) => (
-        <>
-          <Button
-            icon={<EditOutlined />}
-            className="mr-2"
-            onClick={() => {
-              setSelectedUser({ ...record });
-              setTempRoleId(record.roleId);
-              setTempStatus(record.status || "inactive");
-              setModalVisible(true);
-            }}
-          />
-          <Popconfirm
-            title="Bạn có chắc chắn muốn xóa người dùng này?"
-            onConfirm={() => handleDelete(record.userId)}
-            okText="Xóa"
-            cancelText="Hủy"
-          >
-            <Button icon={<DeleteOutlined />} danger />
-          </Popconfirm>
-        </>
-      ),
+      render: (_, record) => {
+        if (record.roleName === "ADMIN") return null;
+        return (
+          <>
+            <Button
+              icon={<EditOutlined />}
+              className="mr-2"
+              onClick={() => {
+                setSelectedUser({ ...record });
+                setTempRoleId(record.roleId);
+                setTempStatus(record.status || "inactive");
+                setModalVisible(true);
+              }}
+            />
+            <Popconfirm
+              title="Bạn có chắc chắn muốn xóa người dùng này?"
+              onConfirm={() => handleDelete(record.userId)}
+              okText="Xóa"
+              cancelText="Hủy"
+            >
+              <Button icon={<DeleteOutlined />} danger />
+            </Popconfirm>
+          </>
+        );
+      },
     },
   ];
 
@@ -206,7 +209,7 @@ const ManageAccount = () => {
               onChange={(value) => setTempRoleId(value)}
             >
               <Option value={1}>User</Option>
-              <Option value={3}>Coach</Option>
+              <Option value={2}>Coach</Option>
             </Select>
           </div>
 
