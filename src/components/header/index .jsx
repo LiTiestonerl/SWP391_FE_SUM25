@@ -92,7 +92,11 @@ const Header = () => {
                     className="flex items-center space-x-2 focus:outline-none"
                   >
                     <img
-                       src={localStorage.getItem("custom_avatar") || user?.avatar || "/images/avatar.jpg"}
+                      src={
+                        localStorage.getItem("custom_avatar") ||
+                        user?.avatar ||
+                        "/images/avatar.jpg"
+                      }
                       alt={user?.fullName}
                       className="h-8 w-8 rounded-full object-cover"
                       onError={(e) => {
@@ -104,6 +108,16 @@ const Header = () => {
 
                   {showDropdown && (
                     <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+                      {user?.role === "ADMIN" && (
+                        <Link
+                          to="/dashboard/overview"
+                          onClick={() => setShowDropdown(false)}
+                          className="block px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
+                        >
+                          Dashboard
+                        </Link>
+                      )}
+
                       <Link
                         to="/user-profile"
                         onClick={() => setShowDropdown(false)}
@@ -116,7 +130,7 @@ const Header = () => {
                         onClick={handleLogout}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
                       >
-                        {"logout"}
+                        Logout
                       </button>
                     </div>
                   )}
