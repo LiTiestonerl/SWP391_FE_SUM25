@@ -11,9 +11,8 @@ const coachList = [
   { id: 6, name: "Dr. David Lee" },
 ];
 
-// Format money to VND
 const formatMoney = (amount) => {
-  if (!amount && amount !== 0) return '0 ₫';
+  if (!amount && amount !== 0) return '0 VND';
   const num = Number(String(amount).replace(/[.,]/g, ''));
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
@@ -23,19 +22,15 @@ const formatMoney = (amount) => {
 };
 
 const PlanSummaryCard = ({ plan, onEdit, onDelete, onComplete }) => {
-  const allTasks = plan.weeks?.flatMap(week =>
-    week.days?.flatMap(day => day.tasks ?? []) ?? []
-  ) ?? [];
-
-  const completedTasks = allTasks.filter(t => t.done).length;
-  const percent = plan.percent ?? (Math.round((completedTasks / allTasks.length) * 100) || 0);
+  const daysPassed = dayjs().diff(dayjs(plan.startDate), 'day') + 1;
+  const totalDays = dayjs(plan.endDate).diff(dayjs(plan.startDate), 'day') + 1;
+  const percent = Math.min(100, Math.max(0, Math.round((daysPassed / totalDays) * 100)));
 
   const selectedCoach = coachList.find(c => c.id === plan.coach);
   const isCompleted = plan?.status?.toLowerCase?.() === 'completed';
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 ring-1 ring-emerald-200/60 hover:shadow-2xl transition relative min-h-[260px]">
-      {/* Action buttons */}
       <div className="absolute top-3 right-3 flex gap-2">
         {!isCompleted && (
           <button
@@ -70,10 +65,17 @@ const PlanSummaryCard = ({ plan, onEdit, onDelete, onComplete }) => {
         <div><b className="text-gray-800">Addiction:</b> {plan.addictionLevel}</div>
         <div><b className="text-gray-800">Start:</b> {dayjs(plan.startDate).format('DD/MM/YYYY')}</div>
         <div><b className="text-gray-800">End:</b> {dayjs(plan.endDate).format('DD/MM/YYYY')}</div>
+        <div><b className="text-gray-800">Brand:</b> {plan.brand || 'N/A'}</div>
+        <div><b className="text-gray-800">Flavor:</b> {plan.flavor || 'N/A'}</div>
+        <div><b className="text-gray-800">Nicotine Level:</b> {plan.nicotineLevel || 'N/A'}</div>
+        <div><b className="text-gray-800">Nicotine (mg):</b> {plan.nicotineMg || 'N/A'}</div>
+        <div><b className="text-gray-800">Sticks/Pack:</b> {plan.sticksPerPack || 'N/A'}</div>
+        <div><b className="text-gray-800">Daily Spending:</b> {formatMoney(plan.averageSpending)}</div>
+        <div><b className="text-gray-800">Price/Cigarette:</b> {formatMoney(plan.pricePerCigarette)}</div>
       </div>
 
       <div className="mt-4">
-        <div className="text-sm mb-3">Progress: {percent}%</div>
+        <div className="text-sm mb-3">Progress: {percent}% ({daysPassed}/{totalDays} days)</div>
         <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-emerald-500 transition-all duration-700"

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import dayjs from "dayjs";
 import WeekColumn from "./WeekColumn";
+import api from "../../../configs/axios";
 
 const samplePlans = [
   "Avoid smoking area after lunch",
@@ -16,19 +17,10 @@ const samplePlans = [
   "Deep breathing practice"
 ];
 
-const getMembershipWeeks = (type) => {
-  switch (type) {
-    case "HEALTH+": return 4;
-    case "OTHERS": return 8;
-    default: return 1;
-  }
-};
-
 const generateQuitPlan = (startDate, durationInDays) => {
   const weeks = [];
   let dayCounter = 1;
   let taskIndex = 0;
-
   const totalWeeks = Math.ceil(durationInDays / 7);
 
   for (let w = 0; w < totalWeeks; w++) {
@@ -69,27 +61,55 @@ const generateQuitPlan = (startDate, durationInDays) => {
 const QuitPlan = () => {
   const location = useLocation();
   const [plan, setPlan] = useState(null);
+  const [freeDays, setFreeDays] = useState(30); // fallback mặc định 30 ngày
 
   useEffect(() => {
-    let startDate;
-    let durationInDays;
-    let type = "HEALTH+";
+    if (!location.state?.memberPackageId) return;
 
-    if (location.state?.startDate && location.state?.durationInDays) {
-      startDate = dayjs(location.state.startDate);
-      durationInDays = location.state.durationInDays;
-      type = location.state.selectedPlan || "HEALTH+";
-    } else {
-      startDate = dayjs();
-      type = "HEALTH+";
-      durationInDays = getMembershipWeeks(type) * 7;
-    }
+    const id = location.state.memberPackageId;
 
-    const generated = generateQuitPlan(startDate, durationInDays);
-    setPlan(generated);
+    api.get("/member-packages")
+      .then(res => {
+        const matched = res.data?.find(pkg => pkg.id === id);
+        if (matched) {
+          setFreeDays(matched.duration || 30); // Ưu tiên lấy duration thật, fallback 30
+        }
+      })
+      .catch(() => setFreeDays(30));
   }, [location.state]);
 
-  if (!plan?.weeks?.length) return <p className="text-center text-gray-500">No plan found.</p>;
+  useEffect(() => {
+    let state = location.state;
+
+    if (!state) {
+      const saved = localStorage.getItem("quitPlanDetailState");
+      if (saved) {
+        state = JSON.parse(saved);
+      }
+    }
+
+    if (!state) return;
+
+    const startDate = dayjs(state.startDate);
+    const durationInDays = state.durationInDays || freeDays; // Ưu tiên state, fallback freeDays
+    const membership = state.selectedPlan || "HEALTH+";
+
+    localStorage.setItem("quitPlanDetailState", JSON.stringify(state));
+
+    const generated = generateQuitPlan(startDate, durationInDays);
+    setPlan({
+      ...generated,
+      membership,
+    });
+  }, [location.state, freeDays]);
+
+  if (!plan?.weeks?.length) {
+    return (
+      <div className="text-center py-20 text-gray-500">
+        No quit plan found. Please start a plan from the Overview page.
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[hsla(105,_55.35%,_35.59%,_0.9)] pt-48 px-6 overflow-x-auto">
@@ -100,7 +120,8 @@ const QuitPlan = () => {
             weekNumber={idx + 1}
             days={week}
             planStartDate={plan.startDate}
-            membership={location.state?.selectedPlan || "HEALTH+"} // truyền membership chính xác
+            membership={plan.membership}
+            freeDays={freeDays}
           />
         ))}
       </div>

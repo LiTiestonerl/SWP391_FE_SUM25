@@ -28,9 +28,13 @@ export const fetchUserNotifications = async () => {
     const response = await api.get("/notifications/me");
     const realData = response.data || [];
 
-    // Ghép mock nếu thiếu
+    // Lấy danh sách mock đã bị xóa dựa theo content
+    const deletedMockContents = JSON.parse(localStorage.getItem("deletedMockContents") || "[]");
+
     const missingMock = mockNotifications.filter(
-      (mock) => !realData.some((real) => real.content === mock.content)
+      (mock) =>
+        !realData.some((real) => real.content === mock.content) &&
+        !deletedMockContents.includes(mock.content)
     );
 
     return [...realData, ...missingMock];
@@ -41,7 +45,7 @@ export const fetchUserNotifications = async () => {
 };
 
 /**
- * ✅ Đánh dấu đã đọc (PUT /{id}/read)
+ * ✅ Đánh dấu đã đọc
  */
 export const markNotificationAsRead = async (notificationId) => {
   try {
@@ -56,8 +60,17 @@ export const markNotificationAsRead = async (notificationId) => {
 /**
  * 🗑️ Xóa thông báo
  */
-export const deleteNotification = async (notificationId) => {
+export const deleteNotification = async (notificationId, notificationContent) => {
   try {
+    // Nếu là mock → lưu content vào localStorage
+    if (notificationId < 0) {
+      const deleted = JSON.parse(localStorage.getItem("deletedMockContents") || "[]");
+      const updated = [...new Set([...deleted, notificationContent])];
+      localStorage.setItem("deletedMockContents", JSON.stringify(updated));
+      return true;
+    }
+
+    // Nếu là thông báo thật → gọi API
     await api.delete(`/notifications/${notificationId}`);
     return true;
   } catch (error) {

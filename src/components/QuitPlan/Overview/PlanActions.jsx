@@ -86,6 +86,10 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
     name: plan?.name || '',
     reason: plan?.reason || '',
     addictionLevel: plan?.addictionLevel || 'Mild',
+    package: plan?.package || '',
+    averageCigarettes: plan?.averageCigarettes || '',
+    pricePerCigarette: plan?.pricePerCigarette || '',
+    averageSpending: plan?.averageSpending || ''
   });
 
   const handleChange = (e) =>
@@ -135,10 +139,42 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
                 onChange={handleChange}
                 className="w-full border p-3 rounded"
               >
-                <option>Mild</option>
-                <option>Moderate</option>
-                <option>Severe</option>
+                <option value="Mild">Mild</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Severe">Severe</option>
               </select>
+
+              <input
+                name="package"
+                value={form.package}
+                onChange={handleChange}
+                className="w-full border p-3 rounded"
+                placeholder="Cigarette Brand"
+              />
+              <input
+                name="averageCigarettes"
+                type="number"
+                value={form.averageCigarettes}
+                onChange={handleChange}
+                className="w-full border p-3 rounded"
+                placeholder="Cigs per day"
+              />
+              <input
+                name="pricePerCigarette"
+                type="text"
+                value={form.pricePerCigarette}
+                onChange={handleChange}
+                className="w-full border p-3 rounded"
+                placeholder="Price per cigarette"
+              />
+              <input
+                name="averageSpending"
+                type="text"
+                value={form.averageSpending}
+                onChange={handleChange}
+                className="w-full border p-3 rounded"
+                placeholder="Average daily spending"
+              />
 
               <div className="flex gap-4">
                 <button
@@ -162,3 +198,4 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
     </AnimatePresence>
   );
 };
+

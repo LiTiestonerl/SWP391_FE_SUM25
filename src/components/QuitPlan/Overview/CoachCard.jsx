@@ -16,190 +16,344 @@ const StarRow = ({ value = 0, onChange = () => {}, readOnly = false }) => (
   </div>
 );
 
-// Mock data based on your API structure
-const MOCK_RECOMMENDATIONS = [
-  {
-    recId: 1,
-    fromPackage: {
-      cigaretteId: 1,
-      cigaretteName: "Marlboro Red",
-      price: 50000,
-      sticksPerPack: 20,
-      nicotineLevel: 10,
-      moreInfoUrl: "https://www.who.int/tobacco"
-    },
-    toPackage: {
-      cigaretteId: 2,
-      cigaretteName: "Marlboro Gold",
-      price: 45000,
-      sticksPerPack: 20,
-      nicotineLevel: 6,
-      moreInfoUrl: "https://www.who.int/tobacco"
-    },
-    notes: "Reduced nicotine while maintaining flavor"
-  }
-];
+// Mock data for when API fails
+const MOCK_RATING_DATA = {
+  coachRating: 4,
+  coachComment: "Great effort! Keep up the good work!",
+  userRating: null,
+  userComment: null
+};
 
-export const CoachSuggestionCard = ({ level = 'Mild', currentPackage }) => {
-  const [recommendations, setRecommendations] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState(false);
+const formatVND = (v) => 
+  typeof v === 'number' ? v.toLocaleString('vi-VN') + ' VND' : 'N/A';
+
+const formatNicotineStrength = (strength) => {
+  if (!strength) return 'Unknown';
+  const strengths = {
+    'ULTRA_LIGHT': 'Ultra Light (0.1-0.4mg)',
+    'LIGHT': 'Light (0.5-0.8mg)',
+    'REGULAR': 'Regular (0.9-1.2mg)',
+    'STRONG': 'Strong (1.3-1.6mg)',
+    'EXTRA_STRONG': 'Extra Strong (>1.6mg)'
+  };
+  return strengths[strength] || strength;
+};
+
+// Mock data from your database
+const MOCK_DATA = {
+  currentPackage: {
+    cigarettePackageId: 1,
+    cigarettePackageName: "Marlboro Menthol",
+    brand: "Marlboro",
+    flavor: "menthol",
+    nicotineLevel: "high",
+    nicotineMg: 1.2,
+    pricePerPack: 45000,
+    sticksPerPack: 20
+  },
+  recommendation: {
+    notes: "Switch from Marlboro to Camel to begin reducing nicotine intake",
+    recommendedPackage: {
+      cigaretteId: 2,
+      cigaretteName: "Camel Classic",
+      brand: "Camel",
+      flavor: "classic",
+      nicoteneStrength: "medium",
+      nicotineMg: 0.8,
+      price: 42000,
+      sticksPerPack: 20
+    }
+  }
+};
+
+export const CoachSuggestionCard = ({ planId, userId }) => {
+  const [currentPackage, setCurrentPackage] = useState(null);
+  const [recommendation, setRecommendation] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchRecommendations = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        setApiError(false);
         
-        // Try to fetch from API first
-        if (currentPackage?.cigaretteId) {
-          const response = await api.get(
-            `/api/cigarette-packages/${currentPackage.cigaretteId}/recommendations`
-          );
-          if (response.data?.length > 0) {
-            setRecommendations(response.data);
-            return;
+        // Try to fetch real data first
+        const statusRes = await api.get(`/smoking-status/${userId}`);
+        const currentPackageId = statusRes.data?.cigarettePackageId;
+        
+        if (currentPackageId) {
+          const packageRes = await api.get(`/cigarette-packages/${currentPackageId}`);
+          setCurrentPackage(packageRes.data);
+        }
+
+        if (planId) {
+          const planRes = await api.get(`/quit-plan/${planId}`);
+          const planData = planRes.data;
+          
+          if (planData) {
+            const recommendedPackage = planData.nicotineSuggestions?.find(
+              p => p.cigaretteId === planData.recommendedPackageId
+            );
+            
+            setRecommendation({
+              notes: planData.recommendationNotes || "Based on your smoking habits, we recommend this alternative",
+              recommendedPackage
+            });
           }
         }
-        
-        // Fallback to mock data if API fails or returns empty
-        setRecommendations(MOCK_RECOMMENDATIONS);
-        
-      } catch (error) {
-        console.error("Failed to fetch recommendations:", error);
-        setApiError(true);
-        setRecommendations(MOCK_RECOMMENDATIONS); // Use mock data on error
+
+        setError(null);
+      } catch (err) {
+        console.error("API Error:", err);
+        setError("Failed to load data. Showing sample recommendations.");
+        setCurrentPackage(MOCK_DATA.currentPackage);
+        setRecommendation(MOCK_DATA.recommendation);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRecommendations();
-  }, [currentPackage, level]);
+    fetchData();
+  }, [planId, userId]);
 
-  const getActiveRecommendation = () => {
-    // Use first recommendation if available
-    if (recommendations.length > 0) {
-      const primaryRec = recommendations[0].toPackage;
-      return {
-        name: primaryRec.cigaretteName,
-        nicotine: `${primaryRec.nicotineLevel}mg`,
-        price: primaryRec.price,
-        link: primaryRec.moreInfoUrl || '#'
-      };
-    }
-
-    // Fallback to level-based defaults if no recommendations
-    const DEFAULT_PACKAGES = {
-      Mild: { 
-        name: 'Nicotine Gum', 
-        nicotine: '2mg', 
-        price: 20000, 
-        link: 'https://www.who.int/health-topics/tobacco' 
-      },
-      Moderate: { 
-        name: 'Nicotine Patch', 
-        nicotine: '5mg', 
-        price: 30000, 
-        link: 'https://www.nhs.uk/conditions/stop-smoking-treatments/' 
-      },
-      Severe: { 
-        name: 'Prescription Aid', 
-        nicotine: 'N/A', 
-        price: 100000, 
-        link: 'https://www.cdc.gov/tobacco/quit_smoking/index.htm' 
-      },
-    };
-
-    return DEFAULT_PACKAGES[level] || DEFAULT_PACKAGES.Mild;
-  };
-
-  const pack = getActiveRecommendation();
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-4 border">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-full"></div>
+          <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-6 flex flex-col gap-3">
-      <h3 className="font-semibold text-emerald-700">
-        {apiError ? '🚬 Suggested Alternative' : '🚬 Recommended Package'}
+    <div className="bg-white rounded-lg shadow-sm p-4 border">
+      <h3 className="font-semibold text-emerald-700 text-md mb-3">
+        🚬 Nicotine Replacement Recommendation
       </h3>
 
-      {loading && (
-        <div className="text-sm text-gray-500">Loading recommendations...</div>
+      {error && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-3 text-sm">
+          <p className="text-yellow-700">{error}</p>
+        </div>
       )}
 
-      <div className="space-y-2">
-        {currentPackage?.cigaretteName && (
-          <p className="text-sm text-gray-700">
-            <span className="font-medium">Current:</span> {currentPackage.cigaretteName}
-          </p>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="border rounded-md p-3">
+          <h4 className="font-medium text-gray-700 mb-2 pb-2 border-b">Current Package</h4>
+          {currentPackage ? (
+            <>
+              <p className="font-semibold text-gray-900">
+                {currentPackage.cigarettePackageName}
+              </p>
+              <div className="mt-2 space-y-1 text-sm">
+                <p><span className="font-medium">Brand:</span> {currentPackage.brand}</p>
+                <p><span className="font-medium">Flavor:</span> {currentPackage.flavor}</p>
+                <p><span className="font-medium">Strength:</span> {formatNicotineStrength(currentPackage.nicotineLevel)}</p>
+                <p><span className="font-medium">Nicotine:</span> {currentPackage.nicotineMg?.toFixed(1)} mg/stick</p>
+                <p><span className="font-medium">Price:</span> {formatVND(currentPackage.pricePerPack)} per pack</p>
+                <p><span className="font-medium">Sticks:</span> {currentPackage.sticksPerPack} per pack</p>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-500">No current package selected</p>
+          )}
+        </div>
 
-        <p className="text-sm text-gray-700">
-          <b>{pack.name}</b> — {pack.nicotine} nicotine
-        </p>
-        <p className="text-sm text-gray-700">
-          Price: <b>{pack.price.toLocaleString()} VND</b>
-        </p>
-
-        {apiError && (
-          <p className="text-xs text-orange-500">
-            Showing default suggestions. Will update when connected.
-          </p>
-        )}
+        <div className="border rounded-md p-3 bg-emerald-50 border-emerald-100">
+          <h4 className="font-medium text-emerald-700 mb-2 pb-2 border-b border-emerald-200">Recommended Package</h4>
+          {recommendation?.recommendedPackage ? (
+            <>
+              <p className="font-semibold text-gray-900">
+                {recommendation.recommendedPackage.cigaretteName}
+              </p>
+              <div className="mt-2 space-y-1 text-sm">
+                <p><span className="font-medium">Brand:</span> {recommendation.recommendedPackage.brand}</p>
+                <p><span className="font-medium">Flavor:</span> {recommendation.recommendedPackage.flavor}</p>
+                <p><span className="font-medium">Strength:</span> {formatNicotineStrength(recommendation.recommendedPackage.nicoteneStrength)}</p>
+                <p><span className="font-medium">Nicotine:</span> {recommendation.recommendedPackage.nicotineMg?.toFixed(1)} mg/stick</p>
+                <p><span className="font-medium">Price:</span> {formatVND(recommendation.recommendedPackage.price)} per pack</p>
+                <p><span className="font-medium">Sticks:</span> {recommendation.recommendedPackage.sticksPerPack} per pack</p>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-500">No recommendation available</p>
+          )}
+        </div>
       </div>
 
-      <button
-        onClick={() => window.open(pack.link, '_blank')}
-        className="inline-flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white text-sm rounded shadow hover:bg-emerald-700 w-fit"
-      >
-        <HiLink className="text-base" />
-        More Info
-      </button>
+      {recommendation?.notes && (
+        <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100">
+          <h4 className="font-medium text-blue-700 text-sm mb-1">Coach's Notes</h4>
+          <p className="text-sm text-gray-700">{recommendation.notes}</p>
+        </div>
+      )}
     </div>
   );
 };
 
 export const CoachFeedbackCard = ({
-  coach = 'Coach',
-  coachComment = 'Great effort!',
-  coachRating = 4,
-  savedRating = 0,
-  savedComment = '',
-  onSave = () => {},
+  coachId,
+  coachName = 'Coach',
+  planId,
+  memberId
 }) => {
   const [open, setOpen] = useState(false);
-  const [tempRating, setTemp] = useState(5);
-  const [tempComment, setCom] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [ratingData, setRatingData] = useState(MOCK_RATING_DATA);
+  const [tempRating, setTempRating] = useState(5);
+  const [tempComment, setTempComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const openModal = () => {
-    setTemp(savedRating || 5);
-    setCom(savedComment || '');
-    setOpen(true);
+  useEffect(() => {
+    const fetchRatings = async () => {
+      try {
+        setLoading(true);
+        
+        // Try to fetch coach ratings
+        if (coachId) {
+          try {
+            const res = await api.get(`/rating/coach/${coachId}`);
+            if (res.data && res.data.length > 0) {
+              const latestRating = res.data[0];
+              setRatingData(prev => ({
+                ...prev,
+                coachRating: latestRating.ratingValue,
+                coachComment: latestRating.feedbackText
+              }));
+            }
+          } catch (err) {
+            console.log("No permission to view coach ratings or no data");
+          }
+        }
+
+        // Try to fetch user's rating
+        if (memberId && planId) {
+          try {
+            const res = await api.get(`/rating/member/${memberId}`);
+            if (res.data) {
+              const userRating = Array.isArray(res.data) 
+                ? res.data.find(r => r.planId === planId)
+                : null;
+              if (userRating) {
+                setRatingData(prev => ({
+                  ...prev,
+                  userRating: userRating.ratingValue,
+                  userComment: userRating.feedbackText
+                }));
+              }
+            }
+          } catch (err) {
+            console.log("No permission to view user ratings or no data");
+          }
+        }
+        
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch ratings:", err);
+        setError("Failed to load rating data. Using sample data.");
+        setRatingData(MOCK_RATING_DATA);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRatings();
+  }, [coachId, planId, memberId]);
+
+  const handleSubmitRating = async () => {
+    if (!coachId || !planId || !memberId) {
+      alert("Missing required data to submit rating");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      const ratingPayload = {
+        ratingValue: tempRating,
+        feedbackText: tempComment,
+        ratingType: "COACH",
+        coachId: coachId,
+        planId: planId,
+        memberId: memberId
+      };
+
+      // Try to call API
+      try {
+        await api.post('/rating', ratingPayload);
+      } catch (err) {
+        console.error("API failed but we'll save locally", err);
+      }
+      
+      // Save locally regardless of API success
+      setRatingData(prev => ({
+        ...prev,
+        userRating: tempRating,
+        userComment: tempComment
+      }));
+      
+      setOpen(false);
+    } catch (err) {
+      console.error("Failed to submit rating:", err);
+      alert("Failed to submit rating. Your feedback has been saved locally.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-10 bg-gray-200 rounded w-1/3"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="bg-white rounded-2xl shadow-xl p-6 space-y-4">
         <h3 className="font-semibold text-emerald-700">Coach Feedback</h3>
+        
+        {error && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-3 text-sm">
+            <p className="text-yellow-700">{error}</p>
+          </div>
+        )}
+
         <div className="flex items-center gap-2">
-          <StarRow value={coachRating} readOnly />
-          <span className="text-sm text-gray-600">{coachRating}/5</span>
+          <StarRow value={ratingData.coachRating} readOnly />
+          <span className="text-sm text-gray-600">{ratingData.coachRating}/5</span>
         </div>
-        <p className="text-sm text-gray-700 italic">“{coachComment}” — <b>{coach}</b></p>
-        {savedRating > 0 && (
+        <p className="text-sm text-gray-700 italic">“{ratingData.coachComment}” — <b>{coachName}</b></p>
+        
+        {ratingData.userRating > 0 && (
           <div className="space-y-1 pt-3 border-t">
             <p className="text-sm text-gray-600 font-medium">Your Feedback:</p>
             <div className="flex items-center gap-2">
-              <StarRow value={savedRating} readOnly />
-              <span className="text-sm text-gray-600">{savedRating}/5</span>
+              <StarRow value={ratingData.userRating} readOnly />
+              <span className="text-sm text-gray-600">{ratingData.userRating}/5</span>
             </div>
-            {savedComment && <p className="text-sm text-gray-600 italic">“{savedComment}”</p>}
+            {ratingData.userComment && <p className="text-sm text-gray-600 italic">“{ratingData.userComment}”</p>}
           </div>
         )}
+        
         <button
-          onClick={openModal}
+          onClick={() => {
+            setTempRating(ratingData.userRating || 5);
+            setTempComment(ratingData.userComment || '');
+            setOpen(true);
+          }}
           className="px-4 py-2 bg-emerald-600 text-white text-sm rounded shadow hover:bg-emerald-700"
         >
-          {savedRating ? 'Edit Feedback' : 'Give Feedback'}
+          {ratingData.userRating ? 'Edit Feedback' : 'Give Feedback'}
         </button>
       </div>
 
@@ -216,22 +370,21 @@ export const CoachFeedbackCard = ({
               className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md space-y-5"
             >
               <h3 className="text-lg font-semibold text-emerald-700">Rate your coach</h3>
-              <StarRow value={tempRating} onChange={setTemp} />
+              <StarRow value={tempRating} onChange={setTempRating} />
               <textarea
-                rows={4} value={tempComment}
-                onChange={(e) => setCom(e.target.value)}
+                rows={4} 
+                value={tempComment}
+                onChange={(e) => setTempComment(e.target.value)}
                 className="w-full border rounded p-3 text-sm"
                 placeholder="Write a comment…"
               />
               <div className="flex gap-4">
                 <button
-                  onClick={() => {
-                    onSave(tempRating, tempComment);
-                    setOpen(false);
-                  }}
+                  onClick={handleSubmitRating}
                   className="flex-1 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                  disabled={isSubmitting}
                 >
-                  Save
+                  {isSubmitting ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   onClick={() => setOpen(false)}
