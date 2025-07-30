@@ -14,7 +14,7 @@ import {
 } from './PlanActions';
 import AchievementBadges from './AchievementBadges';
 import HealthProgressTimeline from './HealthProgressTimeline';
-import CoachBox, { coachList } from './CoachBox';
+import CoachBox from './CoachBox';
 import { CoachFeedbackCard, CoachSuggestionCard } from './CoachCard';
 
 const useMembershipDuration = () => 30;
@@ -71,7 +71,22 @@ const QuitPlanOverview = () => {
   const isExpired = plan && dayjs().isAfter(dayjs(plan.endDate));
   const noProgress = plan && (plan.completedDays || 0) === 0;
   const allCompleted = plan && plan.completedDays >= plan.durationInDays;
-  const coachObj = coachList.find(c => c.id === plan?.coach);
+  const [coachObj, setCoachObj] = useState(null);
+
+useEffect(() => {
+  const fetchCoach = async () => {
+    if (!plan?.coach) return;
+    try {
+      const res = await api.get(`/api/coach/${plan.coach}`);
+      setCoachObj(res.data);
+    } catch (err) {
+      console.error("Failed to fetch selected coach", err);
+      setCoachObj(null);
+    }
+  };
+  fetchCoach();
+}, [plan?.coach]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#c3e4dd] via-[#dfeee5] to-[#a1cfc1] py-8 px-2 sm:px-4">

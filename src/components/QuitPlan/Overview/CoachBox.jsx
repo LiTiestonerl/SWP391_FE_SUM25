@@ -1,80 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-
-export const coachList = [
-  {
-    id: 1,
-    name: 'Dr. Sarah Johnson',
-    specialization: 'Behavioral Therapy',
-    experience: 12,
-    image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2',
-    qualification: 'Ph.D. in Psychology',
-    introduction: 'Specialized in cognitive behavioral therapy for smoking cessation.',
-    successRate: '89%',
-    methodology: 'CBT + Mindfulness techniques.',
-  },
-  {
-    id: 2,
-    name: 'Michael Chen',
-    specialization: 'Holistic Approach',
-    experience: 8,
-    image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d',
-    qualification: 'Certified Addiction Specialist',
-    introduction: 'Integrative approach combining Eastern and Western methods.',
-    successRate: '85%',
-    methodology: 'Natural healing and behavioral modification.',
-  },
-  {
-    id: 3,
-    name: 'Emma Williams',
-    specialization: 'NLP Practitioner',
-    experience: 10,
-    image: 'https://www.lasik.com/wp-content/uploads/2025/05/AdobeStock_320744517-2048x1365.jpeg.webp',
-    qualification: 'Master NLP Practitioner',
-    introduction: 'Expert in Neuro-Linguistic Programming for habit change.',
-    successRate: '92%',
-    methodology: 'NLP and Timeline Therapy.',
-  },
-  {
-    id: 4,
-    name: 'Dr. Robert Anderson',
-    specialization: 'Addiction Psychology',
-    experience: 15,
-    image: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7',
-    qualification: 'Ph.D. in Clinical Psychology',
-    introduction: 'Evidence-based approaches for smoking cessation and addiction recovery.',
-    successRate: '94%',
-    methodology: 'Motivational interviewing & CBT.',
-  },
-  {
-    id: 5,
-    name: 'Dr. Emily Nguyen',
-    specialization: 'Nicotine Addiction Counseling',
-    experience: 9,
-    image: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e',
-    qualification: 'M.S. in Clinical Psychology',
-    introduction: 'Supports long-term cessation with individualized plans.',
-    successRate: '85%',
-    methodology: 'Motivational interviewing & relapse prevention.',
-  },
-  {
-    id: 6,
-    name: 'Dr. David Lee',
-    specialization: 'Respiratory Health & Wellness',
-    experience: 15,
-    image: 'https://portraitpal.ai/wp-content/uploads/2024/10/doctor-headshot.jpg',
-    qualification: 'MD, Pulmonologist',
-    introduction: 'Helps improve lung health through education and support.',
-    successRate: '91%',
-    methodology: 'Medical treatment with behavioral coaching.',
-  },
-];
+import api from '../../../configs/axios'; // điều chỉnh nếu khác
 
 const CoachBox = ({ selectedCoachId, onSelect }) => {
   const navigate = useNavigate();
-  const selected = coachList.find((c) => c.id === selectedCoachId);
+  const [coachList, setCoachList] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [showSelector, setShowSelector] = useState(false);
+
+  useEffect(() => {
+    const fetchCoaches = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get('/coach');
+        const data = res.data.map((c) => ({
+          ...c,
+          image: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.fullName || 'Coach')}`,
+        }));
+        setCoachList(data);
+      } catch (err) {
+        console.error('Failed to fetch coaches:', err);
+        setError('Failed to load coaches.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCoaches();
+  }, []);
+
+  const selected = coachList.find((c) => c.userId === selectedCoachId);
 
   return (
     <>
@@ -101,18 +58,17 @@ const CoachBox = ({ selectedCoachId, onSelect }) => {
           <>
             <img
               src={selected.image}
-              alt={selected.name}
+              alt={selected.fullName}
               className="w-[90%] h-76 object-cover object-[top_3%] rounded-xl shadow-sm ring-2 ring-gray-300 mx-auto mt-3"
             />
             <div className="p-6 flex flex-col flex-1 overflow-hidden text-[14px] text-gray-700 space-y-2 leading-relaxed">
-              <h4 className="text-xl font-bold text-gray-800">{selected.name}</h4>
-              <p className="text-emerald-600 font-medium">{selected.specialization}</p>
+              <h4 className="text-xl font-bold text-gray-800">{selected.fullName}</h4>
+              <p className="text-emerald-600 font-medium">{selected.roleName || 'Coach'}</p>
 
-              <p><span className="font-semibold text-gray-800">Experience:</span> {selected.experience} years</p>
-              <p><span className="font-semibold text-gray-800">Qualification:</span> {selected.qualification}</p>
-              <p className="italic text-gray-600">{selected.introduction}</p>
-              <p><span className="font-semibold text-gray-800">Success Rate:</span> {selected.successRate}</p>
-              <p><span className="font-semibold text-gray-800">Methodology:</span> {selected.methodology}</p>
+              <p><span className="font-semibold text-gray-800">Email:</span> {selected.email}</p>
+              <p><span className="font-semibold text-gray-800">Phone:</span> {selected.phone}</p>
+              <p><span className="font-semibold text-gray-800">Status:</span> {selected.status}</p>
+              <p><span className="font-semibold text-gray-800">Verified:</span> {selected.isEmailVerified ? 'Yes' : 'No'}</p>
 
               <div className="flex gap-3 mt-auto pt-4">
                 <button
@@ -149,31 +105,40 @@ const CoachBox = ({ selectedCoachId, onSelect }) => {
               exit={{ scale: 0.95, opacity: 0 }}
             >
               <h3 className="text-xl font-bold text-emerald-700 mb-4 text-center">Select Your Coach</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {coachList.map((coach) => (
-                  <button
-                    key={coach.id}
-                    onClick={() => {
-                      onSelect(coach.id);
-                      setShowSelector(false);
-                    }}
-                    className="flex flex-col items-center gap-2 border p-2 rounded-xl hover:bg-emerald-50 transition border-gray-200"
-                  >
-                    <div className="w-full h-[200px] rounded-xl overflow-hidden ring-1 ring-gray-200">
-                      <img
-                        src={coach.image}
-                        alt={coach.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
 
-                    <div className="text-sm text-center mt-1">
-                      <div className="font-semibold text-gray-800 leading-tight text-[13px]">{coach.name}</div>
-                      <div className="text-gray-500 text-xs">{coach.specialization}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              {loading ? (
+                <div className="text-center text-gray-500 text-sm">Loading...</div>
+              ) : error ? (
+                <div className="text-center text-red-500 text-sm">{error}</div>
+              ) : (
+                <div className="grid grid-cols-3 gap-3">
+                  {coachList.map((coach) => (
+                    <button
+                      key={coach.userId}
+                      onClick={() => {
+                        onSelect(coach.userId);
+                        setShowSelector(false);
+                      }}
+                      className="flex flex-col items-center gap-2 border p-2 rounded-xl hover:bg-emerald-50 transition border-gray-200"
+                    >
+                      <div className="w-full h-[200px] rounded-xl overflow-hidden ring-1 ring-gray-200">
+                        <img
+                          src={coach.image}
+                          alt={coach.fullName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      <div className="text-sm text-center mt-1">
+                        <div className="font-semibold text-gray-800 leading-tight text-[13px]">
+                          {coach.fullName}
+                        </div>
+                        <div className="text-gray-500 text-xs">{coach.roleName || 'Coach'}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
