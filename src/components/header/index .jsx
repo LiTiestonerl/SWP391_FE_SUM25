@@ -1,17 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/features/userSlice";
 import NotificationBell from "../notifications/notificationBell";
+import api from "../../configs/axios"; // Đường dẫn tới file axios config
 import "./header.css";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
   const user = useSelector((state) => state.user);
 
   const navItems = [
@@ -24,30 +26,30 @@ const Header = () => {
     { id: 7, label: "Quit Plan", href: "quit-plan" },
   ];
 
-  const testNotifications = [
-    {
-      id: 1,
-      content: "User A vừa tham gia Premium!",
-      date: "2025-06-10T04:09:05Z",
-    },
-    {
-      id: 2,
-      content: "Bạn đã hoàn thành 3 ngày không hút thuốc!",
-      date: "2025-06-10T04:09:03Z",
-    },
-    {
-      id: 3,
-      content: "Coach John đã phản hồi cho bạn.",
-      date: "2025-06-10T04:09:01Z",
-    },
-  ];
-
   const toggleMenu = () => setIsOpen(!isOpen);
   const toggleDropdown = () => setShowDropdown(!showDropdown);
+
   const handleLogout = () => {
     dispatch(logout());
     setShowDropdown(false);
   };
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await api.get("/notifications/me");
+        setNotifications(res.data || []);
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    };
+
+    if (user) {
+      fetchNotifications();
+    } else {
+      setNotifications([]); // reset khi logout
+    }
+  }, [user]);
 
   return (
     <>
@@ -80,10 +82,12 @@ const Header = () => {
             </nav>
 
             <div className="flex items-center space-x-4">
-              <NotificationBell
-                notifications={testNotifications}
-                isDarkMode={true}
-              />
+              {user && (
+                <NotificationBell
+                  notifications={notifications}
+                  isDarkMode={true}
+                />
+              )}
 
               {user ? (
                 <div className="relative">
@@ -141,13 +145,13 @@ const Header = () => {
                     onClick={() => navigate("login")}
                     className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none"
                   >
-                    {"Login"}
+                    Login
                   </button>
                   <button
                     onClick={() => navigate("register")}
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none"
                   >
-                    {"Register"}
+                    Register
                   </button>
                 </div>
               )}
@@ -178,13 +182,13 @@ const Header = () => {
                     onClick={() => navigate("login")}
                     className="w-full px-3 py-2 text-base font-medium text-white hover:text-blue-300"
                   >
-                    {"Login"}
+                    Login
                   </button>
                   <button
                     onClick={() => navigate("register")}
                     className="w-full px-3 py-2 text-base font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                   >
-                    {"Register"}
+                    Register
                   </button>
                 </div>
               )}

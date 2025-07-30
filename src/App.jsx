@@ -33,6 +33,7 @@ import Payment from "./pages/payment-result/Payment";
 import Achievement from "./pages/achievement";
 import ManageAachiement from "./pages/dashboard-admin/achievement";
 import CoachProfile from "./pages/coachProfile";
+import CreateNotification from "./pages/dashboard-admin/notification";
 
 function App() {
   const router = createBrowserRouter([
@@ -141,6 +142,8 @@ function App() {
           path: "achievement",
           element: <ManageAachiement />,
         },
+         { path: "notification", 
+          element: <CreateNotification /> },
       ],
     },
 

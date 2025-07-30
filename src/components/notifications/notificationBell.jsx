@@ -1,11 +1,16 @@
 import React from 'react';
 import { Badge, Popover, List, Button } from 'antd';
-import { BellOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { FiBell } from 'react-icons/fi'; // 👉 Icon chuông
 import './notifications.css';
 
 const NotificationBell = ({ notifications = [], isDarkMode }) => {
   const navigate = useNavigate();
+
+  const sortedNotifications = [...notifications]
+    .sort((a, b) => new Date(b.sendDate) - new Date(a.sendDate))
+    .slice(0, 5);
+
   const count = notifications.length;
   const displayCount = count > 5 ? '5+' : count;
 
@@ -15,33 +20,36 @@ const NotificationBell = ({ notifications = [], isDarkMode }) => {
         <h3>NOTIFICATIONS</h3>
         <span>{new Date().toLocaleTimeString()}</span>
       </div>
-      {notifications.length > 0 ? (
+
+      {sortedNotifications.length > 0 ? (
         <List
           size="small"
-          dataSource={notifications.slice(0, 5)}
+          dataSource={sortedNotifications}
           renderItem={(item) => (
             <List.Item className="notification-item">
-              <div className="notification-icon">{item.icon}</div>
               <div className="notification-item-content">
-                <div className="notification-title">{item.title}</div>
+                <div className="notification-title">
+                  {item.notificationType?.replace(/_/g, ' ') || 'Notification'}
+                </div>
                 <div>{item.content}</div>
               </div>
               <span className="notification-item-time">
-                {new Date(item.date).toLocaleTimeString()}
+                {new Date(item.sendDate).toLocaleTimeString()}
               </span>
             </List.Item>
           )}
         />
       ) : (
-        <p className="notification-empty">No new health updates. Stay strong!</p>
+        <p className="notification-empty">No new notifications.</p>
       )}
+
       <div className="notification-footer">
         <Button
           size="small"
           className="notification-view-all-button"
           onClick={() => navigate('/notifications')}
         >
-          VIEW ALL PROGRESS
+          VIEW ALL
         </Button>
       </div>
     </div>
@@ -49,20 +57,20 @@ const NotificationBell = ({ notifications = [], isDarkMode }) => {
 
   return (
     <Popover content={popoverContent} trigger="click" placement="bottomRight">
-      <Badge
-        count={displayCount}
-        size="small"
-        offset={[-5, 5]}
-        style={{ backgroundColor: '#ff4d4f' }}
-      >
-        <BellOutlined
+      <Badge count={displayCount} size="small" offset={[-5, 5]} style={{ backgroundColor: '#ff4d4f' }}>
+        <div
           style={{
-            fontSize: '22px',
+            fontSize: '18px',
             color: isDarkMode ? '#ecf0f1' : '#2c3e50',
             cursor: 'pointer',
-            transition: 'color 0.3s',
+            padding: '4px 8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
-        />
+        >
+          <FiBell size={20} />
+        </div>
       </Badge>
     </Popover>
   );

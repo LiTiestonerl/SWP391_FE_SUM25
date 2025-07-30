@@ -208,8 +208,8 @@ const ManageAccount = () => {
               value={tempRoleId}
               onChange={(value) => setTempRoleId(value)}
             >
-              <Option value={1}>User</Option>
-              <Option value={2}>Coach</Option>
+              <Option value={1}>Coach</Option>
+              <Option value={3}>User</Option>
             </Select>
           </div>
 

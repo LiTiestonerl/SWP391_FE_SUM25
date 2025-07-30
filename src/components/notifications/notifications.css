@@ -97,16 +97,18 @@
 }
 
 .notification-footer {
-  text-align: center;
+  display: flex;
+  justify-content: center; /* Căn giữa nút */
+  align-items: center;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #f0f0f0;
 }
 
 .notification-view-all-button {
-  background: linear-gradient(to right, #1890ff, #096dd9);
-  border: none;
-  color: white;
+  background: linear-gradient(to right, #1890ff, #096dd9) !important;
+  border: none !important;
+  color: white !important;
   border-radius: 20px;
   padding: 8px 24px;
   font-weight: 600;
@@ -119,7 +121,7 @@
 }
 
 .notification-view-all-button:hover {
-  background: linear-gradient(to right, #096dd9, #1890ff);
+  background: linear-gradient(to right, #096dd9, #1890ff) !important;
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(24, 144, 255, 0.4);
 }

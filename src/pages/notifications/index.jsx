@@ -1,6 +1,7 @@
 import React from 'react';
 import NotificationList from '../../components/notifications/NotificationList'; 
-import './notification.css';
+import NotificationBell from '../../components/notifications/notificationBell'; 
+
 
 function NotificationsPage() {
   return (

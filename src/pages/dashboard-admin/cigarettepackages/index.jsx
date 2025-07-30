@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { FaEdit, FaTrash, FaSave } from "react-icons/fa";
 import api from "../../../configs/axios";
 
-
 const nicoteneOptions = ["ZERO", "LOW", "MEDIUM", "HIGH"];
 const flavorOptions = [
   "MENTHOL",
@@ -17,11 +16,11 @@ const AdminRecommendationInterface = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [newRecommendation, setNewRecommendation] = useState({
-    cigaretteName: "",
+    cigarettePackageName: "",
     cigaretteBrand: "",
-    price: 0,
+    pricePerPack: 0,
     flavor: "",
-    nicoteneStrength: "ZERO",
+    nicotineLevel: "ZERO",
     sticksPerPack: 20,
   });
 
@@ -42,11 +41,11 @@ const AdminRecommendationInterface = () => {
       const res = await api.post("/cigarette-packages", newRecommendation);
       setRecommendations([...recommendations, res.data]);
       setNewRecommendation({
-        cigaretteName: "",
+        cigarettePackageName: "",
         cigaretteBrand: "",
-        price: 0,
+        pricePerPack: 0,
         flavor: "",
-        nicoteneStrength: "ZERO",
+        nicotineLevel: "ZERO",
         sticksPerPack: 20,
       });
     } catch (err) {
@@ -103,15 +102,14 @@ const AdminRecommendationInterface = () => {
                 type="text"
                 placeholder="Cigarette Name"
                 className="p-2 border rounded"
-                value={newRecommendation.cigaretteName}
+                value={newRecommendation.cigarettePackageName}
                 onChange={(e) =>
                   setNewRecommendation({
                     ...newRecommendation,
-                    cigaretteName: e.target.value,
+                    cigarettePackageName: e.target.value,
                   })
                 }
               />
-
               <input
                 type="text"
                 placeholder="Brand"
@@ -128,19 +126,28 @@ const AdminRecommendationInterface = () => {
                 type="number"
                 placeholder="Price"
                 className="p-2 border rounded"
-                value={newRecommendation.price}
+                value={
+                  newRecommendation.pricePerPack === 0
+                    ? ""
+                    : newRecommendation.pricePerPack
+                }
                 onChange={(e) =>
                   setNewRecommendation({
                     ...newRecommendation,
-                    price: parseFloat(e.target.value) || 0,
+                    pricePerPack: parseFloat(e.target.value) || 0,
                   })
                 }
               />
+
               <input
                 type="number"
-                placeholder="Sticks Per Pack"
+                placeholder="Sticks"
                 className="p-2 border rounded"
-                value={newRecommendation.sticksPerPack}
+                value={
+                  newRecommendation.sticksPerPack === 0
+                    ? ""
+                    : newRecommendation.sticksPerPack
+                }
                 onChange={(e) =>
                   setNewRecommendation({
                     ...newRecommendation,
@@ -148,6 +155,7 @@ const AdminRecommendationInterface = () => {
                   })
                 }
               />
+
               <select
                 className="p-2 border rounded"
                 value={newRecommendation.flavor}
@@ -167,11 +175,11 @@ const AdminRecommendationInterface = () => {
               </select>
               <select
                 className="p-2 border rounded"
-                value={newRecommendation.nicoteneStrength}
+                value={newRecommendation.nicotineLevel}
                 onChange={(e) =>
                   setNewRecommendation({
                     ...newRecommendation,
-                    nicoteneStrength: e.target.value,
+                    nicotineLevel: e.target.value,
                   })
                 }
               >
@@ -221,18 +229,18 @@ const AdminRecommendationInterface = () => {
                       {editingId === rec.cigarettePackageId ? (
                         <input
                           type="text"
-                          value={rec.cigaretteName}
+                          value={rec.cigarettePackageName}
                           onChange={(e) =>
                             handleFieldChange(
                               rec.cigarettePackageId,
-                              "cigaretteName",
+                              "cigarettePackageName",
                               e.target.value
                             )
                           }
                           className="border p-1 rounded w-full"
                         />
                       ) : (
-                        rec.cigaretteName
+                        rec.cigarettePackageName
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -253,8 +261,42 @@ const AdminRecommendationInterface = () => {
                         rec.cigaretteBrand
                       )}
                     </td>
-                    <td className="px-6 py-4">${rec.price}</td>
-                    <td className="px-6 py-4">{rec.sticksPerPack}</td>
+                    <td className="px-6 py-4">
+                      {editingId === rec.cigarettePackageId ? (
+                        <input
+                          type="number"
+                          value={rec.pricePerPack}
+                          onChange={(e) =>
+                            handleFieldChange(
+                              rec.cigarettePackageId,
+                              "pricePerPack",
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="border p-1 rounded w-full"
+                        />
+                      ) : (
+                        `$${rec.pricePerPack}`
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {editingId === rec.cigarettePackageId ? (
+                        <input
+                          type="number"
+                          value={rec.sticksPerPack}
+                          onChange={(e) =>
+                            handleFieldChange(
+                              rec.cigarettePackageId,
+                              "sticksPerPack",
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          className="border p-1 rounded w-full"
+                        />
+                      ) : (
+                        rec.sticksPerPack
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       {editingId === rec.cigarettePackageId ? (
                         <select
@@ -278,7 +320,29 @@ const AdminRecommendationInterface = () => {
                         rec.flavor
                       )}
                     </td>
-                    <td className="px-6 py-4">{rec.nicoteneStrength}</td>
+                    <td className="px-6 py-4">
+                      {editingId === rec.cigarettePackageId ? (
+                        <select
+                          value={rec.nicotineLevel}
+                          onChange={(e) =>
+                            handleFieldChange(
+                              rec.cigarettePackageId,
+                              "nicotineLevel",
+                              e.target.value
+                            )
+                          }
+                          className="border p-1 rounded w-full"
+                        >
+                          {nicoteneOptions.map((n) => (
+                            <option key={n} value={n}>
+                              {n}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        rec.nicotineLevel
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
                       {editingId === rec.cigarettePackageId ? (
                         <button
