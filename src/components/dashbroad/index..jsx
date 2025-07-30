@@ -49,6 +49,7 @@ const items = [
   getItem("Manage Account", "manageaccount", <UserOutlined />),
   getItem("Membership", "membership", <MobileOutlined />),
   getItem("Cigarette Packages", "cigarettepackages", <FileOutlined />),
+  getItem("Cigarette Recommendation", "cigaretterecommendation", <FileOutlined />),
   getItem("Achievement", "achievement", <StarOutlined />),
   getItem("Notification", "notification", <BellOutlined />),
   getItem("Quit Plan", "quitplan", <CompassOutlined  />),

@@ -10,8 +10,7 @@ import {
   Col,
   Button,
   Select,
-  Badge,
-  Progress
+  Badge
 } from 'antd';
 import {
   CheckOutlined,
@@ -22,7 +21,6 @@ import {
   DollarOutlined,
   TeamOutlined,
   CalendarOutlined,
-  SmileOutlined,
   NotificationOutlined,
   MedicineBoxOutlined,
   ThunderboltFilled,
@@ -34,7 +32,8 @@ import { useNavigate } from 'react-router-dom';
 import './NotificationList.css';
 import {
   fetchUserNotifications,
-  markNotificationAsRead
+  markNotificationAsRead,
+  deleteNotification
 } from "../../services/notificationService";
 
 const { Title, Text } = Typography;
@@ -92,6 +91,8 @@ const NOTIFICATION_TYPES = {
   }
 
 };
+
+// ------------------- Panel phụ -------------------
 
 const HealthBenefitsPanel = () => (
   <Card className="health-benefits">
@@ -199,6 +200,8 @@ const MotivationPanel = () => {
   );
 };
 
+// ------------------- Item thông báo -------------------
+
 const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
   const rawType = notification.notificationType?.toLowerCase();
   const type = NOTIFICATION_TYPES[rawType] || {
@@ -217,7 +220,7 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
       <div className="notification-content">
         <div className="notification-header">
           <Text strong>{notification.content.split('.')[0]}</Text>
-          <Tag color={type.color}>{notification.notificationType?.replace('_', ' ')}</Tag>
+          <Tag color={type.color}>{notification.notificationType?.replace(/_/g, ' ')}</Tag>
         </div>
         <Text className="notification-message" style={{ backgroundColor: `${type.color}10` }}>
           {notification.content}
@@ -237,6 +240,8 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
   );
 };
 
+// ------------------- Trang chính -------------------
+
 const NotificationList = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
@@ -247,8 +252,7 @@ const NotificationList = () => {
   useEffect(() => {
     const loadNotifications = async () => {
       setLoading(true);
-      const userId = 9007199254740991;
-      const data = await fetchUserNotifications(userId);
+      const data = await fetchUserNotifications();
 
       // Sắp xếp thông báo mới nhất lên đầu
       const sortedData = data.sort((a, b) => {
@@ -266,12 +270,15 @@ const NotificationList = () => {
     setNotifications(prev => prev.map(noti => noti.notificationId === id ? { ...noti, status: 'READ' } : noti));
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
+    await deleteNotification(id);
     setNotifications(prev => prev.filter(noti => noti.notificationId !== id));
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev => prev.map(noti => noti.status !== 'READ' ? { ...noti, status: 'READ' } : noti));
+  const handleMarkAllAsRead = async () => {
+    const unreadIds = notifications.filter(noti => noti.status !== 'READ').map(n => n.notificationId);
+    await Promise.all(unreadIds.map(id => markNotificationAsRead(id)));
+    setNotifications(prev => prev.map(noti => ({ ...noti, status: 'READ' })));
   };
 
   const filtered = notifications.filter(noti => {
@@ -283,7 +290,7 @@ const NotificationList = () => {
   const unreadCount = notifications.filter(noti => noti.status !== 'READ').length;
 
   const grouped = filtered
-    .sort((a, b) => new Date(b.sendDate) - new Date(a.sendDate)) // Thêm sắp xếp lại
+    .sort((a, b) => new Date(b.sendDate) - new Date(a.sendDate))
     .reduce((acc, noti) => {
       const date = new Date(noti.sendDate).toLocaleDateString();
       acc[date] = acc[date] || [];

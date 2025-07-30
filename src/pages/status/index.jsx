@@ -21,12 +21,13 @@ const StatusPage = () => {
     pricePerPack: "",
     packageId: "",
     frequency: "daily",
+    preferredFlavor: "",
+    preferredNicotineLevel: "",
     recordDate: new Date().toISOString().split("T")[0],
   });
   const [userData, setUserData] = useState(null);
   const [packages, setPackages] = useState([]);
 
-  // Load từ localStorage nếu có
   useEffect(() => {
     const saved = localStorage.getItem("smokingStatus");
     if (saved) {
@@ -34,7 +35,6 @@ const StatusPage = () => {
     }
   }, []);
 
-  // Lấy danh sách packages
   useEffect(() => {
     const fetchPackages = async () => {
       try {
@@ -47,7 +47,6 @@ const StatusPage = () => {
     fetchPackages();
   }, []);
 
-  // Lấy dữ liệu status từ API
   useEffect(() => {
     if (!userId) return;
     const fetchStatus = async () => {
@@ -57,7 +56,7 @@ const StatusPage = () => {
         if (matched) {
           const detail = await api.get(`/smoking-status/${matched.statusId}`);
           setUserData(detail.data);
-          localStorage.setItem("smokingStatus", JSON.stringify(detail.data)); // ✅ lưu
+          localStorage.setItem("smokingStatus", JSON.stringify(detail.data));
         }
       } catch (err) {
         console.error("Status API error:", err);
@@ -85,6 +84,8 @@ const StatusPage = () => {
         pricePerPack: userData.pricePerPack || "",
         packageId: userData.packageId || "",
         frequency: userData.frequency || "daily",
+        preferredFlavor: userData.preferredFlavor || "",
+        preferredNicotineLevel: userData.preferredNicotineLevel || "",
         recordDate:
           userData.recordDate || new Date().toISOString().split("T")[0],
       });
@@ -97,7 +98,12 @@ const StatusPage = () => {
       const cigarettesPerDay = Number(formData.cigarettesPerDay);
       const pricePerPack = Number(formData.pricePerPack);
       const packageId = Number(formData.packageId);
-      const frequency = formData.frequency || "daily";
+      const {
+        frequency,
+        preferredFlavor,
+        preferredNicotineLevel,
+        recordDate,
+      } = formData;
 
       if (!cigarettesPerDay || cigarettesPerDay < 1 || cigarettesPerDay > 200) {
         alert("Cigarettes per day must be between 1 and 200");
@@ -114,24 +120,21 @@ const StatusPage = () => {
         return;
       }
 
-      if (!userId) {
-        alert("User ID is missing. Please log in again.");
-        return;
-      }
-
       const data = {
         userId,
         cigarettesPerDay,
         pricePerPack,
         packageId,
         frequency,
-        recordDate: new Date().toISOString().split("T")[0],
+        preferredFlavor,
+        preferredNicotineLevel,
+        recordDate,
       };
 
       const res = await api.post("/smoking-status", data);
       alert("Status created successfully!");
       setUserData(res.data);
-      localStorage.setItem("smokingStatus", JSON.stringify(res.data)); // ✅ lưu
+      localStorage.setItem("smokingStatus", JSON.stringify(res.data));
       setIsModalOpen(false);
     } catch (err) {
       console.error("Creation failed", err.response?.status, err.response?.data);
@@ -148,7 +151,7 @@ const StatusPage = () => {
       await api.put(`/smoking-status/${userData.statusId}`, updated);
       const res = await api.get(`/smoking-status/${userData.statusId}`);
       setUserData(res.data);
-      localStorage.setItem("smokingStatus", JSON.stringify(res.data)); // ✅ lưu
+      localStorage.setItem("smokingStatus", JSON.stringify(res.data));
       alert("Progress updated!");
       setIsModalOpen(false);
     } catch (err) {
@@ -165,7 +168,7 @@ const StatusPage = () => {
       await api.delete(`/smoking-status/${userData.statusId}`);
       alert("Progress deleted successfully!");
       setUserData(null);
-      localStorage.removeItem("smokingStatus"); // ✅ xóa
+      localStorage.removeItem("smokingStatus");
     } catch (err) {
       console.error("Delete failed:", err.response?.data || err.message);
       alert("Delete failed. Please try again.");
@@ -183,7 +186,17 @@ const StatusPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "packageId") {
+      const selected = packages.find(pkg => pkg.cigarettePackageId === Number(value));
+      setFormData((prev) => ({
+        ...prev,
+        packageId: value,
+        preferredFlavor: selected?.flavor || "",
+        preferredNicotineLevel: selected?.nicotineLevel || "",
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   return (
@@ -248,7 +261,12 @@ const StatusPage = () => {
                   <FiPackage className="text-indigo-600 w-5 h-5" />
                   <div>
                     <p className="text-sm text-gray-500">Package</p>
-                    <p className="font-medium">{userData.packageName}</p>
+                    <p className="font-medium">
+                      {
+                        packages.find(p => p.cigarettePackageId === userData.packageId)
+                          ?.cigarettePackageName || "Unknown"
+                      }
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -326,8 +344,8 @@ const StatusPage = () => {
                 >
                   <option value="">-- Select a package --</option>
                   {packages.map((pkg) => (
-                    <option key={pkg.cigaretteId} value={pkg.cigaretteId}>
-                      {pkg.cigaretteName} ({pkg.price}₫ - {pkg.sticksPerPack} sticks)
+                    <option key={pkg.cigarettePackageId} value={String(pkg.cigarettePackageId)}>
+                      {pkg.cigarettePackageName} ({pkg.pricePerPack}₫ - {pkg.sticksPerPack} sticks)
                     </option>
                   ))}
                 </select>
@@ -344,6 +362,35 @@ const StatusPage = () => {
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
+                  <option value="OCCASIONALLY">Occasionally</option>
+                  <option value="STRESS">Stress</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Preferred Flavor</label>
+                <input
+                  type="text"
+                  name="preferredFlavor"
+                  value={formData.preferredFlavor}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Preferred Nicotine Level</label>
+                <select
+                  name="preferredNicotineLevel"
+                  value={formData.preferredNicotineLevel}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                >
+                  <option value="">-- Select Nicotine Level --</option>
+                  <option value="ZERO">Zero</option>
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High</option>
                 </select>
               </div>
 
