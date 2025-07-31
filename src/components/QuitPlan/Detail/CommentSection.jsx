@@ -21,41 +21,18 @@ const REACTIONS = [
 const CommentSection = ({ day }) => {
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState([]);
-  const [replyingTo, setReplyingTo] = useState(null);
 
   useEffect(() => {
     const saved = localStorage.getItem(`comments-${day.id}`);
     let initialComments = saved ? JSON.parse(saved) : [];
 
+    // --- Ẩn coach comment: Chỉ ghi chú lại, không chạy ---
+    /*
     const hasCoach = initialComments.some((c) => c.isCoach);
-
     if (!hasCoach) {
-      const completed = day.tasks.filter((t) => t.done).length;
-      const total = day.tasks.length;
-
-      let coachText = "";
-      if (completed === 0) {
-        coachText = "Let's try to start at least one task today. You can do it! 💪";
-      } else if (completed < total) {
-        coachText = `Good job! You've completed ${completed}/${total} tasks. Keep going!`;
-      } else {
-        coachText = "Excellent! You’ve completed all your tasks today. 🎉";
-      }
-
-      const coachComment = {
-        id: `coach-${day.id}`,
-        text: coachText,
-        time: Date.now(),
-        reaction: null,
-        isCoach: true,
-        coachName: "Coach Alex",
-        coachAvatar: "https://i.pravatar.cc/40?img=12",
-        replies: []
-      };
-
-      initialComments.unshift(coachComment);
-      localStorage.setItem(`comments-${day.id}`, JSON.stringify(initialComments));
+      // auto add coach comment...
     }
+    */
 
     setComments(initialComments);
   }, [day]);
@@ -68,35 +45,14 @@ const CommentSection = ({ day }) => {
   const addComment = () => {
     if (!comment.trim()) return;
 
-    if (replyingTo) {
-      const updated = comments.map((c) =>
-        c.id === replyingTo
-          ? {
-              ...c,
-              replies: [
-                ...(c.replies || []),
-                {
-                  id: Date.now(),
-                  text: comment,
-                  time: Date.now(),
-                },
-              ],
-            }
-          : c
-      );
-      saveComments(updated);
-      setReplyingTo(null);
-    } else {
-      const newComment = {
-        id: Date.now(),
-        text: comment.trim(),
-        time: Date.now(),
-        reaction: null,
-        replies: [],
-      };
-      saveComments([newComment, ...comments]);
-    }
-
+    const newComment = {
+      id: Date.now(),
+      text: comment.trim(),
+      time: Date.now(),
+      reaction: null,
+      replies: [],
+    };
+    saveComments([newComment, ...comments]);
     setComment("");
   };
 
@@ -130,17 +86,24 @@ const CommentSection = ({ day }) => {
       </div>
     ));
 
+  // Lọc bỏ coach comment khỏi danh sách hiển thị
+  const visibleComments = comments.filter((c) => !c.isCoach);
+
   return (
     <>
-      <Divider orientation="left" className="-mx-6 mb-2 text-sm font-semibold text-gray-700">
+      <Divider
+        orientation="left"
+        className="-mx-6 mb-2 text-sm font-semibold text-gray-700"
+      >
         <MessageOutlined className="mr-2 text-[#1f845a]" /> Comments
       </Divider>
 
+      {/* Input comment */}
       <Input.TextArea
         rows={2}
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-        placeholder={replyingTo ? "Replying to coach..." : "Leave a comment..."}
+        placeholder="Leave a comment..."
         onPressEnter={(e) => {
           if (!e.shiftKey) {
             e.preventDefault();
@@ -150,26 +113,21 @@ const CommentSection = ({ day }) => {
       />
       <div className="text-right mt-2 mb-4">
         <Button type="primary" onClick={addComment}>
-          {replyingTo ? "Reply" : "Comment"}
+          Comment
         </Button>
       </div>
 
+      {/* List comment */}
       <div className="space-y-3 pr-2">
-        {comments.map((item) => (
+        {visibleComments.map((item) => (
           <div key={item.id} className="bg-white border rounded p-3 shadow-sm">
+            {/* Header */}
             <div className="flex items-center gap-2 mb-1">
-              <Avatar
-                src={
-                  item.isCoach
-                    ? item.coachAvatar
-                    : "https://i.pravatar.cc/40?img=8"
-                }
-                size="small"
-              />
+              <Avatar src={"https://i.pravatar.cc/40?img=8"} size="small" />
               <div>
                 <div className="text-sm">
                   <span className="text-[15px] font-bold text-gray-800">
-                    {item.isCoach ? item.coachName : "You"}
+                    You
                   </span>
                   <span className="text-gray-500 ml-1 text-xs">
                     · {dayjs(item.time).fromNow()}
@@ -177,10 +135,13 @@ const CommentSection = ({ day }) => {
                 </div>
               </div>
             </div>
+
+            {/* Content */}
             <div className="mt-2 text-sm whitespace-pre-wrap text-gray-700">
               {item.text}
             </div>
 
+            {/* Action buttons */}
             <div className="flex items-center gap-[2px] mt-3 text-xs">
               {item.reaction && (
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-sm">
@@ -216,46 +177,29 @@ const CommentSection = ({ day }) => {
                 />
               </Dropdown>
 
-              {item.isCoach ? (
-                <>
-                  <span className="text-gray-400">•</span>
-                  <Button
-                    type="text"
-                    size="small"
-                    onClick={() => setReplyingTo(item.id)}
-                    style={{ fontSize: "11px" }}
-                    className="!px-1 !h-auto"
-                  >
-                    Reply
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <span className="text-gray-400">•</span>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<EditOutlined />}
-                    onClick={() => handleEditComment(item)}
-                    style={{ fontSize: "11px" }}
-                    className="!px-1 !h-auto"
-                  >
-                    Edit
-                  </Button>
-                  <span className="text-gray-400">•</span>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    danger
-                    onClick={() => handleDeleteComment(item)}
-                    style={{ fontSize: "11px" }}
-                    className="!px-1 !h-auto"
-                  >
-                    Delete
-                  </Button>
-                </>
-              )}
+              <span className="text-gray-400">•</span>
+              <Button
+                type="text"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => handleEditComment(item)}
+                style={{ fontSize: "11px" }}
+                className="!px-1 !h-auto"
+              >
+                Edit
+              </Button>
+              <span className="text-gray-400">•</span>
+              <Button
+                type="text"
+                size="small"
+                icon={<DeleteOutlined />}
+                danger
+                onClick={() => handleDeleteComment(item)}
+                style={{ fontSize: "11px" }}
+                className="!px-1 !h-auto"
+              >
+                Delete
+              </Button>
             </div>
 
             {renderReplies(item.replies)}

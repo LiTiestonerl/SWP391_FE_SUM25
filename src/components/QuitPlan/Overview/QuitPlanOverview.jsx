@@ -11,9 +11,7 @@ import {
   ConfirmDeleteModal,
   ConfirmCompleteModal
 } from './PlanActions';
-import AchievementBadges from './AchievementBadges';
-import HealthProgressTimeline from './HealthProgressTimeline';
-import CoachBox, { coachList } from './CoachBox';
+import CoachBox from './CoachBox';
 import { CoachFeedbackCard, CoachSuggestionCard } from './CoachCard';
 import api from '../../../configs/axios';
 
@@ -35,9 +33,9 @@ const getMockPlan = (d, startDate, addictionLevel = 'Mild', packageName = 'HEALT
 
   return {
     id: 'mock-1',
-    name: `Quit in ${d} Days - ${packageName || 'HEALTH+'}`,
+    name: `Quit in ${d} Days - ${packageName}`,
     reason: 'Improve health',
-    addictionLevel: addictionLevel,
+    addictionLevel,
     startDate: start.format('YYYY-MM-DD'),
     endDate: end.format('YYYY-MM-DD'),
     durationInDays: d,
@@ -60,11 +58,11 @@ const getMockPlan = (d, startDate, addictionLevel = 'Mild', packageName = 'HEALT
     customNotes: 'Stay hydrated. Walk after meals.',
     averageCigarettes:
       addictionLevel === 'Severe' ? 25 :
-        addictionLevel === 'Moderate' ? 15 : 8,
+      addictionLevel === 'Moderate' ? 15 : 8,
     pricePerCigarette: 1000,
     averageSpending:
       addictionLevel === 'Severe' ? 25000 :
-        addictionLevel === 'Moderate' ? 15000 : 8000,
+      addictionLevel === 'Moderate' ? 15000 : 8000,
     membership: packageName,
   };
 };
@@ -80,6 +78,7 @@ const QuitPlanOverview = () => {
   const [duration, setDuration] = useState(30);
   const [membership, setMembership] = useState("HEALTH+");
   const [loading, setLoading] = useState(true);
+  const [coachList, setCoachList] = useState([]);
 
   const [showCreate, setCreate] = useState(!plan);
   const [showEdit, setEdit] = useState(false);
@@ -110,7 +109,7 @@ const QuitPlanOverview = () => {
       .catch((err) => {
         console.error("Failed to fetch membership packages", err);
         setDuration(7);
-        setMembership("FREE"); // gói FREE thì chỉ 7 ngày
+        setMembership("FREE");
       })
       .finally(() => {
         setLoading(false);
@@ -121,21 +120,24 @@ const QuitPlanOverview = () => {
     if (plan) localStorage.setItem("quitPlan", JSON.stringify(plan));
   }, [plan]);
 
-  const handleCoachSelect = (coachId) => {
-    const updated = { ...plan, coach: coachId };
-    setPlan(updated);
-    localStorage.setItem("quitPlan", JSON.stringify(updated));
-  };
+  useEffect(() => {
+    api.get("/coach")
+      .then((res) => {
+        setCoachList(res.data || []);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch coach list", err);
+      });
+  }, []);
 
   if (loading) {
     return <div className="p-10 text-center text-gray-600">Loading...</div>;
   }
 
   const isExpired = plan && dayjs().isAfter(dayjs(plan.endDate));
-  const noProgress = plan && (plan.completedDays || 0) === 0;
   const completedDays = dayjs().diff(dayjs(plan?.startDate), "day") + 1;
   const allCompleted = plan && completedDays >= plan.durationInDays;
-  const coachObj = coachList.find((c) => c.id === plan?.coach);
+  const coachObj = coachList.find((c) => c.coachId === plan?.coach);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#c3e4dd] via-[#dfeee5] to-[#a1cfc1] py-8 px-2 sm:px-4">
@@ -180,11 +182,6 @@ const QuitPlanOverview = () => {
                 ⚠️ This plan has expired. Consider creating a new one.
               </div>
             )}
-            {noProgress && !isExpired && (
-              <div className="bg-blue-50 text-blue-700 p-3 rounded border border-blue-200 text-sm">
-                🚀 You haven't completed any day yet. Let's get started!
-              </div>
-            )}
             {allCompleted && (
               <div className="bg-green-100 text-green-800 p-5 rounded-lg border border-green-300 text-xl font-semibold shadow-md">
                 🎉 Congratulations! You've completed your Quit Plan.
@@ -195,14 +192,23 @@ const QuitPlanOverview = () => {
               <div className="space-y-6">
                 <CoachBox
                   selectedCoachId={plan.coach}
-                  onSelect={handleCoachSelect}
+                  membership={plan.membership || membership}
+                  onSelect={(coachId) => {
+                    const updated = { ...plan, coach: coachId };
+                    setPlan(updated);
+                    localStorage.setItem("quitPlan", JSON.stringify(updated));
+                  }}
                 />
-                <CoachFeedbackCard
-                  coachId={plan.coach}
-                  coachName={coachObj?.name || "Your Coach"}
-                  planId={plan.id}
-                  memberId={1}
-                />
+
+                {allCompleted && (
+                  <CoachFeedbackCard
+                    coachId={plan.coach}
+                    coachName={coachObj?.name || 'Your Coach'}
+                    planId={plan.id}
+                    memberId={1}
+                    isPlanCompleted={allCompleted}
+                  />
+                )}
               </div>
 
               <div className="flex flex-col gap-6">
@@ -212,7 +218,10 @@ const QuitPlanOverview = () => {
                   onDelete={() => setDel(true)}
                   onComplete={() => setComplete(true)}
                 />
-                <CoachSuggestionCard planId={plan.id} level={plan.addictionLevel} />
+                <CoachSuggestionCard
+                  planId={plan.id}
+                  currentPackageId={plan.package}
+                />
               </div>
             </div>
 
@@ -224,32 +233,26 @@ const QuitPlanOverview = () => {
                 startDate={plan.startDate}
                 addictionLevel={plan.addictionLevel}
                 planId={plan.id}
+                averageCigarettes={plan.averageCigarettes}
               />
             </div>
-
-            <AchievementBadges
-              completedDays={plan.completedDays}
-              completedStages={
-                JSON.parse(localStorage.getItem("completedStages_" + plan.id) || "[]").length
-              }
-            />
-
-            <HealthProgressTimeline startDate={plan.startDate} />
           </>
         )}
 
         <CreatePlanModal
           open={showCreate}
-          duration={duration}
-          membership={membership}
           onClose={() => setCreate(false)}
           onCreate={(form) => {
-            const planMembership = membership || "FREE";
-            const mockPlan = getMockPlan(duration, form.startDate, form.addictionLevel, planMembership);
+            const mockPlan = getMockPlan(
+              form.durationInDays,
+              form.startDate,
+              form.addictionLevel,
+              form.membershipPackageName
+            );
             setPlan({
               ...mockPlan,
               ...form,
-              membership: planMembership,
+              membership: form.membershipPackageName,
             });
             setCreate(false);
           }}
