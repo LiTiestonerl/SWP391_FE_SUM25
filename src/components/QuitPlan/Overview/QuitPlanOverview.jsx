@@ -1,50 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import dayjs from 'dayjs';
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 
-import PlanSummaryCard from './PlanSummaryCard';
-import StatsSection from './StatsSection';
-import StageList from './StageList';
-import CreatePlanModal from './CreatePlanModal';
+import PlanSummaryCard from "./PlanSummaryCard";
+import StatsSection from "./StatsSection";
+import StageList from "./StageList";
+import CreatePlanModal from "./CreatePlanModal";
 import {
   EditPlanModal,
   ConfirmDeleteModal,
-  ConfirmCompleteModal
-} from './PlanActions';
-import CoachBox from './CoachBox';
-import { CoachFeedbackCard, CoachSuggestionCard } from './CoachCard';
-import api from '../../../configs/axios';
+  ConfirmCompleteModal,
+} from "./PlanActions";
+import CoachBox from "./CoachBox";
+import { CoachFeedbackCard, CoachSuggestionCard } from "./CoachCard";
+import api from "../../../configs/axios";
 
-const getMockPlan = (d, startDate, addictionLevel = 'Mild', packageName = 'HEALTH+') => {
+const getMockPlan = (
+  d,
+  startDate,
+  addictionLevel = "Mild",
+  packageName = "HEALTH+"
+) => {
   const start = dayjs(startDate || dayjs());
-  const end = start.add(d - 1, 'day');
+  const end = start.add(d - 1, "day");
 
   const getStagesDescription = (level) => {
     switch (level) {
-      case 'Severe':
-        return 'Intensive 5-stage reduction plan (25 → 13 → 9 → 5 → 1 cigs/day)';
-      case 'Moderate':
-        return 'Balanced 5-stage reduction plan (15 → 10 → 7 → 4 → 1 cigs/day)';
-      case 'Mild':
+      case "Severe":
+        return "Intensive 5-stage reduction plan (25 → 13 → 9 → 5 → 1 cigs/day)";
+      case "Moderate":
+        return "Balanced 5-stage reduction plan (15 → 10 → 7 → 4 → 1 cigs/day)";
+      case "Mild":
       default:
-        return 'Gradual 4-stage reduction plan (8 → 5 → 3 → 1 cigs/day)';
+        return "Gradual 4-stage reduction plan (8 → 5 → 3 → 1 cigs/day)";
     }
   };
 
   return {
-    id: 'mock-1',
-    name: `Quit in ${d} Days - ${packageName}`,
-    reason: 'Improve health',
-    addictionLevel,
-    startDate: start.format('YYYY-MM-DD'),
-    endDate: end.format('YYYY-MM-DD'),
+    id: "mock-1",
+    name: `Quit in ${d} Days - ${packageName || "HEALTH+"}`,
+    reason: "Improve health",
+    addictionLevel: addictionLevel,
+    startDate: start.format("YYYY-MM-DD"),
+    endDate: end.format("YYYY-MM-DD"),
     durationInDays: d,
     percent: 35,
     completedDays: 12,
     moneySaved: 320000,
     avoidedCigarettes: 5,
     rating: 4,
-    savedComment: 'Great effort!',
+    savedComment: "Great effort!",
     coach: null,
     quitPlanStages: [],
     quitProgresses: [],
@@ -55,14 +60,16 @@ const getMockPlan = (d, startDate, addictionLevel = 'Mild', packageName = 'HEALT
       blood: 65,
     },
     stagesDescription: getStagesDescription(addictionLevel),
-    customNotes: 'Stay hydrated. Walk after meals.',
+    customNotes: "Stay hydrated. Walk after meals.",
     averageCigarettes:
-      addictionLevel === 'Severe' ? 25 :
-      addictionLevel === 'Moderate' ? 15 : 8,
+      addictionLevel === "Severe" ? 25 : addictionLevel === "Moderate" ? 15 : 8,
     pricePerCigarette: 1000,
     averageSpending:
-      addictionLevel === 'Severe' ? 25000 :
-      addictionLevel === 'Moderate' ? 15000 : 8000,
+      addictionLevel === "Severe"
+        ? 25000
+        : addictionLevel === "Moderate"
+        ? 15000
+        : 8000,
     membership: packageName,
   };
 };
@@ -78,7 +85,6 @@ const QuitPlanOverview = () => {
   const [duration, setDuration] = useState(30);
   const [membership, setMembership] = useState("HEALTH+");
   const [loading, setLoading] = useState(true);
-  const [coachList, setCoachList] = useState([]);
 
   const [showCreate, setCreate] = useState(!plan);
   const [showEdit, setEdit] = useState(false);
@@ -100,7 +106,9 @@ const QuitPlanOverview = () => {
       .get("/member-packages")
       .then((res) => {
         const packages = res.data || [];
-        const selected = packages.find((p) => p.memberPackageId === memberPackageId);
+        const selected = packages.find(
+          (p) => p.memberPackageId === memberPackageId
+        );
         if (selected) {
           setDuration(selected.duration || 30);
           setMembership(selected.packageName || "HEALTH+");
@@ -120,16 +128,6 @@ const QuitPlanOverview = () => {
     if (plan) localStorage.setItem("quitPlan", JSON.stringify(plan));
   }, [plan]);
 
-  useEffect(() => {
-    api.get("/coach")
-      .then((res) => {
-        setCoachList(res.data || []);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch coach list", err);
-      });
-  }, []);
-
   if (loading) {
     return <div className="p-10 text-center text-gray-600">Loading...</div>;
   }
@@ -137,7 +135,6 @@ const QuitPlanOverview = () => {
   const isExpired = plan && dayjs().isAfter(dayjs(plan.endDate));
   const completedDays = dayjs().diff(dayjs(plan?.startDate), "day") + 1;
   const allCompleted = plan && completedDays >= plan.durationInDays;
-  const coachObj = coachList.find((c) => c.coachId === plan?.coach);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#c3e4dd] via-[#dfeee5] to-[#a1cfc1] py-8 px-2 sm:px-4">
@@ -173,10 +170,13 @@ const QuitPlanOverview = () => {
           )}
         </div>
 
-        {!plan && <p className="text-gray-500">You don't have a quit plan yet.</p>}
+        {!plan && (
+          <p className="text-gray-500">You don't have a quit plan yet.</p>
+        )}
 
         {plan && (
           <>
+            {/* Alerts */}
             {isExpired && (
               <div className="bg-yellow-100 text-yellow-800 p-3 rounded border border-yellow-300 text-sm">
                 ⚠️ This plan has expired. Consider creating a new one.
@@ -203,10 +203,10 @@ const QuitPlanOverview = () => {
                 {allCompleted && (
                   <CoachFeedbackCard
                     coachId={plan.coach}
-                    coachName={coachObj?.name || 'Your Coach'}
+                    coachName={coachObj?.name || "Your Coach"}
                     planId={plan.id}
                     memberId={1}
-                    isPlanCompleted={allCompleted}
+                    isPlanCompleted={allCompleted} // ✅ chỉ hiển thị khi hoàn thành
                   />
                 )}
               </div>
@@ -221,6 +221,8 @@ const QuitPlanOverview = () => {
                 <CoachSuggestionCard
                   planId={plan.id}
                   currentPackageId={plan.package}
+                  addictionLevel={plan.addictionLevel} // ✅ để gợi ý theo level
+                  durationInDays={plan.durationInDays} // ✅ (tuỳ chọn) để phân bổ tuần cho lộ trình
                 />
               </div>
             </div>
@@ -233,7 +235,7 @@ const QuitPlanOverview = () => {
                 startDate={plan.startDate}
                 addictionLevel={plan.addictionLevel}
                 planId={plan.id}
-                averageCigarettes={plan.averageCigarettes}
+                averageCigarettes={plan.averageCigarettes} // ✅ thêm dòng này
               />
             </div>
           </>
@@ -251,7 +253,7 @@ const QuitPlanOverview = () => {
             );
             setPlan({
               ...mockPlan,
-              ...form,
+              ...form, // form đè lên mock, nên reason của user sẽ được giữ
               membership: form.membershipPackageName,
             });
             setCreate(false);

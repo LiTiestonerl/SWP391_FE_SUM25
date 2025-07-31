@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import dayjs from 'dayjs';
-import api from '../../../configs/axios';
+import React, { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import dayjs from "dayjs";
+import api from "../../../configs/axios";
 
 const CreatePlanModal = ({ open, onClose, onCreate }) => {
   const [packages, setPackages] = useState([]);
   const [memberPackages, setMemberPackages] = useState([]);
   const [duration, setDuration] = useState(null);
-  const [packageName, setPackageName] = useState('');
+  const [packageName, setPackageName] = useState("");
   const [touched, setTouched] = useState(false); // ✅ chỉ báo lỗi sau submit
   const [form, setForm] = useState({
-    name: '',
-    reason: '',
-    addictionLevel: 'Mild',
-    package: '',
-    startDate: '',
-    endDate: '',
-    averageCigarettes: '',
-    pricePerCigarette: '',
+    name: "",
+    reason: "",
+    addictionLevel: "Mild",
+    package: "",
+    startDate: "",
+    endDate: "",
+    averageCigarettes: "",
+    pricePerCigarette: "",
     pricePerCigaretteNumeric: 0,
   });
 
@@ -26,41 +26,48 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
     const fetchData = async () => {
       try {
         const [pkgListRes, meRes] = await Promise.all([
-          api.get('/member-packages'),
-          api.get('/user-membership/me'),
+          api.get("/member-packages"),
+          api.get("/user-membership/me"),
         ]);
 
         const pkgs = pkgListRes?.data ?? [];
         setMemberPackages(pkgs);
 
         const memberPackageId = meRes?.data?.memberPackageId;
-        let activePkg = pkgs.find(p => Number(p.memberPackageId) === Number(memberPackageId));
+        let activePkg = pkgs.find(
+          (p) => Number(p.memberPackageId) === Number(memberPackageId)
+        );
 
         if (!activePkg) {
           activePkg =
-            pkgs.find(p => String(p.packageName).toUpperCase().includes('FREE')) || pkgs[0];
+            pkgs.find((p) =>
+              String(p.packageName).toUpperCase().includes("FREE")
+            ) || pkgs[0];
         }
 
         if (activePkg) {
           setDuration(activePkg.duration);
           setPackageName(activePkg.packageName);
           // 🔁 CHỈ đặt tên nếu trước đó chưa có name
-          setForm(prev => ({
+          setForm((prev) => ({
             ...prev,
             name: prev.name || `Quit in ${activePkg.duration} Days`,
           }));
         } else {
           setDuration(30);
-          setPackageName('DEFAULT');
+          setPackageName("DEFAULT");
           // 🔁 CHỈ đặt tên nếu trước đó chưa có name
-          setForm(prev => ({ ...prev, name: prev.name || 'Quit in 30 Days' }));
+          setForm((prev) => ({
+            ...prev,
+            name: prev.name || "Quit in 30 Days",
+          }));
         }
       } catch (err) {
-        console.error('Fetch membership/packages error:', err);
+        console.error("Fetch membership/packages error:", err);
         setDuration(30);
-        setPackageName('DEFAULT');
+        setPackageName("DEFAULT");
         // 🔁 CHỈ đặt tên nếu trước đó chưa có name
-        setForm(prev => ({ ...prev, name: prev.name || 'Quit in 30 Days' }));
+        setForm((prev) => ({ ...prev, name: prev.name || "Quit in 30 Days" }));
       }
     };
 
@@ -71,35 +78,37 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
   useEffect(() => {
     const fetchCigPackages = async () => {
       try {
-        const res = await api.get('/cigarette-packages');
+        const res = await api.get("/cigarette-packages");
         setPackages(res.data || []);
       } catch (err) {
-        console.error('Failed to fetch cigarette packages', err);
+        console.error("Failed to fetch cigarette packages", err);
       }
     };
     if (open) fetchCigPackages();
   }, [open]);
 
-  const parseMoneyInput = (value) => Number(String(value).replace(/[^0-9]/g, ''));
+  const parseMoneyInput = (value) =>
+    Number(String(value).replace(/[^0-9]/g, ""));
 
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    if (name === 'startDate') {
+    if (name === "startDate") {
       const newStart = dayjs(value);
       const totalDays = Number(duration) || 0;
-      const newEnd = totalDays > 0 ? newStart.add(totalDays - 1, 'day') : newStart;
-      setForm(prev => ({
+      const newEnd =
+        totalDays > 0 ? newStart.add(totalDays - 1, "day") : newStart;
+      setForm((prev) => ({
         ...prev,
         startDate: value,
-        endDate: newEnd.format('YYYY-MM-DD'),
+        endDate: newEnd.format("YYYY-MM-DD"),
       }));
       return;
     }
 
-    if (name === 'pricePerCigarette') {
+    if (name === "pricePerCigarette") {
       const numericValue = parseMoneyInput(value);
-      setForm(prev => ({
+      setForm((prev) => ({
         ...prev,
         [name]: value,
         pricePerCigaretteNumeric: numericValue,
@@ -107,12 +116,14 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
       return;
     }
 
-    if (name === 'package') {
-      const selected = packages.find(p => String(p.cigarettePackageId) === value);
+    if (name === "package") {
+      const selected = packages.find(
+        (p) => String(p.cigarettePackageId) === value
+      );
       const autoPrice = selected
         ? Math.round(selected.pricePerPack / selected.sticksPerPack)
-        : '';
-      setForm(prev => ({
+        : "";
+      setForm((prev) => ({
         ...prev,
         package: value,
         pricePerCigarette: autoPrice,
@@ -121,7 +132,7 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
       return;
     }
 
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const validateForm = () => {
@@ -145,7 +156,7 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
     const avgSpending = avgCigs * pricePer;
 
     const selectedPackage = packages.find(
-      p => String(p.cigarettePackageId) === form.package
+      (p) => String(p.cigarettePackageId) === form.package
     );
 
     const planData = {
@@ -156,11 +167,11 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
       averageSpending: avgSpending,
       durationInDays: Number(duration) || 0,
       membershipPackageName: packageName,
-      brand: selectedPackage?.brand || '',
-      flavor: selectedPackage?.flavor || '',
-      nicotineLevel: selectedPackage?.nicotineLevel || '',
-      nicotineMg: selectedPackage?.nicotineMg || '',
-      sticksPerPack: selectedPackage?.sticksPerPack || '',
+      brand: selectedPackage?.brand || "",
+      flavor: selectedPackage?.flavor || "",
+      nicotineLevel: selectedPackage?.nicotineLevel || "",
+      nicotineMg: selectedPackage?.nicotineMg || "",
+      sticksPerPack: selectedPackage?.sticksPerPack || "",
     };
 
     onCreate(planData);
@@ -181,14 +192,16 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            onClick={e => e.stopPropagation()}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-2xl font-bold text-emerald-600 mb-4">Create Quit Plan</h2>
+            <h2 className="text-2xl font-bold text-emerald-600 mb-4">
+              Create Quit Plan
+            </h2>
 
             <p className="mb-2 text-sm text-gray-600">
-              Membership: <b>{packageName || '...'}</b> — Duration:&nbsp;
-              <b>{duration != null ? `${duration} Days` : '...'}</b>
+              Membership: <b>{packageName || "..."}</b> — Duration:&nbsp;
+              <b>{duration != null ? `${duration} Days` : "..."}</b>
             </p>
 
             <form onSubmit={submit} className="space-y-4 text-sm">
@@ -211,7 +224,9 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
                   maxLength={240}
                   placeholder="E.g. for my family, save money, improve health..."
                   className={`w-full border p-3 rounded ${
-                    touched && form.reason.trim().length < 5 ? 'border-red-400' : ''
+                    touched && form.reason.trim().length < 5
+                      ? "border-red-400"
+                      : ""
                   }`}
                 />
                 {touched && form.reason.trim().length < 5 && (
@@ -229,7 +244,9 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
                 className="w-full border p-3 rounded"
               >
                 <option value="Mild">Mild (1-10 cigarettes/day)</option>
-                <option value="Moderate">Moderate (11-20 cigarettes/day)</option>
+                <option value="Moderate">
+                  Moderate (11-20 cigarettes/day)
+                </option>
                 <option value="Severe">Severe (20+ cigarettes/day)</option>
               </select>
 
@@ -240,18 +257,24 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
                   value={form.package}
                   onChange={handleChange}
                   className={`w-full border p-3 rounded ${
-                    touched && !form.package ? 'border-red-400' : ''
+                    touched && !form.package ? "border-red-400" : ""
                   }`}
                 >
                   <option value="">Select a cigarette package</option>
-                  {packages.map(p => (
-                    <option key={p.cigarettePackageId} value={p.cigarettePackageId}>
-                      {p.cigarettePackageName} — {p.brand} ({p.flavor}, {p.nicotineLevel})
+                  {packages.map((p) => (
+                    <option
+                      key={p.cigarettePackageId}
+                      value={p.cigarettePackageId}
+                    >
+                      {p.cigarettePackageName} — {p.brand} ({p.flavor},{" "}
+                      {p.nicotineLevel})
                     </option>
                   ))}
                 </select>
                 {touched && !form.package && (
-                  <p className="text-xs text-red-500 mt-1">Please select a cigarette package.</p>
+                  <p className="text-xs text-red-500 mt-1">
+                    Please select a cigarette package.
+                  </p>
                 )}
               </div>
 
@@ -260,14 +283,18 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
                 <h3 className="font-medium text-emerald-700">Smoking Habit</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-gray-500 block mb-1">Cigarettes/day</label>
+                    <label className="text-gray-500 block mb-1">
+                      Cigarettes/day
+                    </label>
                     <input
                       type="number"
                       name="averageCigarettes"
                       value={form.averageCigarettes}
                       onChange={handleChange}
                       className={`w-full border p-2 rounded ${
-                        touched && !form.averageCigarettes ? 'border-red-400' : ''
+                        touched && !form.averageCigarettes
+                          ? "border-red-400"
+                          : ""
                       }`}
                       min="1"
                       placeholder="20"
@@ -279,14 +306,18 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
                     )}
                   </div>
                   <div>
-                    <label className="text-gray-500 block mb-1">Price per cig (VND)</label>
+                    <label className="text-gray-500 block mb-1">
+                      Price per cig (VND)
+                    </label>
                     <input
                       type="text"
                       name="pricePerCigarette"
                       value={form.pricePerCigarette}
                       onChange={handleChange}
                       className={`w-full border p-2 rounded ${
-                        touched && !form.pricePerCigarette ? 'border-red-400' : ''
+                        touched && !form.pricePerCigarette
+                          ? "border-red-400"
+                          : ""
                       }`}
                       placeholder="1.000"
                     />
@@ -302,18 +333,22 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
               {/* Dates */}
               <div className="flex gap-4 text-xs">
                 <div className="flex-1">
-                  <label className="text-gray-500 block mb-1">Start Date <span className="text-red-500">*</span></label>
+                  <label className="text-gray-500 block mb-1">
+                    Start Date <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="date"
                     name="startDate"
                     value={form.startDate}
                     onChange={handleChange}
                     className={`w-full border p-3 rounded ${
-                      touched && !form.startDate ? 'border-red-400' : ''
+                      touched && !form.startDate ? "border-red-400" : ""
                     }`}
                   />
                   {touched && !form.startDate && (
-                    <p className="text-xs text-red-500 mt-1">Please select a start date.</p>
+                    <p className="text-xs text-red-500 mt-1">
+                      Please select a start date.
+                    </p>
                   )}
                 </div>
                 <div className="flex-1">

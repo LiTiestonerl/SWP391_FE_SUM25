@@ -30,7 +30,9 @@ const generateQuitPlan = (startDate, durationInDays) => {
     for (let d = 0; d < 7; d++) {
       if (dayCounter > durationInDays) break;
 
-      const tasks = Array.from({ length: 2 + Math.floor(Math.random() * 2) }).map(() => {
+      const tasks = Array.from({
+        length: 2 + Math.floor(Math.random() * 2),
+      }).map(() => {
         const title = samplePlans[taskIndex % samplePlans.length];
         taskIndex++;
         return {
@@ -71,7 +73,8 @@ const QuitPlan = () => {
 
     const id = location.state.memberPackageId;
 
-    api.get("/member-packages")
+    api
+      .get("/member-packages")
       .then((res) => {
         const matched = res.data?.find((pkg) => pkg.id === id);
         if (matched) {
@@ -114,38 +117,38 @@ const QuitPlan = () => {
     );
   }
 
- return (
-  <div
-    className="min-h-screen bg-[hsla(105,_55.35%,_35.59%,_0.9)] px-6 overflow-x-auto relative pt-32"
-    // giảm pt-48 -> pt-32 (hoặc pt-28)
-  >
-    {/* Nút OUT giữ nguyên */}
-    <Tooltip title="Back to Quit Plan List">
-      <Button
-        type="primary"
-        shape="circle"
-        size="large"
-        icon={<ExportOutlined />}
-        className="!absolute left-6 top-28 shadow-lg"
-        onClick={() => navigate("/quit-plan")}
-      />
-    </Tooltip>
-
-    {/* bỏ mt-6 ở đây */}
-    <div className="flex gap-6 items-start mt-14">
-      {plan.weeks.map((week, idx) => (
-        <WeekColumn
-          key={idx}
-          weekNumber={idx + 1}
-          days={week}
-          planStartDate={plan.startDate}
-          membership={plan.membership}
-          freeDays={freeDays}
+  return (
+    <div
+      className="min-h-screen bg-[hsla(105,_55.35%,_35.59%,_0.9)] px-6 overflow-x-auto relative pt-32"
+      // giảm pt-48 -> pt-32 (hoặc pt-28)
+    >
+      {/* Nút OUT giữ nguyên */}
+      <Tooltip title="Back to Quit Plan List">
+        <Button
+          type="primary"
+          shape="circle"
+          size="large"
+          icon={<ExportOutlined />}
+          className="!absolute left-6 top-28 shadow-lg"
+          onClick={() => navigate("/quit-plan")}
         />
-      ))}
+      </Tooltip>
+
+      {/* bỏ mt-6 ở đây */}
+      <div className="flex gap-6 items-start mt-14">
+        {plan.weeks.map((week, idx) => (
+          <WeekColumn
+            key={idx}
+            weekNumber={idx + 1}
+            days={week}
+            planStartDate={plan.startDate}
+            membership={plan.membership}
+            freeDays={freeDays}
+          />
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
 };
 
 export default QuitPlan;

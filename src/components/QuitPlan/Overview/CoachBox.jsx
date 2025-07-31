@@ -68,22 +68,28 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const scrollRef = useRef(null);
 
-  const isFree = String(membership || '').toUpperCase().includes('FREE');
+  const isFree = String(membership || '').toUpperCase().includes('HEALTH');
   const selected = coachList.find((c) => c.id === selectedCoachId);
 
-  useEffect(() => {
-    api.get('/coach')
-      .then((res) => {
-        const formatted = res.data.map(c => ({
-          id: c.userId,
-          name: c.fullName || c.userName || "Không rõ",
-        }));
-        setCoachList(formatted);
-      })
-      .catch((err) => {
-        console.error("Lỗi khi tải danh sách huấn luyện viên:", err);
-      });
-  }, []);
+useEffect(() => {
+  api.get('/coach')
+    .then((res) => {
+      const formatted = res.data.map(c => ({
+        id: c.userId,
+        name: c.fullName || c.userName || "Không rõ",
+      }));
+      setCoachList(formatted);
+
+      // Nếu chưa có coach được chọn, chọn mặc định là người đầu tiên
+      if (!selectedCoachId && formatted.length > 0) {
+        onSelect(formatted[0].id);
+      }
+    })
+    .catch((err) => {
+      console.error("Lỗi khi tải danh sách huấn luyện viên:", err);
+    });
+}, []);
+
 
   const handleOpenSelector = () => {
     if (isFree) {

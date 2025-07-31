@@ -76,7 +76,7 @@ const PlanSummaryCard = ({ plan, onEdit, onDelete, onComplete }) => {
       </div>
 
       <div className="mt-4">
-        <div className="text-sm mb-3">Progress: {percent}% ({daysPassed}/{totalDays} days)</div>
+        <div className="text-sm mb-3">Progress: {percent}% ({daysPassed}/{30} days)</div>
         <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-emerald-500 transition-all duration-700"

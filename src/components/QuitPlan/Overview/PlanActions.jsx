@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import React, { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 export const ConfirmDeleteModal = ({ open, onClose, onConfirm }) => (
   <AnimatePresence>
@@ -84,13 +84,13 @@ export const ConfirmCompleteModal = ({ open, onClose, onConfirm }) => (
 export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
   const [touched, setTouched] = useState(false);
   const [form, setForm] = useState({
-    name: plan?.name || '',
-    reason: plan?.reason || '',
-    addictionLevel: plan?.addictionLevel || 'Mild',
-    package: plan?.package || '',
-    averageCigarettes: plan?.averageCigarettes || '',
-    pricePerCigarette: plan?.pricePerCigarette || '',
-    averageSpending: plan?.averageSpending || ''
+    name: plan?.name || "",
+    reason: plan?.reason || "",
+    addictionLevel: plan?.addictionLevel || "Mild",
+    package: plan?.package || "",
+    averageCigarettes: plan?.averageCigarettes || "",
+    pricePerCigarette: plan?.pricePerCigarette || "",
+    averageSpending: plan?.averageSpending || "",
   });
 
   const handleChange = (e) =>
@@ -129,7 +129,9 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
             exit={{ scale: 0.8, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold text-emerald-700 mb-4">Edit Plan</h3>
+            <h3 className="text-lg font-semibold text-emerald-700 mb-4">
+              Edit Plan
+            </h3>
             <form onSubmit={submit} className="space-y-4 text-sm">
               {/* Name */}
               <div className="grid grid-cols-3 gap-3 items-center">
@@ -139,7 +141,7 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
                   value={form.name}
                   onChange={handleChange}
                   className={`col-span-2 border p-3 rounded ${
-                    touched && !form.name ? 'border-red-400' : ''
+                    touched && !form.name ? "border-red-400" : ""
                   }`}
                 />
               </div>
@@ -152,7 +154,9 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
                   value={form.reason}
                   onChange={handleChange}
                   className={`col-span-2 border p-3 rounded ${
-                    touched && form.reason.trim().length < 5 ? 'border-red-400' : ''
+                    touched && form.reason.trim().length < 5
+                      ? "border-red-400"
+                      : ""
                   }`}
                   placeholder="E.g. for my family, save money..."
                 />
@@ -160,7 +164,9 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
 
               {/* Addiction Level */}
               <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Addiction Level</label>
+                <label className="font-medium text-gray-700">
+                  Addiction Level
+                </label>
                 <select
                   name="addictionLevel"
                   value={form.addictionLevel}
@@ -175,13 +181,15 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
 
               {/* Package */}
               <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Cigarette Brand</label>
+                <label className="font-medium text-gray-700">
+                  Cigarette Brand
+                </label>
                 <input
                   name="package"
                   value={form.package}
                   onChange={handleChange}
                   className={`col-span-2 border p-3 rounded ${
-                    touched && !form.package ? 'border-red-400' : ''
+                    touched && !form.package ? "border-red-400" : ""
                   }`}
                 />
               </div>
@@ -195,27 +203,31 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
                   value={form.averageCigarettes}
                   onChange={handleChange}
                   className={`col-span-2 border p-3 rounded ${
-                    touched && !form.averageCigarettes ? 'border-red-400' : ''
+                    touched && !form.averageCigarettes ? "border-red-400" : ""
                   }`}
                 />
               </div>
 
               {/* Price per cigarette */}
               <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Price/cig (VND)</label>
+                <label className="font-medium text-gray-700">
+                  Price/cig (VND)
+                </label>
                 <input
                   name="pricePerCigarette"
                   value={form.pricePerCigarette}
                   onChange={handleChange}
                   className={`col-span-2 border p-3 rounded ${
-                    touched && !form.pricePerCigarette ? 'border-red-400' : ''
+                    touched && !form.pricePerCigarette ? "border-red-400" : ""
                   }`}
                 />
               </div>
 
               {/* Average spending */}
               <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Avg Spending</label>
+                <label className="font-medium text-gray-700">
+                  Avg Spending
+                </label>
                 <input
                   name="averageSpending"
                   value={form.averageSpending}
@@ -247,4 +259,3 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
     </AnimatePresence>
   );
 };
-

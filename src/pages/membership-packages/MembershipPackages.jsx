@@ -251,7 +251,11 @@ const Membership = () => {
                     ? "FREE"
                     : `${plan.price.toLocaleString()} VND`}
                 </div>
-                <p className="text-gray-500 mb-6">{plan.duration} ngày</p>
+                <p className="text-gray-500 mb-6">
+                  {plan.price === 0
+                    ? "Không giới hạn"
+                    : `${plan.duration} ngày`}
+                </p>
 
                 <ul className="space-y-3 mb-8 flex-grow">
                   {plan.featuresDescription

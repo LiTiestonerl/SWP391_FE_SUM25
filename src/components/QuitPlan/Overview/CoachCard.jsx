@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { AiFillStar } from 'react-icons/ai';
-import { AnimatePresence, motion } from 'framer-motion';
-import api from '../../../configs/axios';
+import React, { useState, useEffect, useMemo } from "react";
+import { AiFillStar } from "react-icons/ai";
+import { AnimatePresence, motion } from "framer-motion";
+import api from "../../../configs/axios";
 
 /* =========================
  * Shared UI: Stars
@@ -12,7 +12,9 @@ const StarRow = ({ value = 0, onChange = () => {}, readOnly = false }) => (
       <AiFillStar
         key={i}
         onClick={() => !readOnly && onChange(i + 1)}
-        className={`text-xl cursor-pointer ${i < value ? 'text-yellow-400' : 'text-gray-300'}`}
+        className={`text-xl cursor-pointer ${
+          i < value ? "text-yellow-400" : "text-gray-300"
+        }`}
       />
     ))}
   </div>
@@ -23,59 +25,239 @@ const StarRow = ({ value = 0, onChange = () => {}, readOnly = false }) => (
  * ========================= */
 const MOCK_RATING_DATA = {
   coachRating: 4,
-  coachComment: 'Great effort! Keep up the good work!',
+  coachComment: "Great effort! Keep up the good work!",
   userRating: null,
   userComment: null,
 };
 
 const formatVND = (v) =>
-  typeof v === 'number' ? v.toLocaleString('vi-VN') + ' VND' : 'N/A';
+  typeof v === "number" ? v.toLocaleString("vi-VN") + " VND" : "N/A";
 
-// Dữ liệu mẫu fallback khi API gói thuốc lỗi
+// Thứ tự mạnh → yếu
+const ORDER = ["HIGH", "MEDIUM", "LOW", "ZERO"];
+const STEP_DOWN = { HIGH: "MEDIUM", MEDIUM: "LOW", LOW: "ZERO", ZERO: null };
+
+// Dự phòng sample packages (đúng với DB bạn cung cấp)
 const SAMPLE_PACKAGES = [
-  { cigarette_id: 1, brand: 'Marlboro',   cigarette_name: 'Marlboro Red',   flavor: 'Classic Tobacco',  nicotene_strength: 'HIGH',   price: 45000.00, sticks_per_pack: 20 },
-  { cigarette_id: 2, brand: 'Marlboro',   cigarette_name: 'Marlboro Gold',  flavor: 'Smooth Tobacco',   nicotene_strength: 'MEDIUM', price: 47000.00, sticks_per_pack: 20 },
-  { cigarette_id: 3, brand: 'Camel',      cigarette_name: 'Camel Blue',     flavor: 'Mellow Tobacco',   nicotene_strength: 'LOW',    price: 43000.00, sticks_per_pack: 20 },
-  { cigarette_id: 4, brand: 'Camel',      cigarette_name: 'Camel Crush',    flavor: 'Menthol',          nicotene_strength: 'MEDIUM', price: 46000.00, sticks_per_pack: 20 },
-  { cigarette_id: 5, brand: 'L&M',        cigarette_name: 'L&M Blue Label', flavor: 'Tobacco',          nicotene_strength: 'LOW',    price: 39000.00, sticks_per_pack: 20 },
-  { cigarette_id: 6, brand: 'L&M',        cigarette_name: 'L&M Zero',       flavor: 'Menthol-Free',     nicotene_strength: 'ZERO',   price: 42000.00, sticks_per_pack: 20 },
-  { cigarette_id: 7, brand: 'Vinataba',   cigarette_name: 'Vinataba Classic', flavor: 'Vietnam Tobacco', nicotene_strength: 'HIGH',   price: 28000.00, sticks_per_pack: 20 },
-  { cigarette_id: 8, brand: 'Thang Long', cigarette_name: 'Thang Long Gold',  flavor: 'Vietnam Tobacco', nicotene_strength: 'MEDIUM', price: 25000.00, sticks_per_pack: 20 },
+  {
+    cigarette_id: 1,
+    brand: "Marlboro",
+    cigarette_name: "Marlboro Red",
+    flavor: "Classic Tobacco",
+    nicotene_strength: "HIGH",
+    price: 45000.0,
+    sticks_per_pack: 20,
+  },
+  {
+    cigarette_id: 2,
+    brand: "Marlboro",
+    cigarette_name: "Marlboro Gold",
+    flavor: "Smooth Tobacco",
+    nicotene_strength: "MEDIUM",
+    price: 47000.0,
+    sticks_per_pack: 20,
+  },
+  {
+    cigarette_id: 3,
+    brand: "Camel",
+    cigarette_name: "Camel Blue",
+    flavor: "Mellow Tobacco",
+    nicotene_strength: "LOW",
+    price: 43000.0,
+    sticks_per_pack: 20,
+  },
+  {
+    cigarette_id: 4,
+    brand: "Camel",
+    cigarette_name: "Camel Crush",
+    flavor: "Menthol",
+    nicotene_strength: "MEDIUM",
+    price: 46000.0,
+    sticks_per_pack: 20,
+  },
+  {
+    cigarette_id: 5,
+    brand: "L&M",
+    cigarette_name: "L&M Blue Label",
+    flavor: "Tobacco",
+    nicotene_strength: "LOW",
+    price: 39000.0,
+    sticks_per_pack: 20,
+  },
+  {
+    cigarette_id: 6,
+    brand: "L&M",
+    cigarette_name: "L&M Zero",
+    flavor: "Menthol-Free",
+    nicotene_strength: "ZERO",
+    price: 42000.0,
+    sticks_per_pack: 20,
+  },
+  {
+    cigarette_id: 7,
+    brand: "Vinataba",
+    cigarette_name: "Vinataba Classic",
+    flavor: "Vietnam Tobacco",
+    nicotene_strength: "HIGH",
+    price: 28000.0,
+    sticks_per_pack: 20,
+  },
+  {
+    cigarette_id: 8,
+    brand: "Thang Long",
+    cigarette_name: "Thang Long Gold",
+    flavor: "Vietnam Tobacco",
+    nicotene_strength: "MEDIUM",
+    price: 25000.0,
+    sticks_per_pack: 20,
+  },
 ];
 
-// Bảng giảm bậc nicotine
-const STEP_DOWN = { HIGH: 'MEDIUM', MEDIUM: 'LOW', LOW: 'ZERO', ZERO: null };
+/* =========================
+ * Normalizer cho package từ API/DB
+ * ========================= */
+function normalizePackage(p) {
+  return {
+    id: p.cigarette_id ?? p.cigarettePackageId ?? p.id,
+    brand: p.brand,
+    name: p.cigarette_name ?? p.cigarettePackageName ?? p.name,
+    flavor: p.flavor,
+    // API DB dùng "nicotene_strength" (typo), FE có thể là "nicotineLevel"
+    strength: p.nicotene_strength ?? p.nicotineLevel ?? p.strength,
+    // giá/bao & số điếu/bao
+    price: Number(p.price ?? p.pricePerPack ?? 0),
+    sticks: Number(p.sticks_per_pack ?? p.sticksPerPack ?? 0),
+    // giữ lại raw để tuỳ ý hiển thị
+    _raw: p,
+  };
+}
+
+function pricePerCig(pkg) {
+  if (!pkg?.sticks || !pkg?.price) return null;
+  return Math.round(pkg.price / pkg.sticks);
+}
+
+// Xây lộ trình step‑down theo addictionLevel + tổng tuần (nếu cung cấp)
+function buildStepDownPath(currentStrength, addictionLevel, durationInDays) {
+  const startIdx = ORDER.indexOf((currentStrength || "").toUpperCase());
+  if (startIdx < 0) return [];
+
+  const level = (addictionLevel || "").toUpperCase();
+  const steps = [];
+
+  // Danh sách bậc cần đi qua
+  for (let i = startIdx; i < ORDER.length - 1; i++) {
+    const from = ORDER[i];
+    const to = ORDER[i + 1];
+    if (!to) break;
+    steps.push({ from, to });
+  }
+  if (steps.length === 0) return [];
+
+  // Nếu có durationInDays, phân bổ tuần đều cho số bước
+  const totalWeeks = durationInDays
+    ? Math.max(1, Math.ceil(Number(durationInDays) / 7))
+    : null;
+  if (totalWeeks) {
+    const base = Math.max(1, Math.floor(totalWeeks / steps.length));
+    let remain = Math.max(0, totalWeeks - base * steps.length);
+    return steps.map((s, idx) => ({
+      ...s,
+      weeks: base + (idx < remain ? 1 : 0),
+    }));
+  }
+
+  // Nếu không có durationInDays: set mặc định theo mức độ nghiện
+  const defaultWeeks =
+    level === "SEVERE"
+      ? 2 // mỗi bước ~2 tuần
+      : level === "MODERATE"
+      ? 1 // mỗi bước ~1 tuần
+      : 1;
+
+  return steps.map((s) => ({ ...s, weeks: defaultWeeks }));
+}
+
+// Tìm candidates ở bậc kế tiếp: ưu tiên cùng brand; nếu không có → gần giá nhất
+function findNextCandidates({ all, currentPkg, nextStrength, limit = 3 }) {
+  const pool = all.filter((p) => p.strength === nextStrength);
+  if (pool.length === 0) return [];
+
+  const sameBrand = pool.filter((p) => p.brand === currentPkg.brand);
+  const list = sameBrand.length > 0 ? sameBrand : pool;
+
+  return list
+    .sort(
+      (a, b) =>
+        Math.abs(a.price - currentPkg.price) -
+        Math.abs(b.price - currentPkg.price)
+    )
+    .slice(0, limit);
+}
 
 /* ============================================================
- * CoachSuggestionCard: chỉ hiển thị Recommend (không show Current)
- * Dựa trên currentPackageId (gói user đang hút) → gợi ý step-down
+ * CoachSuggestionCard: gợi ý Replacement theo mức độ nghiện + gói hiện tại
+ * Props:
+ *  - planId (optional)
+ *  - currentPackageId: id gói hiện tại
+ *  - addictionLevel: 'Mild' | 'Moderate' | 'Severe'
+ *  - durationInDays (optional): để phân bổ tuần cho lộ trình
  * ============================================================ */
-export const CoachSuggestionCard = ({ planId, currentPackageId }) => {
+export const CoachSuggestionCard = ({
+  planId,
+  currentPackageId,
+  addictionLevel = "Mild",
+  durationInDays,
+}) => {
   const [packages, setPackages] = useState([]);
   const [currentPkg, setCurrentPkg] = useState(null);
-  const [recommendation, setRecommendation] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load list packages từ API → fallback SAMPLE_PACKAGES
+  // Kết quả gợi ý cho bước KẾ TIẾP
+  const [nextStrength, setNextStrength] = useState(null);
+  const [primary, setPrimary] = useState(null);
+  const [alternatives, setAlternatives] = useState([]);
+
+  // Lộ trình đầy đủ
+  const stepPath = useMemo(() => {
+    if (!currentPkg) return [];
+    return buildStepDownPath(
+      currentPkg.strength,
+      addictionLevel,
+      durationInDays
+    );
+  }, [currentPkg, addictionLevel, durationInDays]);
+
+  // Fetch packages
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/cigarette-packages');
-        const list = res?.data || [];
-        setPackages(list);
+        const res = await api.get("/cigarette-packages");
+        const rawList = res?.data || [];
+        const normalized = rawList.map(normalizePackage);
+        setPackages(normalized);
 
         if (currentPackageId) {
-          // Dữ liệu API chuẩn nên là snake_case như SAMPLE_PACKAGES
           const found =
-            list.find((p) => String(p.cigarette_id) === String(currentPackageId)) ||
-            list.find((p) => String(p.cigarettePackageId) === String(currentPackageId)); // phòng khi backend trả kiểu khác
+            normalized.find((p) => String(p.id) === String(currentPackageId)) ||
+            // fallback: đôi khi FE đang giữ id ở field khác của raw
+            normalized.find(
+              (p) =>
+                String(p._raw?.cigarettePackageId) ===
+                  String(currentPackageId) ||
+                String(p._raw?.cigarette_id) === String(currentPackageId)
+            );
           setCurrentPkg(found || null);
         }
       } catch (err) {
-        console.error('Failed to fetch cigarette packages. Using sample.', err);
-        setPackages(SAMPLE_PACKAGES);
-        setCurrentPkg(SAMPLE_PACKAGES.find((p) => String(p.cigarette_id) === String(currentPackageId)) || null);
+        console.error("Failed to fetch cigarette packages. Using sample.", err);
+        const normalized = SAMPLE_PACKAGES.map(normalizePackage);
+        setPackages(normalized);
+        const found = normalized.find(
+          (p) => String(p.id) === String(currentPackageId)
+        );
+        setCurrentPkg(found || null);
       } finally {
         setLoading(false);
       }
@@ -83,38 +265,27 @@ export const CoachSuggestionCard = ({ planId, currentPackageId }) => {
     fetchData();
   }, [currentPackageId]);
 
-  // Tính gợi ý giảm dần nicotine
+  // Tính gói kế tiếp ở bậc thấp hơn + candidates
   useEffect(() => {
     if (!currentPkg || packages.length === 0) return;
+    const next = STEP_DOWN[(currentPkg.strength || "").toUpperCase()];
+    setNextStrength(next);
 
-    const nextStrength = STEP_DOWN[currentPkg.nicotene_strength];
-    if (!nextStrength) {
-      setRecommendation(null); // Đang ZERO rồi thì không recommend
+    if (!next) {
+      setPrimary(null);
+      setAlternatives([]);
       return;
     }
 
-    // Ưu tiên cùng brand
-    let candidates = packages.filter(
-      (p) => p.nicotene_strength === nextStrength && p.brand === currentPkg.brand
-    );
+    const candidates = findNextCandidates({
+      all: packages,
+      currentPkg,
+      nextStrength: next,
+      limit: 3,
+    });
 
-    // Nếu không có cùng brand: chọn brand khác gần giá nhất
-    if (candidates.length === 0) {
-      candidates = packages.filter((p) => p.nicotene_strength === nextStrength);
-      candidates.sort(
-        (a, b) => Math.abs(a.price - currentPkg.price) - Math.abs(b.price - currentPkg.price)
-      );
-    }
-
-    if (candidates.length > 0) {
-      const best = candidates[0];
-      setRecommendation({
-        notes: `Step down from ${currentPkg.cigarette_name} (${currentPkg.nicotene_strength}) to ${best.cigarette_name} (${nextStrength}) for gradual nicotine reduction.`,
-        recommendedPackage: best,
-      });
-    } else {
-      setRecommendation(null);
-    }
+    setPrimary(candidates[0] || null);
+    setAlternatives(candidates.slice(1));
   }, [currentPkg, packages]);
 
   if (loading) {
@@ -123,35 +294,113 @@ export const CoachSuggestionCard = ({ planId, currentPackageId }) => {
         <div className="animate-pulse space-y-3">
           <div className="h-6 bg-gray-200 rounded w-2/3"></div>
           <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/3"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (!currentPkg) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-4 border">
+        <h3 className="font-semibold text-emerald-700 text-md mb-2">
+          🚬 Replacement Suggestions
+        </h3>
+        <p className="text-sm text-gray-500">
+          We couldn’t detect your current package. Please select a cigarette
+          package in your plan first.
+        </p>
       </div>
     );
   }
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 border">
-      <h3 className="font-semibold text-emerald-700 text-md mb-3">🚬 Nicotine Replacement Recommendation</h3>
+      <h3 className="font-semibold text-emerald-700 text-md mb-3">
+        🚬 Nicotine Replacement Suggestions
+      </h3>
 
-      {!recommendation ? (
+      {/* Current package */}
+      <div className="mb-3">
+        <div className="text-sm text-gray-600">Current package</div>
+        <div className="mt-1 text-sm font-semibold">{currentPkg.name}</div>
+      </div>
+
+      {/* Next step recommendation */}
+      {!nextStrength ? (
         <p className="text-gray-500 text-sm">
-          ✅ You are already at the lowest nicotine level (ZERO) or we have no recommendation yet.
+          ✅ You are already at the lowest nicotine level (ZERO).
         </p>
       ) : (
-        <div className="border rounded-md p-3 bg-emerald-50 border-emerald-100">
-          <p className="font-semibold text-gray-900 mb-2">
-            {recommendation.recommendedPackage.cigarette_name}
-          </p>
-          <div className="space-y-1 text-sm">
-            <p><span className="font-medium">Brand:</span> {recommendation.recommendedPackage.brand}</p>
-            <p><span className="font-medium">Strength:</span> {recommendation.recommendedPackage.nicotene_strength}</p>
-            <p><span className="font-medium">Flavor:</span> {recommendation.recommendedPackage.flavor}</p>
-            <p><span className="font-medium">Price:</span> {formatVND(Number(recommendation.recommendedPackage.price))} / pack</p>
+        <>
+          <div className="text-sm text-gray-600 mb-1">
+            Next step: <b>{nextStrength}</b>
           </div>
 
-          <div className="mt-3 p-2 bg-blue-50 text-blue-700 text-sm rounded">
-            {recommendation.notes}
-          </div>
-        </div>
+          {/* Primary recommendation */}
+          {primary ? (
+            <div className="border rounded-md p-3 bg-emerald-50 border-emerald-100">
+              <p className="font-semibold text-gray-900 mb-1">{primary.name}</p>
+              <div className="space-y-1 text-sm">
+                <p>
+                  <span className="font-medium">Brand:</span> {primary.brand}
+                </p>
+                <p>
+                  <span className="font-medium">Flavor:</span> {primary.flavor}
+                </p>
+                <p>
+                  <span className="font-medium">Strength:</span>{" "}
+                  {primary.strength}
+                </p>
+                <p>
+                  <span className="font-medium">Price:</span>{" "}
+                  {formatVND(Number(primary.price))} / pack
+                  {pricePerCig(primary)
+                    ? ` • ~${pricePerCig(primary).toLocaleString(
+                        "vi-VN"
+                      )} VND / cig`
+                    : ""}
+                </p>
+              </div>
+              <div className="mt-2 p-2 bg-blue-50 text-blue-700 text-xs rounded">
+                Step down from <b>{currentPkg.name}</b> ({currentPkg.strength})
+                to <b>{primary.name}</b> ({nextStrength}) to gradually reduce
+                nicotine.
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">
+              No same‑brand option at {nextStrength}. See alternatives below.
+            </div>
+          )}
+
+          {/* Alternatives */}
+          {alternatives.length > 0 && (
+            <div className="mt-3">
+              <div className="text-sm font-medium text-gray-700 mb-2">
+                Other options at {nextStrength}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {alternatives.map((alt) => (
+                  <div key={alt.id} className="border rounded p-2">
+                    <div className="font-semibold text-sm">{alt.name}</div>
+                    <div className="text-xs text-gray-600">
+                      {alt.brand} • {alt.flavor}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      Price: {formatVND(Number(alt.price))}
+                      {pricePerCig(alt)
+                        ? ` • ~${pricePerCig(alt).toLocaleString(
+                            "vi-VN"
+                          )} VND/cig`
+                        : ""}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -159,24 +408,23 @@ export const CoachSuggestionCard = ({ planId, currentPackageId }) => {
 
 /* ============================================================
  * CoachFeedbackCard: chỉ hiển thị khi plan đã hoàn thành
- * Truyền prop: isPlanCompleted = true khi plan kết thúc
  * ============================================================ */
 export const CoachFeedbackCard = ({
   coachId,
-  coachName = 'Coach',
+  coachName = "Coach",
   planId,
   memberId,
-  isPlanCompleted = false, // <- quan trọng: mặc định false
+  isPlanCompleted = false,
 }) => {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(isPlanCompleted); // chỉ loading khi sẽ hiển thị
+  const [loading, setLoading] = useState(isPlanCompleted);
   const [error, setError] = useState(null);
   const [ratingData, setRatingData] = useState(MOCK_RATING_DATA);
   const [tempRating, setTempRating] = useState(5);
-  const [tempComment, setTempComment] = useState('');
+  const [tempComment, setTempComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ❗ Nếu chưa hoàn thành plan → KHÔNG fetch, KHÔNG render
+  // Nếu chưa hoàn thành plan → không fetch, không render
   useEffect(() => {
     if (!isPlanCompleted) return;
 
@@ -197,11 +445,11 @@ export const CoachFeedbackCard = ({
               }));
             }
           } catch {
-            // ignore permission/no data
+            /* ignore */
           }
         }
 
-        // User's own rating for this plan
+        // User rating for this plan
         if (memberId && planId) {
           try {
             const res = await api.get(`/rating/member/${memberId}`);
@@ -218,14 +466,14 @@ export const CoachFeedbackCard = ({
               }
             }
           } catch {
-            // ignore permission/no data
+            /* ignore */
           }
         }
 
         setError(null);
       } catch (err) {
-        console.error('Failed to fetch ratings:', err);
-        setError('Failed to load rating data. Using sample data.');
+        console.error("Failed to fetch ratings:", err);
+        setError("Failed to load rating data. Using sample data.");
         setRatingData(MOCK_RATING_DATA);
       } finally {
         setLoading(false);
@@ -235,12 +483,11 @@ export const CoachFeedbackCard = ({
     fetchRatings();
   }, [coachId, planId, memberId, isPlanCompleted]);
 
-  // Nếu chưa hoàn thành plan → không render gì
   if (!isPlanCompleted) return null;
 
   const handleSubmitRating = async () => {
     if (!coachId || !planId || !memberId) {
-      alert('Missing required data to submit rating');
+      alert("Missing required data to submit rating");
       return;
     }
 
@@ -250,16 +497,16 @@ export const CoachFeedbackCard = ({
       const ratingPayload = {
         ratingValue: tempRating,
         feedbackText: tempComment,
-        ratingType: 'COACH',
+        ratingType: "COACH",
         coachId,
         planId,
         memberId,
       };
 
       try {
-        await api.post('/rating', ratingPayload);
+        await api.post("/rating", ratingPayload);
       } catch (err) {
-        console.error('API failed but we will save locally', err);
+        console.error("API failed but we will save locally", err);
       }
 
       setRatingData((prev) => ({
@@ -270,8 +517,8 @@ export const CoachFeedbackCard = ({
 
       setOpen(false);
     } catch (err) {
-      console.error('Failed to submit rating:', err);
-      alert('Failed to submit rating. Your feedback has been saved locally.');
+      console.error("Failed to submit rating:", err);
+      alert("Failed to submit rating. Your feedback has been saved locally.");
     } finally {
       setIsSubmitting(false);
     }
@@ -302,7 +549,9 @@ export const CoachFeedbackCard = ({
 
         <div className="flex items-center gap-2">
           <StarRow value={ratingData.coachRating} readOnly />
-          <span className="text-sm text-gray-600">{ratingData.coachRating}/5</span>
+          <span className="text-sm text-gray-600">
+            {ratingData.coachRating}/5
+          </span>
         </div>
         <p className="text-sm text-gray-700 italic">
           “{ratingData.coachComment}” — <b>{coachName}</b>
@@ -313,10 +562,14 @@ export const CoachFeedbackCard = ({
             <p className="text-sm text-gray-600 font-medium">Your Feedback:</p>
             <div className="flex items-center gap-2">
               <StarRow value={ratingData.userRating} readOnly />
-              <span className="text-sm text-gray-600">{ratingData.userRating}/5</span>
+              <span className="text-sm text-gray-600">
+                {ratingData.userRating}/5
+              </span>
             </div>
             {ratingData.userComment && (
-              <p className="text-sm text-gray-600 italic">“{ratingData.userComment}”</p>
+              <p className="text-sm text-gray-600 italic">
+                “{ratingData.userComment}”
+              </p>
             )}
           </div>
         )}
@@ -324,12 +577,12 @@ export const CoachFeedbackCard = ({
         <button
           onClick={() => {
             setTempRating(ratingData.userRating || 5);
-            setTempComment(ratingData.userComment || '');
+            setTempComment(ratingData.userComment || "");
             setOpen(true);
           }}
           className="px-4 py-2 bg-emerald-600 text-white text-sm rounded shadow hover:bg-emerald-700"
         >
-          {ratingData.userRating ? 'Edit Feedback' : 'Give Feedback'}
+          {ratingData.userRating ? "Edit Feedback" : "Give Feedback"}
         </button>
       </div>
 
@@ -349,7 +602,9 @@ export const CoachFeedbackCard = ({
               exit={{ scale: 0.8, opacity: 0 }}
               className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md space-y-5"
             >
-              <h3 className="text-lg font-semibold text-emerald-700">Rate your coach</h3>
+              <h3 className="text-lg font-semibold text-emerald-700">
+                Rate your coach
+              </h3>
               <StarRow value={tempRating} onChange={setTempRating} />
               <textarea
                 rows={4}
@@ -364,7 +619,7 @@ export const CoachFeedbackCard = ({
                   className="flex-1 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? 'Saving...' : 'Save'}
+                  {isSubmitting ? "Saving..." : "Save"}
                 </button>
                 <button
                   onClick={() => setOpen(false)}
