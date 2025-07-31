@@ -133,12 +133,19 @@ const DayModal = ({ open, onClose, day, weekNumber, planStartDate }) => {
             <Tooltip title="Add a checklist task">
               <Button icon={<CheckSquareOutlined />} onClick={handleAddTask}>Checklist</Button>
             </Tooltip>
+
+            {/* XOÁ nút Label
             <Tooltip title="Add a label">
               <Button icon={<TagsOutlined />}>Label</Button>
             </Tooltip>
+            */}
+
+            {/* XOÁ nút Edit
             <Tooltip title="Edit this day">
               <Button icon={<EditOutlined />} onClick={() => alert("Edit mode")}>Edit</Button>
             </Tooltip>
+            */}
+
             <Tooltip title="Reset all selections for this day">
               <Button
                 danger

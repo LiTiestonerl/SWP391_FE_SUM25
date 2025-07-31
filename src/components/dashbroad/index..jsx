@@ -13,7 +13,9 @@ import {
   PieChartOutlined,
   TeamOutlined,
   UserOutlined,
-  BellOutlined
+  BellOutlined,
+  StarOutlined,
+  CompassOutlined ,
   
 } from "@ant-design/icons";
 import { Breadcrumb, Layout, Menu, theme } from "antd";
@@ -47,9 +49,10 @@ const items = [
   getItem("Manage Account", "manageaccount", <UserOutlined />),
   getItem("Membership", "membership", <MobileOutlined />),
   getItem("Cigarette Packages", "cigarettepackages", <FileOutlined />),
-  getItem("Achievement", "achievement", <FileOutlined />),
+  getItem("Cigarette Recommendation", "cigaretterecommendation", <FileOutlined />),
+  getItem("Achievement", "achievement", <StarOutlined />),
   getItem("Notification", "notification", <BellOutlined />),
-  getItem("Quit Plan", "quitplan", <FileOutlined />),
+  getItem("Quit Plan", "quitplan", <CompassOutlined  />),
 
 ];
 const Dashbroad = () => {
@@ -121,10 +124,6 @@ const Dashbroad = () => {
         </Header>
 
         <Content style={{ margin: "0 16px" }}>
-          <Breadcrumb
-            style={{ margin: "16px 0" }}
-            items={[{ title: "User" }, { title: "Bill" }]}
-          />
           <div
             style={{
               padding: 24,

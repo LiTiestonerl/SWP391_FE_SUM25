@@ -21,30 +21,31 @@ const mockNotifications = [
 ];
 
 /**
- * 📥 Lấy danh sách thông báo người dùng
+ * 📥 Lấy danh sách thông báo người dùng (theo token)
  */
-export const fetchUserNotifications = async (userId) => {
+export const fetchUserNotifications = async () => {
   try {
     const response = await api.get("/notifications/me");
     const realData = response.data || [];
 
+    // Ghép mock nếu thiếu
     const missingMock = mockNotifications.filter(
-      mock => !realData.some(real => real.content === mock.content)
+      (mock) => !realData.some((real) => real.content === mock.content)
     );
 
     return [...realData, ...missingMock];
   } catch (error) {
     console.error("API failed. Using mock notifications", error);
-    return mockNotifications.filter(noti => noti.userId === userId);
+    return mockNotifications;
   }
 };
 
 /**
- * ✅ Đánh dấu đã đọc
+ * ✅ Đánh dấu đã đọc (PUT /{id}/read)
  */
 export const markNotificationAsRead = async (notificationId) => {
   try {
-    await api.patch(`/notifications/${notificationId}`, { status: "READ" });
+    await api.put(`/notifications/${notificationId}/read`);
     return true;
   } catch (error) {
     console.error("Error marking notification as read", error);
@@ -53,14 +54,26 @@ export const markNotificationAsRead = async (notificationId) => {
 };
 
 /**
- * ➕ Tạo một thông báo mới (tạm disable nếu API đang bị 403)
+ * 🗑️ Xóa thông báo
+ */
+export const deleteNotification = async (notificationId) => {
+  try {
+    await api.delete(`/notifications/${notificationId}`);
+    return true;
+  } catch (error) {
+    console.error("Error deleting notification", error);
+    return false;
+  }
+};
+
+/**
+ * ➕ Tạo một thông báo mới
  */
 export const createNewNotification = async (notificationData) => {
   try {
-    const response = await api.post("/notifications", {
+    const response = await api.post("notifications", {
       ...notificationData,
-      sendDate: new Date().toISOString(),
-      status: "UNREAD"
+      status: "SENT"
     });
     return response.data;
   } catch (error) {

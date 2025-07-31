@@ -82,6 +82,7 @@ export const ConfirmCompleteModal = ({ open, onClose, onConfirm }) => (
 );
 
 export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
+  const [touched, setTouched] = useState(false);
   const [form, setForm] = useState({
     name: plan?.name || '',
     reason: plan?.reason || '',
@@ -95,8 +96,19 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  const validateForm = () => {
+    if (form.reason.trim().length < 5) return false;
+    if (!form.name) return false;
+    if (!form.package) return false;
+    if (!form.averageCigarettes) return false;
+    if (!form.pricePerCigarette) return false;
+    return true;
+  };
+
   const submit = (e) => {
     e.preventDefault();
+    setTouched(true);
+    if (!validateForm()) return;
     onSave(form);
   };
 
@@ -111,72 +123,109 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
           onClick={onClose}
         >
           <motion.div
-            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md space-y-5"
+            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold text-emerald-700">Edit Plan</h3>
+            <h3 className="text-lg font-semibold text-emerald-700 mb-4">Edit Plan</h3>
             <form onSubmit={submit} className="space-y-4 text-sm">
-              <input
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                className="w-full border p-3 rounded"
-                placeholder="Plan Name"
-              />
-              <input
-                name="reason"
-                value={form.reason}
-                onChange={handleChange}
-                className="w-full border p-3 rounded"
-                placeholder="Reason"
-              />
-              <select
-                name="addictionLevel"
-                value={form.addictionLevel}
-                onChange={handleChange}
-                className="w-full border p-3 rounded"
-              >
-                <option value="Mild">Mild</option>
-                <option value="Moderate">Moderate</option>
-                <option value="Severe">Severe</option>
-              </select>
+              {/* Name */}
+              <div className="grid grid-cols-3 gap-3 items-center">
+                <label className="font-medium text-gray-700">Plan Name</label>
+                <input
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  className={`col-span-2 border p-3 rounded ${
+                    touched && !form.name ? 'border-red-400' : ''
+                  }`}
+                />
+              </div>
 
-              <input
-                name="package"
-                value={form.package}
-                onChange={handleChange}
-                className="w-full border p-3 rounded"
-                placeholder="Cigarette Brand"
-              />
-              <input
-                name="averageCigarettes"
-                type="number"
-                value={form.averageCigarettes}
-                onChange={handleChange}
-                className="w-full border p-3 rounded"
-                placeholder="Cigs per day"
-              />
-              <input
-                name="pricePerCigarette"
-                type="text"
-                value={form.pricePerCigarette}
-                onChange={handleChange}
-                className="w-full border p-3 rounded"
-                placeholder="Price per cigarette"
-              />
-              <input
-                name="averageSpending"
-                type="text"
-                value={form.averageSpending}
-                onChange={handleChange}
-                className="w-full border p-3 rounded"
-                placeholder="Average daily spending"
-              />
+              {/* Reason */}
+              <div className="grid grid-cols-3 gap-3 items-center">
+                <label className="font-medium text-gray-700">Reason</label>
+                <input
+                  name="reason"
+                  value={form.reason}
+                  onChange={handleChange}
+                  className={`col-span-2 border p-3 rounded ${
+                    touched && form.reason.trim().length < 5 ? 'border-red-400' : ''
+                  }`}
+                  placeholder="E.g. for my family, save money..."
+                />
+              </div>
 
-              <div className="flex gap-4">
+              {/* Addiction Level */}
+              <div className="grid grid-cols-3 gap-3 items-center">
+                <label className="font-medium text-gray-700">Addiction Level</label>
+                <select
+                  name="addictionLevel"
+                  value={form.addictionLevel}
+                  onChange={handleChange}
+                  className="col-span-2 border p-3 rounded"
+                >
+                  <option value="Mild">Mild (1-10 cigs/day)</option>
+                  <option value="Moderate">Moderate (11-20 cigs/day)</option>
+                  <option value="Severe">Severe (20+ cigs/day)</option>
+                </select>
+              </div>
+
+              {/* Package */}
+              <div className="grid grid-cols-3 gap-3 items-center">
+                <label className="font-medium text-gray-700">Cigarette Brand</label>
+                <input
+                  name="package"
+                  value={form.package}
+                  onChange={handleChange}
+                  className={`col-span-2 border p-3 rounded ${
+                    touched && !form.package ? 'border-red-400' : ''
+                  }`}
+                />
+              </div>
+
+              {/* Average Cigarettes */}
+              <div className="grid grid-cols-3 gap-3 items-center">
+                <label className="font-medium text-gray-700">Cigs/day</label>
+                <input
+                  name="averageCigarettes"
+                  type="number"
+                  value={form.averageCigarettes}
+                  onChange={handleChange}
+                  className={`col-span-2 border p-3 rounded ${
+                    touched && !form.averageCigarettes ? 'border-red-400' : ''
+                  }`}
+                />
+              </div>
+
+              {/* Price per cigarette */}
+              <div className="grid grid-cols-3 gap-3 items-center">
+                <label className="font-medium text-gray-700">Price/cig (VND)</label>
+                <input
+                  name="pricePerCigarette"
+                  value={form.pricePerCigarette}
+                  onChange={handleChange}
+                  className={`col-span-2 border p-3 rounded ${
+                    touched && !form.pricePerCigarette ? 'border-red-400' : ''
+                  }`}
+                />
+              </div>
+
+              {/* Average spending */}
+              <div className="grid grid-cols-3 gap-3 items-center">
+                <label className="font-medium text-gray-700">Avg Spending</label>
+                <input
+                  name="averageSpending"
+                  value={form.averageSpending}
+                  onChange={handleChange}
+                  className="col-span-2 border p-3 rounded bg-gray-100"
+                  disabled
+                />
+              </div>
+
+              <div className="flex gap-4 pt-2">
                 <button
                   type="submit"
                   className="flex-1 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"

@@ -1,91 +1,68 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Modal, Button, message } from "antd";
 import dayjs from "dayjs";
 import { FaCheckCircle, FaLock } from "react-icons/fa";
 import UpgradePlanModal from "../Detail/UpgradePlanModal";
+import { useNavigate } from "react-router-dom";
 
-// Random stage notes
 const STAGE_NOTES = (stageNum, targetCigs) => {
   const templates = [
-    `Stage ${stageNum}: Reduce to ${targetCigs} cigarettes/day`,
-    `Use breathing exercises during cravings`,
-    `Avoid smoking triggers (coffee, stress, etc.)`,
-    `Drink water when urge hits`,
+    `Stage ${stageNum}: Target ${targetCigs} cigarettes/day`,
+    `Practice urge-surfing (ride out cravings for 3–5 minutes)`,
+    `Avoid triggers (coffee, stress, after meals)`,
+    `Drink water and deep-breathe during urges`,
     `Reward yourself for completing the day`,
     `Reflect in your quit journal`,
     `Call a friend when tempted to smoke`,
   ];
-  const shuffled = templates.sort(() => 0.5 - Math.random()).slice(0, 3);
-  return shuffled;
+  return templates.sort(() => 0.5 - Math.random()).slice(0, 3);
 };
 
-const generateStages = (startDate, durationInDays, membershipType, addictionLevel) => {
-  const stages = [];
+const generateStagesSmooth = ({
+  startDate,
+  durationInDays,
+  addictionLevel,
+  initialCigarettes,
+}) => {
   const start = dayjs(startDate);
-  const isFree = membershipType?.toUpperCase() === "FREE";
+  const totalStages = Math.max(1, Math.ceil((Number(durationInDays) || 0) / 7));
 
-  // Xác định số stage thực tế và số stage hiển thị
-  const actualStages = isFree ? 1 : Math.ceil(durationInDays / 7);
-  const totalStages = isFree ? 4 : actualStages; // Gói Free luôn hiển thị 4 stages
+  const level = (addictionLevel || "").toUpperCase();
+  const beta = level === "SEVERE" ? 1.3 : level === "MODERATE" ? 1.0 : 0.8;
 
-  // Addiction logic
-  let initialCigarettes = 8;
-  let reductionPerStage = 2;
-  switch (addictionLevel?.toUpperCase()) {
-    case "SEVERE":
-      initialCigarettes = 25;
-      reductionPerStage = 5;
-      break;
-    case "MODERATE":
-      initialCigarettes = 15;
-      reductionPerStage = 3;
-      break;
-  }
+  const init = Math.max(1, Number(initialCigarettes) || 8);
 
-  // Tạo stage thực tế
-  let remainingDays = durationInDays;
-  for (let stageNum = 1; stageNum <= actualStages; stageNum++) {
-    const stageStart = start.add((stageNum - 1) * 7, "day");
-    const stageDays = stageNum === actualStages ? remainingDays : Math.min(7, remainingDays);
-    const stageEnd = stageStart.add(stageDays - 1, "day");
-    const targetCigs = Math.max(0, initialCigarettes - reductionPerStage * (stageNum - 1));
-    
+  const stages = [];
+  for (let i = 1; i <= totalStages; i++) {
+    const stageStart = start.add((i - 1) * 7, "day");
+    const daysRemaining = (Number(durationInDays) || 0) - (i - 1) * 7;
+    const stageDays = i === totalStages ? Math.max(1, daysRemaining) : Math.min(7, daysRemaining);
+
+    const p = totalStages === 1 ? 1 : (i - 1) / (totalStages - 1);
+
+    let target = i === totalStages ? 0 : Math.ceil(init * Math.pow(1 - p, beta));
+
+    if (i === totalStages - 1) target = Math.max(1, target);
+    if (i < totalStages - 1) target = Math.max(1, target);
+
     stages.push({
-      stageId: stageNum,
-      stageName: `Week ${stageNum}`,
+      stageId: i,
+      stageName: i === totalStages ? `Quit Week (Week ${i})` : `Week ${i}`,
       stageStartDate: stageStart.format("YYYY-MM-DD"),
-      stageEndDate: stageEnd.format("YYYY-MM-DD"),
-      targetCigarettesPerDay: targetCigs,
-      notes: STAGE_NOTES(stageNum, targetCigs).join("\n"),
+      stageEndDate: stageStart.add(stageDays - 1, "day").format("YYYY-MM-DD"),
+      targetCigarettesPerDay: target,
+      notes:
+        i === totalStages
+          ? "This is your Quit Week: aim for 0 cigarettes. Use all coping strategies."
+          : STAGE_NOTES(i, target).join("\n"),
       isLocked: false,
       durationInDays: stageDays,
     });
-    
-    remainingDays -= stageDays;
   }
-
-  // Tạo placeholder stages cho gói Free
-  if (isFree) {
-    for (let stageNum = actualStages + 1; stageNum <= totalStages; stageNum++) {
-      const stageStart = start.add((stageNum - 1) * 7, "day");
-      const stageEnd = stageStart.add(6, "day"); // Luôn 7 ngày cho placeholder
-      const targetCigs = Math.max(0, initialCigarettes - reductionPerStage * (stageNum - 1));
-      
-      stages.push({
-        stageId: stageNum,
-        stageName: `Week ${stageNum}`,
-        stageStartDate: stageStart.format("YYYY-MM-DD"),
-        stageEndDate: stageEnd.format("YYYY-MM-DD"),
-        targetCigarettesPerDay: targetCigs,
-        notes: "Upgrade to unlock full plan",
-        isLocked: true,
-        durationInDays: 7, // Placeholder luôn 7 ngày
-      });
-    }
-  }
-
   return stages;
 };
+
+const FREE_LOCKED_EXTRA = 2;
 
 const StageList = ({
   durationInDays = 28,
@@ -94,24 +71,62 @@ const StageList = ({
   description = "",
   addictionLevel = "MILD",
   planId,
-  quitPlanStages = [],
+  averageCigarettes,
+  quitPlanStages,
 }) => {
+  const navigate = useNavigate();
   const [selectedStage, setSelectedStage] = useState(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [completedStages, setCompletedStages] = useState([]);
-  const [stages, setStages] = useState([]);
+
+  const isFree = (membership || "").toUpperCase() === "FREE";
 
   useEffect(() => {
+    if (!planId) return;
     const saved = JSON.parse(localStorage.getItem(`completedStages_${planId}`)) || [];
     setCompletedStages(saved);
+  }, [planId]);
 
+  const realStages = useMemo(() => {
     if (Array.isArray(quitPlanStages) && quitPlanStages.length > 0) {
-      setStages(quitPlanStages);
-    } else {
-      const generated = generateStages(startDate, durationInDays, membership, addictionLevel);
-      setStages(generated);
+      return quitPlanStages.map((s) => ({ ...s, isLocked: false }));
     }
-  }, [startDate, durationInDays, membership, addictionLevel, planId, quitPlanStages]);
+    return generateStagesSmooth({
+      startDate,
+      durationInDays,
+      addictionLevel,
+      initialCigarettes: averageCigarettes,
+    });
+  }, [startDate, durationInDays, addictionLevel, averageCigarettes, quitPlanStages?.length]);
+
+  const visibleStages = useMemo(() => {
+    if (!isFree) return realStages;
+    if (realStages.length === 0) return realStages;
+
+    const last = realStages[realStages.length - 1];
+    const extraStages = [];
+    for (let i = 1; i <= FREE_LOCKED_EXTRA; i++) {
+      const stageId = realStages.length + i;
+      const start = dayjs(last.stageEndDate).add((i - 1) * 7 + 1, "day");
+      const end = start.add(6, "day");
+      extraStages.push({
+        stageId,
+        stageName: `Week ${stageId} (Locked)`,
+        stageStartDate: start.format("YYYY-MM-DD"),
+        stageEndDate: end.format("YYYY-MM-DD"),
+        targetCigarettesPerDay: 0,
+        notes: "Locked content — upgrade to unlock.",
+        isLocked: true,
+        durationInDays: 7,
+      });
+    }
+    return [...realStages, ...extraStages];
+  }, [isFree, realStages]);
+
+  const unlockedCount = useMemo(
+    () => visibleStages.filter((s) => !s.isLocked).length,
+    [visibleStages]
+  );
 
   const handleStageClick = (stage) => {
     if (stage.isLocked) {
@@ -125,7 +140,9 @@ const StageList = ({
     if (!completedStages.includes(stageId)) {
       const updated = [...completedStages, stageId];
       setCompletedStages(updated);
-      localStorage.setItem(`completedStages_${planId}`, JSON.stringify(updated));
+      if (planId) {
+        localStorage.setItem(`completedStages_${planId}`, JSON.stringify(updated));
+      }
       message.success(`🎉 You've completed Week ${stageId}!`);
     }
     setSelectedStage(null);
@@ -142,27 +159,30 @@ const StageList = ({
       <div className="mb-4 p-3 bg-gray-50 rounded-lg">
         <h4 className="font-medium text-gray-800 capitalize">{addictionLevel} addiction</h4>
         <p className="text-xs text-gray-600 mt-1">
-          {stages.filter((s) => !s.isLocked).length} of {stages.length} weeks unlocked •{" "}
-          {membership === "FREE" ? "Free Trial (1 week)" : membership + " Package"}
+          {unlockedCount} of {visibleStages.length} weeks unlocked •{" "}
+          {isFree ? `FREE plan` : `${membership} Package`}
         </p>
       </div>
 
       <ul className="space-y-3 mb-4">
-        {stages.map((stage) => {
+        {visibleStages.map((stage) => {
           const isCompleted = completedStages.includes(stage.stageId);
           return (
             <li
               key={stage.stageId}
               onClick={() => handleStageClick(stage)}
-              className={`border rounded p-3 cursor-pointer transition flex justify-between items-center ${stage.isLocked
-                ? "bg-gray-100 opacity-70 hover:bg-gray-200"
-                : "hover:bg-emerald-50"
-                }`}
+              className={`border rounded p-3 cursor-pointer transition flex justify-between items-center ${
+                stage.isLocked
+                  ? "bg-gray-100 opacity-70 hover:bg-gray-200 grayscale"
+                  : "hover:bg-emerald-50"
+              }`}
             >
               <div>
                 <div className="font-semibold text-gray-800 flex items-center gap-2">
                   {stage.stageName}
-                  {isCompleted && <FaCheckCircle className="text-green-500 text-lg" />}
+                  {isCompleted && !stage.isLocked && (
+                    <FaCheckCircle className="text-green-500 text-lg" />
+                  )}
                   {stage.isLocked && <FaLock className="text-yellow-600" />}
                 </div>
                 <div className="text-xs text-gray-500">
@@ -170,7 +190,7 @@ const StageList = ({
                   {dayjs(stage.stageEndDate).format("MMM D")}
                   <span className="ml-2">({stage.durationInDays} days)</span>
                 </div>
-                {isCompleted && (
+                {isCompleted && !stage.isLocked && (
                   <div className="text-xs text-green-600 font-medium mt-1">Completed!</div>
                 )}
                 {stage.isLocked && (
@@ -185,13 +205,8 @@ const StageList = ({
         })}
       </ul>
 
-      {/* Modal: View stage */}
-      <Modal
-        open={!!selectedStage}
-        footer={null}
-        onCancel={() => setSelectedStage(null)}
-        centered
-      >
+      {/* Modal xem chi tiết stage */}
+      <Modal open={!!selectedStage} footer={null} onCancel={() => setSelectedStage(null)} centered>
         {selectedStage && (
           <div className="p-4 space-y-3">
             <h2 className="text-lg font-bold text-emerald-700">{selectedStage.stageName}</h2>
@@ -200,18 +215,25 @@ const StageList = ({
               {dayjs(selectedStage.stageEndDate).format("MMM D")}
               <span className="ml-2">({selectedStage.durationInDays} days)</span>
             </p>
-            <div className="text-sm whitespace-pre-line text-gray-700">
-              {selectedStage.notes}
-            </div>
+            <div className="text-sm whitespace-pre-line text-gray-700">{selectedStage.notes}</div>
             <div className="text-sm font-medium mt-3">
               🎯 Daily Target: {selectedStage.targetCigarettesPerDay} cigarettes
             </div>
 
             <div className="flex gap-3 mt-5">
               <Button
-                onClick={() =>
-                  window.location.href = `/plans/${planId}/stage/${selectedStage.stageId}`
-                }
+                onClick={() => {
+                  navigate("/quit-plan/detail", {
+                    state: {
+                      stageId: selectedStage.stageId,
+                      selectedStage,
+                      planId,
+                      startDate,
+                      durationInDays,
+                      selectedPlan: membership,
+                    },
+                  });
+                }}
                 type="primary"
                 className="!bg-blue-600 hover:!bg-blue-700"
               >
@@ -219,11 +241,13 @@ const StageList = ({
               </Button>
               <Button
                 onClick={() => handleCompleteStage(selectedStage.stageId)}
-                disabled={completedStages.includes(selectedStage.stageId)}
+                disabled={selectedStage.isLocked || completedStages.includes(selectedStage.stageId)}
                 type="primary"
                 className="!bg-green-600 hover:!bg-green-700"
               >
-                {completedStages.includes(selectedStage.stageId)
+                {selectedStage.isLocked
+                  ? "Locked"
+                  : completedStages.includes(selectedStage.stageId)
                   ? "Completed"
                   : "Mark Complete"}
               </Button>
@@ -232,15 +256,15 @@ const StageList = ({
         )}
       </Modal>
 
-      {/* Modal: Upgrade package */}
+      {/* Modal nâng cấp */}
       <UpgradePlanModal
         open={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         onUpgrade={() => {
           setShowUpgradeModal(false);
-          window.location.href = "/membership";
+          navigate("/membership");
         }}
-        currentPackage={membership}
+        freeDays={Number(durationInDays) || 0}
       />
     </div>
   );

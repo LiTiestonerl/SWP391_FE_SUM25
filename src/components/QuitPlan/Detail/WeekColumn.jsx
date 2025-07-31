@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { FaStar } from "react-icons/fa"; // thêm icon sao
 import DayCard from "./DayCard";
 import UpgradePlanModal from "./UpgradePlanModal";
 
-const WeekColumn = ({ weekNumber, days, planStartDate, membership }) => {
+const WeekColumn = ({ weekNumber, days, planStartDate, membership, isHighlighted = false }) => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const completedDays = days.filter((day) => day.tasks.every((t) => t.done)).length;
@@ -13,49 +14,56 @@ const WeekColumn = ({ weekNumber, days, planStartDate, membership }) => {
       setShowUpgradeModal(true);
       return;
     }
-    // Cho phép DayCard xử lý click như bình thường
   };
 
   return (
-    <div
-      className={`rounded-2xl shadow-lg w-70 min-w-[18rem] border overflow-hidden transition ${
-        isLocked ? "bg-gray-100 opacity-40 pointer-events-auto cursor-not-allowed" : "bg-white"
-      }`}
-    >
-      <div className="scroll-area" style={{
-        maxHeight: "63vh",
-        overflowY: "scroll",
-        padding: "16px 12px",
-        boxSizing: "border-box"
-      }}>
-        <h2 className="text-xl font-bold text-black mb-3 border-b border-gray-200 pb-1">
-          Week {weekNumber}{" "}
-          <span className="text-sm font-medium text-gray-500">
-            ({completedDays}/{days.length} days completed)
-          </span>
-        </h2>
-
-        <div className="space-y-4">
-          {days.map((day) => (
-            <div key={day.id} onClick={() => handleClick(day)}>
-              <DayCard
-                day={day}
-                weekNumber={weekNumber}
-                planStartDate={planStartDate}
-              />
-            </div>
-          ))}
+    <div className="relative">
+      {/* NEW: Icon đánh dấu ở góc phải */}
+      {isHighlighted && (
+        <div className="absolute right-3 top-3 z-20">
+          <FaStar className="text-red-500 text-xl drop-shadow" />
         </div>
-      </div>
+      )}
 
-      <UpgradePlanModal
-        open={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        onUpgrade={() => {
-          setShowUpgradeModal(false);
-          window.location.href = "/membership";
-        }}
-      />
+      <div
+        className={`rounded-2xl shadow-lg w-70 min-w-[18rem] border overflow-hidden transition relative ${
+          isLocked ? "bg-gray-100 opacity-40 pointer-events-auto cursor-not-allowed" : "bg-white"
+        }`}
+      >
+        <div
+          className="scroll-area"
+          style={{
+            maxHeight: "63vh",
+            overflowY: "scroll",
+            padding: "16px 12px",
+            boxSizing: "border-box",
+          }}
+        >
+          <h2 className="text-xl font-bold text-black mb-3 border-b border-gray-200 pb-1">
+            Week {weekNumber}{" "}
+            <span className="text-sm font-medium text-gray-500">
+              ({completedDays}/{days.length} days completed)
+            </span>
+          </h2>
+
+          <div className="space-y-4">
+            {days.map((day) => (
+              <div key={day.id} onClick={() => handleClick(day)}>
+                <DayCard day={day} weekNumber={weekNumber} planStartDate={planStartDate} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <UpgradePlanModal
+          open={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          onUpgrade={() => {
+            setShowUpgradeModal(false);
+            window.location.href = "/membership";
+          }}
+        />
+      </div>
 
       <style>
         {`

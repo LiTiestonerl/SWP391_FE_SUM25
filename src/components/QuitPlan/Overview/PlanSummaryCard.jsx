@@ -29,6 +29,9 @@ const PlanSummaryCard = ({ plan, onEdit, onDelete, onComplete }) => {
   const selectedCoach = coachList.find(c => c.id === plan.coach);
   const isCompleted = plan?.status?.toLowerCase?.() === 'completed';
 
+  // ✅ Lấy brand từ plan.brand (được trả về từ Create), có fallback nhẹ nếu tương lai đổi field
+  const brandName = plan.brand || plan?.cigaretteBrand || 'N/A';
+
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 ring-1 ring-emerald-200/60 hover:shadow-2xl transition relative min-h-[260px]">
       <div className="absolute top-3 right-3 flex gap-2">
@@ -65,12 +68,9 @@ const PlanSummaryCard = ({ plan, onEdit, onDelete, onComplete }) => {
         <div><b className="text-gray-800">Addiction:</b> {plan.addictionLevel}</div>
         <div><b className="text-gray-800">Start:</b> {dayjs(plan.startDate).format('DD/MM/YYYY')}</div>
         <div><b className="text-gray-800">End:</b> {dayjs(plan.endDate).format('DD/MM/YYYY')}</div>
-        <div><b className="text-gray-800">Brand:</b> {plan.brand || 'N/A'}</div>
         <div><b className="text-gray-800">Flavor:</b> {plan.flavor || 'N/A'}</div>
         <div><b className="text-gray-800">Nicotine Level:</b> {plan.nicotineLevel || 'N/A'}</div>
-        <div><b className="text-gray-800">Nicotine (mg):</b> {plan.nicotineMg || 'N/A'}</div>
         <div><b className="text-gray-800">Sticks/Pack:</b> {plan.sticksPerPack || 'N/A'}</div>
-        <div><b className="text-gray-800">Daily Spending:</b> {formatMoney(plan.averageSpending)}</div>
         <div><b className="text-gray-800">Price/Cigarette:</b> {formatMoney(plan.pricePerCigarette)}</div>
       </div>
 

@@ -10,6 +10,11 @@ import {
 } from "antd";
 import api from "../../../configs/axios";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const { TextArea } = Input;
 const { Title } = Typography;
@@ -25,8 +30,8 @@ const CreateNotification = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await api.get("/admin/users");
-        const filtered = res.data.filter((user) => user.roleName === "USER");
+        const res = await api.get("/admin/users"); 
+        const filtered = (res.data || []).filter((user) => user.roleName === "USER");
         setUsers(filtered);
       } catch (err) {
         console.error("Lỗi khi lấy danh sách user:", err);
@@ -35,20 +40,31 @@ const CreateNotification = () => {
     fetchUsers();
   }, []);
 
-  // Lấy lịch sử thông báo của admin
+  // Lấy thông báo của current user (chỉ USER gọi được, Admin sẽ 403)
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
         const res = await api.get("/notifications/me");
-        setNotificationHistory(res.data.reverse());
+        const arr = Array.isArray(res.data) ? res.data : [];
+
+        // 🧾 Log lịch sử đúng format API (JSON thuần)
+        console.groupCollapsed(`🔔 Notification history (API)`);
+        console.log(JSON.stringify(arr, null, 2));
+        console.groupEnd();
+
+        setNotificationHistory(arr.reverse());
       } catch (err) {
-        console.error("Lỗi khi lấy lịch sử thông báo:", err);
+        if (err?.response?.status === 403) {
+          console.warn("Admin không có quyền gọi GET /notifications/me");
+        } else {
+          console.error("Lỗi khi lấy lịch sử thông báo:", err);
+        }
       }
     };
     fetchNotifications();
   }, []);
 
-  // Tạo map userId → tên để dễ hiển thị trong lịch sử
+  // map userId -> name
   const userMap = users.reduce((acc, user) => {
     acc[user.userId] = user.fullName || user.userName;
     return acc;
@@ -58,26 +74,34 @@ const CreateNotification = () => {
     try {
       setLoading(true);
       const payload = {
-        ...values,
-        sendDate: values.sendDate.toISOString(),
-        status: "unread",
+        userId: values.userId,
+        content: (values.content || "").trim(),
+        notificationType: String(values.notificationType || "").toUpperCase(),
+        // FE chọn giờ local -> chuyển sang ISO UTC để BE lưu chuẩn
+        sendDate: values?.sendDate?.toDate
+          ? values.sendDate.toDate().toISOString()
+          : new Date(values.sendDate).toISOString(),
+        status: "SENT",
       };
 
       const res = await api.post("/notifications", payload);
-      console.log("Response:", res.data);
 
       if (res.data?.notificationId) {
         message.success("Tạo thông báo thành công!");
+
+        // 🧾 Log item vừa tạo đúng format API
+        console.groupCollapsed("✅ Created notification (API)");
+        console.log(JSON.stringify(res.data, null, 2));
+        console.groupEnd();
+
         form.resetFields();
         setNotificationHistory((prev) => [res.data, ...prev]);
       } else {
         throw new Error("Invalid response format");
       }
     } catch (err) {
-      console.error("Error details:", err.response?.data || err.message);
-      message.error(
-        `Lỗi: ${err.response?.data?.message || "Không thể tạo thông báo"}`
-      );
+      console.error("Error details:", err?.response?.data || err?.message || err);
+      message.error(`Lỗi: ${err?.response?.data?.message || "Không thể tạo thông báo"}`);
     } finally {
       setLoading(false);
     }
@@ -89,7 +113,12 @@ const CreateNotification = () => {
         Tạo thông báo mới
       </Title>
 
-      <Form layout="vertical" form={form} onFinish={onFinish}>
+      <Form
+        layout="vertical"
+        form={form}
+        onFinish={onFinish}
+        initialValues={{ sendDate: dayjs() }}
+      >
         <Form.Item
           name="userId"
           label="Người nhận"
@@ -110,11 +139,11 @@ const CreateNotification = () => {
           rules={[{ required: true, message: "Vui lòng chọn loại thông báo" }]}
         >
           <Select placeholder="Chọn loại">
-            <Option value="badge">Huy hiệu</Option>
-            <Option value="coach_reply">Tư vấn</Option>
-            <Option value="community">Cộng đồng</Option>
-            <Option value="system">Hệ thống</Option>
-            <Option value="motivation">Động lực</Option>
+            <Option value="BADGE">Huy hiệu</Option>
+            <Option value="COACH_REPLY">Tin</Option>
+            <Option value="COMMUNITY">Cộng đồng</Option>
+            <Option value="SYSTEM">Hệ thống</Option>
+            <Option value="MOTIVATION">Động lực</Option>
           </Select>
         </Form.Item>
 
@@ -131,12 +160,7 @@ const CreateNotification = () => {
           name="sendDate"
           rules={[{ required: true, message: "Vui lòng chọn ngày gửi" }]}
         >
-          <DatePicker
-            showTime
-            format="YYYY-MM-DD HH:mm"
-            defaultValue={dayjs()}
-            className="w-full"
-          />
+          <DatePicker showTime format="YYYY-MM-DD HH:mm" className="w-full" />
         </Form.Item>
 
         <Form.Item>
@@ -146,7 +170,6 @@ const CreateNotification = () => {
         </Form.Item>
       </Form>
 
-      {/* Lịch sử thông báo */}
       <div className="mt-10">
         <Title level={4}>📜 Lịch sử thông báo</Title>
         {notificationHistory.length === 0 ? (
@@ -157,11 +180,11 @@ const CreateNotification = () => {
               <li key={noti.notificationId} className="border rounded p-3">
                 <p className="font-semibold">{noti.content}</p>
                 <p className="text-sm text-gray-500">
-                  Gửi lúc: {dayjs(noti.sendDate).format("HH:mm DD/MM/YYYY")}
+                  {/* Hiển thị giờ VN từ timestamp UTC của BE */}
+                  Gửi lúc: {dayjs.utc(noti.sendDate).tz("Asia/Ho_Chi_Minh").format("HH:mm DD/MM/YYYY")}
                 </p>
                 <p className="text-sm text-gray-500">
-                  Người nhận: {userMap[noti.userId] || "Không rõ"} | Loại:{" "}
-                  {noti.notificationType}
+                  Người nhận: {userMap[noti.userId] || "Không rõ"} | Loại: {(noti.notificationType || "").replace(/_/g, " ")}
                 </p>
               </li>
             ))}
