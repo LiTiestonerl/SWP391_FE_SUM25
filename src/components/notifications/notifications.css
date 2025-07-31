@@ -1,0 +1,145 @@
+/* notifications.css - No Smoking Theme */
+.notification-popover {
+  width: 360px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: linear-gradient(to bottom right, #f8f9fa, #e9f5ff);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+  animation: fadeInUp 0.3s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.notification-header {
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notification-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1890ff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.notification-header h3:before {
+  content: "🚭";
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.notification-header span {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.notification-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: #fff;
+  border-left: 3px solid #1890ff;
+  display: flex;
+  align-items: flex-start;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.notification-item:hover {
+  background: #f5f9ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.notification-icon {
+  font-size: 18px;
+  margin-right: 12px;
+  padding-top: 2px;
+}
+
+.notification-item-content {
+  color: #262626;
+  font-size: 13px;
+  flex: 1;
+}
+
+.notification-title {
+  font-weight: 600;
+  color: #1890ff;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.notification-item-time {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-left: 8px;
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+.notification-empty {
+  text-align: center;
+  color: #8c8c8c;
+  background: #fafafa;
+  border: 1px dashed #e0e0e0;
+  border-radius: 8px;
+  padding: 24px;
+  font-size: 14px;
+}
+
+.notification-footer {
+  display: flex;
+  justify-content: center; /* Căn giữa nút */
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.notification-view-all-button {
+  background: linear-gradient(to right, #1890ff, #096dd9) !important;
+  border: none !important;
+  color: white !important;
+  border-radius: 20px;
+  padding: 8px 24px;
+  font-weight: 600;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  transition: all 0.3s ease;
+  font-size: 12px;
+  height: auto;
+  letter-spacing: 0.5px;
+}
+
+.notification-view-all-button:hover {
+  background: linear-gradient(to right, #096dd9, #1890ff) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(24, 144, 255, 0.4);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Override Ant Design popover */
+.ant-popover-inner {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}

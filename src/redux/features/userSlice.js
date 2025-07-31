@@ -1,22 +1,28 @@
 import { createSlice } from '@reduxjs/toolkit'
 
-const initialState =null
+const initialState = null;
 
 export const userSlice = createSlice({
   name: 'user',
-  initialState ,
-  reducers: {
-    login:(state,actions) => {
-            return actions.payload
-    },
-    logout:() =>{
-        return initialState;
-    },
-    
+  initialState,
+reducers: {
+  login: (state, action) => {
+    return action.payload;
   },
-})
+ logout: () => {
+  localStorage.removeItem("token"); // ✅ đúng key
+  localStorage.removeItem("refresh"); // xoá refresh nếu cần
+  return initialState;
+},
+  updateAvatar: (state, action) => {
+    if (state) {
+      state.avatar = action.payload;
+    }
+  },
+},
+});
 
-// Action creators are generated for each case reducer function
-export const {login,logout} = userSlice.actions
+// Export actions
+export const { login, logout, updateAvatar } = userSlice.actions;
 
-export default userSlice.reducer
+export default userSlice.reducer;

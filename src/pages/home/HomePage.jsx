@@ -7,8 +7,21 @@ import {
   FaQuoteLeft,
 } from "react-icons/fa";
 import { GiCigarette, GiHealthNormal } from "react-icons/gi";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const HomePage = () => {
+  const navigate = useNavigate();
+  const user = useSelector((state) => state.user);
+
+  const handleStartJourney = () => {
+    if (!user) {
+      navigate("/login");
+    } else {
+      navigate("/membership");
+    }
+  };
+
   useEffect(() => {
     const handleScroll = () => {};
     window.addEventListener("scroll", handleScroll);
@@ -17,22 +30,22 @@ const HomePage = () => {
 
   const features = [
     {
-      icon: <FaLungs className="text-4xl text-red-600" />,
+      icon: <FaLungs className="text-4xl text-[#84ECE1]" />,
       title: "Healthy Lungs",
       description: "Improve your lung capacity and respiratory health",
     },
     {
-      icon: <FaHeartbeat className="text-4xl text-red-600" />,
+      icon: <FaHeartbeat className="text-4xl text-[#84ECE1]" />,
       title: "Better Heart Health",
       description: "Reduce risks of cardiovascular diseases",
     },
     {
-      icon: <GiHealthNormal className="text-4xl text-red-600" />,
+      icon: <GiHealthNormal className="text-4xl text-[#84ECE1]" />,
       title: "Overall Wellness",
       description: "Enhanced physical and mental well-being",
     },
     {
-      icon: <FaClinicMedical className="text-4xl text-red-600" />,
+      icon: <FaClinicMedical className="text-4xl text-[#84ECE1]" />,
       title: "Medical Benefits",
       description: "Save on healthcare costs and live longer",
     },
@@ -58,19 +71,22 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center bg-gradient-to-r from-red-500 to-red-700">
-        <div className="container mx-auto px-6 text-center text-white">
-          <div className="flex justify-center mb-8">
-            <GiCigarette className="text-8xl opacity-50" />
-            <FaBan className="text-9xl text-white absolute opacity-80" />
+      <section className="relative h-screen flex items-center justify-center bg-[#84ECE1]">
+        <div className="container mx-auto px-6 text-center">
+          <div className="flex justify-center mb-8 relative">
+            <GiCigarette className="text-8xl opacity-50 text-black" />
+            <FaBan className="text-9xl text-black absolute opacity-80" />
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-black">
             Break Free From Smoking
           </h1>
-          <p className="text-xl md:text-2xl mb-8">
+          <p className="text-xl md:text-2xl mb-8 text-black">
             Start your journey to a healthier, smoke-free life today
           </p>
-          <button className="bg-white text-red-600 px-8 py-3 rounded-full font-semibold hover:bg-red-50 transition-colors">
+          <button
+            onClick={handleStartJourney}
+            className="bg-white text-black px-8 py-3 rounded-full font-semibold hover:bg-[#d2f7f5] transition-colors"
+          >
             Start Your Journey
           </button>
         </div>
@@ -117,7 +133,10 @@ const HomePage = () => {
                 life expectancy. By quitting smoking, you can improve your
                 health, save money, and enhance your quality of life.
               </p>
-              <button className="bg-red-600 text-white px-6 py-3 rounded-full hover:bg-red-700 transition-colors">
+              <button
+                onClick={handleStartJourney}
+                className="bg-[#84ECE1] text-black px-6 py-3 rounded-full hover:bg-[#6eddd3] transition-colors"
+              >
                 Get Support
               </button>
             </div>
@@ -134,7 +153,7 @@ const HomePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {testimonials.map((testimonial, index) => (
               <div key={index} className="p-8 bg-gray-50 rounded-lg shadow-lg">
-                <span className="text-blue-600 text-2xl font-bold mb-4 block">
+                <span className="text-[#84ECE1] text-2xl font-bold mb-4 block">
                   {index === 0 ? "TOP1" : "TOP2"}
                 </span>
                 <p className="text-gray-600 mb-6">{testimonial.quote}</p>
@@ -156,9 +175,9 @@ const HomePage = () => {
       </section>
 
       {/* Contact Section */}
-      <section className="py-20 bg-red-600">
+      <section className="py-20 bg-[#84ECE1]">
         <div className="container mx-auto px-6">
-          <div className="max-w-2xl mx-auto text-center text-white">
+          <div className="max-w-2xl mx-auto text-center text-black">
             <h2 className="text-3xl md:text-4xl font-bold mb-8">
               Ready to Quit Smoking?
             </h2>
@@ -171,7 +190,7 @@ const HomePage = () => {
                 placeholder="Enter your email"
                 className="px-6 py-3 rounded-full text-gray-800 focus:outline-none focus:ring-2 focus:ring-white"
               />
-              <button className="bg-white text-red-600 px-8 py-3 rounded-full font-semibold hover:bg-red-50 transition-colors">
+              <button className="bg-white text-[#84ECE1] px-8 py-3 rounded-full font-semibold hover:bg-[#e3fbf9] transition-colors text-black">
                 Join Support Group
               </button>
             </form>
