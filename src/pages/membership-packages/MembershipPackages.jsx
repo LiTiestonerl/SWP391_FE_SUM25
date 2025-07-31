@@ -9,12 +9,13 @@ const Membership = () => {
   const [plans, setPlans] = useState([]);
   const [currentPackageId, setCurrentPackageId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [cancelModalOpen, setCancelModalOpen] = useState(false); // ✅ modal
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   const user = useSelector((state) => state.user);
   const userRole = user?.role;
+  const isBlockedRole = userRole === "COACH" || userRole === "ADMIN";
 
   const fetchPackages = async () => {
     try {
@@ -86,8 +87,8 @@ const Membership = () => {
   }, [location.state]);
 
   const handleChoosePlan = (plan) => {
-    if (userRole === "COACH") {
-      alert("Tài khoản Coach không thể chọn gói.");
+    if (isBlockedRole) {
+      alert("Tài khoản Admin hoặc Coach không thể chọn gói.");
       return;
     }
 
@@ -134,7 +135,7 @@ const Membership = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero section */}
+      {/* Hero */}
       <section className="relative w-full h-[75vh] flex items-center justify-center text-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
@@ -143,10 +144,7 @@ const Membership = () => {
             backgroundColor: "#4a5568",
           }}
         />
-        <div
-          className="absolute inset-0 z-10"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.1)" }}
-        />
+        <div className="absolute inset-0 z-10 bg-black opacity-10" />
         <div className="relative z-20 max-w-4xl px-4 pt-16">
           <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6">
             Start Your Smoke-Free Journey
@@ -200,7 +198,6 @@ const Membership = () => {
               (p) => p.memberPackageId === currentPackageId
             );
             const isDowngrade = currentPlan && plan.price < currentPlan.price;
-            const isCoach = userRole === "COACH";
 
             return (
               <motion.div
@@ -225,12 +222,15 @@ const Membership = () => {
                   </span>
                 )}
 
-                <h3 className="text-2xl font-extrabold uppercase text-gray-800 mb-4 flex items-center gap-2">
+                <h3 className="text-2xl font-extrabold uppercase text-gray-800 mb-4">
                   {plan.packageName}
-                  {isCurrentPlan && (
+                </h3>
+
+                {isCurrentPlan && (
+                  <div className="flex items-center gap-2 mb-4 text-green-600 font-semibold">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6 text-green-500"
+                      className="h-5 w-5"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -242,8 +242,9 @@ const Membership = () => {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                  )}
-                </h3>
+                    <span>Currently Subscribed</span>
+                  </div>
+                )}
 
                 <div className="text-3xl font-bold text-gray-900 mb-2">
                   {plan.price === 0
@@ -256,9 +257,12 @@ const Membership = () => {
                   {plan.featuresDescription
                     .split(/(?<=[.!?])\s+/)
                     .map((feature, idx) => (
-                      <li key={idx} className="flex items-center text-gray-700">
+                      <li
+                        key={idx}
+                        className="flex items-start text-gray-700 gap-2"
+                      >
                         <svg
-                          className="w-5 h-5 text-green-500 mr-2"
+                          className="w-5 h-5 text-green-500 mt-1 shrink-0"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -270,25 +274,25 @@ const Membership = () => {
                             d="M5 13l4 4L19 7"
                           />
                         </svg>
-                        {feature.trim()}
+                        <span>{feature.trim()}</span>
                       </li>
                     ))}
                 </ul>
 
                 <button
                   onClick={() => {
-                    if (!isCurrentPlan && !isDowngrade && !isCoach) {
+                    if (!isCurrentPlan && !isDowngrade && !isBlockedRole) {
                       handleChoosePlan(plan);
                     }
                   }}
-                  disabled={isCurrentPlan || isDowngrade || isCoach}
+                  disabled={isCurrentPlan || isDowngrade || isBlockedRole}
                   className={`w-full py-3 rounded-lg font-semibold transition duration-300 ${
-                    isCurrentPlan || isDowngrade || isCoach
+                    isCurrentPlan || isDowngrade || isBlockedRole
                       ? "bg-gray-400 cursor-not-allowed"
                       : plan.buttonColor + " text-white"
                   }`}
                 >
-                  {isCoach
+                  {isBlockedRole
                     ? "Can't Select"
                     : isCurrentPlan
                     ? "Current Plan"
@@ -297,7 +301,7 @@ const Membership = () => {
                     : "Select Plan"}
                 </button>
 
-                {isCurrentPlan && plan.price > 0 && (
+                {isCurrentPlan && plan.price > 0 && !isBlockedRole && (
                   <>
                     <Button
                       danger

@@ -1,13 +1,13 @@
 import api from "../configs/axios";
 
-// 🧪 Dữ liệu mẫu để ghép nếu thiếu
+// 🧪 Dữ liệu mẫu nếu API fail hoặc thiếu
 const mockNotifications = [
   {
     notificationId: -1,
     content: "Welcome to the quit smoking program!",
     notificationType: "WELCOME",
     sendDate: "2025-07-19T10:00:00Z",
-    status: "UNREAD",
+    status: "SENT",
     userId: 1
   },
   {
@@ -15,13 +15,13 @@ const mockNotifications = [
     content: "Remember to check your quit plan today!",
     notificationType: "REMINDER",
     sendDate: "2025-07-22T09:00:00Z",
-    status: "UNREAD",
+    status: "SENT",
     userId: 1
   }
 ];
 
 /**
- * 📥 Lấy danh sách thông báo người dùng (theo token)
+ * 📥 Lấy danh sách thông báo người dùng
  */
 export const fetchUserNotifications = async () => {
   try {
@@ -62,15 +62,14 @@ export const markNotificationAsRead = async (notificationId) => {
  */
 export const deleteNotification = async (notificationId, notificationContent) => {
   try {
-    // Nếu là mock → lưu content vào localStorage
     if (notificationId < 0) {
+      // Xử lý mock: lưu content bị xóa
       const deleted = JSON.parse(localStorage.getItem("deletedMockContents") || "[]");
       const updated = [...new Set([...deleted, notificationContent])];
       localStorage.setItem("deletedMockContents", JSON.stringify(updated));
       return true;
     }
 
-    // Nếu là thông báo thật → gọi API
     await api.delete(`/notifications/${notificationId}`);
     return true;
   } catch (error) {
@@ -86,7 +85,7 @@ export const createNewNotification = async (notificationData) => {
   try {
     const response = await api.post("notifications", {
       ...notificationData,
-      status: "SENT"
+      status: "SENT"  // Đồng bộ với enum mới
     });
     return response.data;
   } catch (error) {

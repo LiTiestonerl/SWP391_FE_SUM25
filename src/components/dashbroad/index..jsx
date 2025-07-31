@@ -16,6 +16,7 @@ import {
   BellOutlined,
   StarOutlined,
   CompassOutlined,
+  MedicineBoxOutlined ,
 } from "@ant-design/icons";
 import { Breadcrumb, Layout, Menu, theme } from "antd";
 import { Link, Outlet } from "react-router-dom";
@@ -51,7 +52,7 @@ const items = [
   getItem(
     "Cigarette Recommendation",
     "cigaretterecommendation",
-    <FileOutlined />
+    <MedicineBoxOutlined  />
   ),
   getItem("Achievement", "achievement", <StarOutlined />),
   getItem("Notification", "notification", <BellOutlined />),
