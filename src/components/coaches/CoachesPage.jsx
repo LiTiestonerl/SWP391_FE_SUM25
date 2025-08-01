@@ -2,11 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import api from "../../configs/axios";
-import {
-  FiCalendar,
-  FiFilter,
-  FiVideo,
-} from "react-icons/fi";
+import { FiCalendar, FiFilter, FiVideo } from "react-icons/fi";
 
 const CoachPage = () => {
   const [coaches, setCoaches] = useState([]);
@@ -16,9 +12,18 @@ const CoachPage = () => {
   const fetchCoaches = async () => {
     try {
       const response = await api.get("/coach");
-      setCoaches(response.data);
+
+      // 🔍 Bảo vệ tránh lỗi map nếu không phải mảng
+      const list = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data.data)
+        ? response.data.data
+        : [];
+
+      setCoaches(list);
     } catch (error) {
       console.error("Error fetching coaches:", error);
+      setCoaches([]); // fallback để không bị crash
     }
   };
 
@@ -26,11 +31,11 @@ const CoachPage = () => {
     fetchCoaches();
   }, []);
 
-  const handleBookConsultation = () => {
+  const handleBookConsultation = (coachId) => {
     if (!user) {
       navigate("/login");
     } else {
-      navigate("/membership");
+      navigate(`/chat?coachId=${coachId}`);
     }
   };
 
@@ -69,7 +74,7 @@ const CoachPage = () => {
                 <FiVideo /> View Profile
               </button>
               <button
-                onClick={handleBookConsultation}
+                onClick={() => handleBookConsultation(coach.userId)}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded flex items-center justify-center gap-2"
               >
                 <FiCalendar /> Chat Now

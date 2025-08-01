@@ -1,221 +1,307 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  FiSearch,
-  FiPaperclip,
-  FiSmile,
-  FiSend,
-  FiMoreVertical,
-  FiPhone,
-  FiVideo,
-  FiHome,
-} from "react-icons/fi";
-import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import React, { useEffect, useState, useRef } from "react";
 import api from "../../configs/axios";
+import { useSelector } from "react-redux";
+import { useLocation } from "react-router-dom";
+import { message as antMessage } from "antd";
+import { format } from "date-fns";
 
+const SessionList = ({ sessions, activeSessionId, onSelectSession }) => (
+  <div className="w-1/3 border-r bg-gray-50 h-full overflow-y-auto">
+    <h3 className="p-3 font-bold text-lg border-b">Các cuộc trò chuyện</h3>
+    <ul>
+      {sessions.length > 0 ? (
+        sessions.map((session) => (
+          <li
+            key={session.sessionId}
+            onClick={() => onSelectSession(session.sessionId)}
+            className={`p-3 cursor-pointer border-b hover:bg-gray-100 ${
+              session.sessionId === activeSessionId ? "bg-blue-100" : ""
+            }`}
+          >
+            <p className="font-semibold">{session.userName || `User ID: ${session.userId}`}</p>
+          </li>
+        ))
+      ) : (
+        <p className="p-3 text-gray-500">Không có cuộc trò chuyện nào.</p>
+      )}
+    </ul>
+  </div>
+);
+
+
+const ChatWindow = ({ messages, user, handleSend, newMsg, setNewMsg, isSending, inputRef, messageEndRef }) => (
+    <div className="flex-1 flex flex-col p-4 h-full">
+     <h2 className="text-xl font-bold mb-2 text-center flex-shrink-0">
+      Trò chuyện
+    </h2>
+
+    <div className="flex-1 overflow-y-auto border rounded p-2 mb-2 bg-white shadow">
+      {messages.length === 0 ? (
+        <p className="text-center text-gray-500">Chưa có tin nhắn. Bắt đầu cuộc trò chuyện!</p>
+      ) : (
+        messages.map((msg, idx) => {
+          const isOwn = msg.senderId === user.id;
+          return (
+            <div
+              key={idx}
+              className={`mb-2 flex ${
+                isOwn ? "justify-end" : "justify-start"
+              }`}
+            >
+              <div
+                className={`rounded-lg px-3 py-2 max-w-[70%] shadow text-sm ${
+                  isOwn
+                    ? "bg-blue-600 text-white" 
+                    : "bg-gray-200 text-gray-800"
+                }`}
+              >
+                <div className="font-semibold text-xs text-left">
+                  {msg.senderName || (isOwn ? "Bạn" : "Đối phương")}
+                </div>
+                <div className="text-left">{msg.message}</div>
+                {msg.createdAt && (
+                  <div className="text-[10px] mt-1 opacity-70 text-right">
+                    {format(new Date(msg.createdAt), "HH:mm dd/MM")}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })
+      )}
+      <div ref={messageEndRef} />
+    </div>
+
+     <div className="flex flex-shrink-0">
+      <input
+        type="text"
+        value={newMsg}
+        ref={inputRef}
+        onChange={(e) => setNewMsg(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && !isSending && handleSend()}
+        className="flex-1 border px-3 py-2 rounded-l focus:outline-none"
+        placeholder="Nhập tin nhắn..."
+        disabled={isSending}
+      />
+      <button
+        onClick={handleSend}
+        disabled={isSending || !newMsg.trim()}
+        className="bg-blue-600 text-white px-4 rounded-r hover:bg-blue-700 disabled:opacity-50"
+      >
+        {isSending ? "Đang gửi..." : "Gửi"}
+      </button>
+    </div>
+  </div>
+);
 const ChatPage = () => {
-  const navigate = useNavigate();
-  const user = useSelector((state) => state.user); // 👈 lấy từ Redux
-  const userId = user?.id;
+  const user = useSelector((state) => state.user);
+  const location = useLocation();
 
-  const [conversations, setConversations] = useState([]);
-  const [activeChatIndex, setActiveChatIndex] = useState(null);
+  // State được thiết kế lại để quản lý nhiều session
+  const [allSessions, setAllSessions] = useState([]);      
+  const [activeSessionId, setActiveSessionId] = useState(null); 
   const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState("");
-  const [showInfoPanel, setShowInfoPanel] = useState(false);
-  const messageEndRef = useRef(null);
+  const [newMsg, setNewMsg] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  const messageEndRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Effect 1: Logic khởi tạo được viết lại hoàn toàn
   useEffect(() => {
-    const fetchConversations = async () => {
-      if (userId && localStorage.getItem("token")) {
-        try {
-          const res = await api.get("/chat/sessions", {
-            params: { userId },
-          });
-          setConversations(res.data);
-        } catch (err) {
-          console.error("Lỗi khi lấy danh sách session:", err);
+    if (!user?.id) return;
+    
+    const isCoach = user.role === "COACH";
+
+    const initialize = async () => {
+        setIsLoading(true);
+        setError(null);
+
+        // ---- PHÂN LUỒNG LOGIC TẠI ĐÂY ----
+        if (isCoach) {
+            // LOGIC CHO COACH
+              try {
+        // 1. Lấy tất cả session của Coach (chỉ chứa các ID)
+        const sessionRes = await api.get('/chat-session/coach/session');
+        const sessionsFromApi = sessionRes.data;
+
+        // 2. Lấy tên cho từng user trong mỗi session
+        const sessionsWithNames = await Promise.all(
+            sessionsFromApi.map(async (session) => {
+                // ID của người dùng trong cuộc trò chuyện này
+                const partnerId = session.userId; 
+
+                try {
+                    // !!! QUAN TRỌNG: Thay thế bằng API endpoint ĐÚNG của bạn để lấy thông tin user
+                    // Ví dụ: '/users/public-info/', '/api/accounts/', etc.
+                    const userRes = await api.get(`/api/users/${partnerId}`); 
+                    
+                    // Giả sử API trả về đối tượng có thuộc tính 'name'
+                    const userName = userRes.data.name; 
+
+                    return {
+                        ...session,
+                        userName: userName || `User ID: ${partnerId}` // Nếu tên rỗng thì vẫn hiển thị ID
+                    };
+                } catch (err) {
+                     // Nếu API lấy thông tin user thất bại, hiển thị ID như yêu cầu
+                     console.error(`Không thể lấy thông tin cho user ID: ${partnerId}`, err);
+                     return { 
+                         ...session, 
+                         userName: `User ID: ${partnerId}` // Fallback hiển thị ID
+                    };
+                }
+            })
+        );
+        
+        setAllSessions(sessionsWithNames);
+
+    } catch (err) {
+        console.error("Lỗi khi tải danh sách cuộc trò chuyện của Coach:", err);
+        setError("Không thể tải danh sách cuộc trò chuyện.");
+    }
+        } else {
+            // LOGIC CŨ CHO USER
+            const coachIdFromUrl = new URLSearchParams(location.search).get("coachId");
+            if (!coachIdFromUrl) {
+                setError("URL không hợp lệ, thiếu thông tin Coach.");
+                return;
+            }
+            
+            const params = { userId: user.id, coachId: coachIdFromUrl };
+            try {
+                const check = await api.get("/chat-session/session", { params });
+                if (check.data && check.data.length > 0) {
+                    setActiveSessionId(check.data[0].sessionId);
+                } else {
+                     const res = await api.post("/chat-session/session", {}, { params });
+                     setActiveSessionId(res.data.id);
+                }
+            } catch (err) {
+                setError("Không thể khởi tạo phiên trò chuyện.");
+            }
         }
-      }
+        setIsLoading(false);
     };
 
-    fetchConversations();
-  }, [userId]);
+    initialize();
+  }, [user, location.search]);
 
-  const handleSelectConversation = async (index) => {
-    const selected = conversations[index];
-    setActiveChatIndex(index);
-    setMessages([]);
-    try {
-      const res = await api.get(`/chat/sessions/${selected.id}/messages`);
-      setMessages(res.data);
-    } catch (err) {
-      console.error("Lỗi khi lấy tin nhắn:", err);
+  // Effect 2: Lấy tin nhắn dựa trên `activeSessionId`
+  useEffect(() => {
+    if (!activeSessionId) {
+      setMessages([]);
+      return;
     }
-  };
+    const fetchMessages = async () => {
+      try {
+        const res = await api.get(
+          `/chat-session/session/${activeSessionId}/message?userId=${user.id}`
+        );
+        setMessages(res.data);
+      } catch (err) {
+        console.error("Lỗi khi tải tin nhắn:", err);
+      }
+    };
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 3000);
+    return () => clearInterval(interval);
+  }, [activeSessionId, user.id]);
 
-  const handleSendMessage = async () => {
-    if (!message.trim() || activeChatIndex === null) return;
-    const sessionId = conversations[activeChatIndex]?.id;
-    try {
-      await api.post(`/chat/sessions/${sessionId}/messages`, {
-        senderId: userId,
-        content: message,
-      });
-      const res = await api.get(`/chat/sessions/${sessionId}/messages`);
-      setMessages(res.data);
-      setMessage("");
-    } catch (err) {
-      console.error("Gửi tin nhắn thất bại:", err);
-    }
-  };
-
+  // Các effect khác không đổi
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const selectedChat = activeChatIndex !== null ? conversations[activeChatIndex] : null;
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [activeSessionId]);
+
+  // Handler MỚI để chọn session
+  const handleSelectSession = (sessionId) => {
+    setActiveSessionId(sessionId);
+  };
+
+  // Handler gửi tin nhắn được cập nhật để dùng `activeSessionId`
+  const handleSend = async () => {
+     if (!newMsg.trim() || !activeSessionId) return;
+    
+    setIsSending(true);
+    const messagePayload = {
+      senderId: user.id,
+      message: newMsg.trim(),
+      createdAt: new Date().toISOString(), 
+    };
+    try {
+      setMessages((prev) => [...prev, messagePayload]);
+      setNewMsg("");
+      await api.post(`/chat-session/session/${activeSessionId}/message`, {
+        message: messagePayload.message,
+      });
+    } catch (err) {
+      antMessage.error("Gửi tin nhắn thất bại.");
+      setMessages((prev) => prev.filter(msg => msg.createdAt !== messagePayload.createdAt));
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // ---- PHẦN RENDER (return) ĐƯỢC VIẾT LẠI HOÀN TOÀN ----
+  if (isLoading) {
+    return <div className="p-4 text-center pt-24">Đang tải dữ liệu...</div>;
+  }
+  if (error) {
+    return <div className="p-4 text-center pt-24 text-red-600">{error}</div>;
+  }
+  
+  const isCoach = user.role === "COACH";
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Sidebar */}
-      <div className="w-14 bg-[#2c2f3a] text-white flex flex-col items-center py-6 space-y-8">
-        <FiHome onClick={() => navigate("/")} className="w-6 h-6 cursor-pointer hover:text-blue-400" title="Go Home" />
-        <FiSearch className="w-6 h-6 cursor-pointer hover:text-blue-400" />
-        <FiVideo className="w-6 h-6 cursor-pointer hover:text-blue-400" />
-        <FiMoreVertical className="w-6 h-6 cursor-pointer hover:text-blue-400" />
-      </div>
-
-      {/* Main */}
-      <div className="flex flex-1">
-        {/* Conversations List */}
-        <div className="w-1/4 min-w-[300px] border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col">
-          <div className="p-4 border-b flex items-center space-x-4">
-            <img
-              src={user?.avatar || "https://placehold.co/100x100"}
-              alt="Avatar"
-              className="w-10 h-10 rounded-full cursor-pointer"
-              onClick={() => navigate(`/profile/${user?.id}`)} 
-            />
-            <div>
-              <h2 className="font-semibold dark:text-white">
-                {user?.fullName || user?.username || "My Account"}
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Online</p>
-            </div>
-          </div>
-
-          <div className="p-4">
-            <div className="relative">
-              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search conversations..."
-                className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700"
-              />
-            </div>
-          </div>
-
-          <div className="overflow-y-auto flex-1">
-            {conversations.map((conv, index) => (
-              <div key={conv.id} onClick={() => handleSelectConversation(index)}
-                className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                  activeChatIndex === index ? "bg-gray-50 dark:bg-gray-700" : ""
-                }`}
-              >
-                <div className="flex items-center space-x-4">
-                  <img
-                    src={conv.avatar || "https://placehold.co/50x50"}
-                    alt={conv.name}
-                    className="w-12 h-12 rounded-full"
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-medium dark:text-white">{conv.name || `Session ${conv.id}`}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {conv.lastMessage || "Chưa có tin nhắn"}
-                    </p>
-                  </div>
+    <div className="pt-16 h-screen flex flex-col">
+      {isCoach ? (
+        // Giao diện cho Coach (dùng SessionList và ChatWindow)
+        <div className="flex flex-1 w-full h-full overflow-hidden">
+          <SessionList 
+            sessions={allSessions}
+            activeSessionId={activeSessionId}
+            onSelectSession={handleSelectSession}
+          />
+          <div className="flex-1 flex flex-col h-full">
+            {activeSessionId ? (
+               <ChatWindow
+                  messages={messages}
+                  user={user}
+                  handleSend={handleSend}
+                  newMsg={newMsg}
+                  setNewMsg={setNewMsg}
+                  isSending={isSending}
+                  inputRef={inputRef}
+                  messageEndRef={messageEndRef}
+                />
+            ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                    <p>Vui lòng chọn một cuộc trò chuyện để bắt đầu.</p>
                 </div>
-              </div>
-            ))}
+            )}
           </div>
         </div>
-
-        {/* Chat Area */}
-        <div className="flex-1 flex">
-          {selectedChat ? (
-            <div className="flex-1 flex flex-col">
-              {/* Header */}
-              <div className="p-4 border-b bg-white dark:bg-gray-800">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <img
-                      src={selectedChat.avatar || "https://placehold.co/50x50"}
-                      alt={selectedChat.name}
-                      className="w-10 h-10 rounded-full"
-                    />
-                    <div>
-                      <h2 className="font-semibold dark:text-white">{selectedChat.name || `Session ${selectedChat.id}`}</h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Online</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4 text-gray-500">
-                    <FiPhone className="w-5 h-5 cursor-pointer" />
-                    <FiVideo className="w-5 h-5 cursor-pointer" />
-                    <FiMoreVertical
-                      onClick={() => setShowInfoPanel(!showInfoPanel)}
-                      className="w-5 h-5 cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900">
-                {messages.map((msg) => (
-                  <div key={msg.id} className={`flex ${msg.senderId == userId ? "justify-end" : "justify-start"} mb-4`}>
-                    <div
-                      className={`max-w-[70%] ${
-                        msg.senderId == userId ? "bg-blue-500 text-white" : "bg-white dark:bg-gray-800"
-                      } rounded-lg p-3 shadow`}
-                    >
-                      <p>{msg.content}</p>
-                      <p className="text-xs mt-1 opacity-70 text-right">
-                        {format(new Date(msg.timestamp), "HH:mm")}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                <div ref={messageEndRef} />
-              </div>
-
-              {/* Input */}
-              <div className="p-4 bg-white dark:bg-gray-800 border-t">
-                <div className="flex items-center space-x-4">
-                  <FiPaperclip className="text-gray-500" />
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                    placeholder="Type a message..."
-                    className="flex-1 py-2 px-4 bg-gray-100 dark:bg-gray-700 rounded-lg"
-                  />
-                  <FiSmile className="text-gray-500" />
-                  <button onClick={handleSendMessage} className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600">
-                    <FiSend className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-500">
-              <p>Hãy chọn một cuộc trò chuyện để bắt đầu.</p>
-            </div>
-          )}
+      ) : (
+        // Giao diện cho User (chỉ dùng ChatWindow)
+        <div className="max-w-xl mx-auto w-full flex-1 flex flex-col">
+          <ChatWindow
+            messages={messages}
+            user={user}
+            handleSend={handleSend}
+            newMsg={newMsg}
+            setNewMsg={setNewMsg}
+            isSending={isSending}
+            inputRef={inputRef}
+            messageEndRef={messageEndRef}
+          />
         </div>
-      </div>
+      )}
     </div>
   );
 };

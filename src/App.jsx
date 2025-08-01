@@ -143,13 +143,12 @@ function App() {
           path: "cigaretterecommendation",
           element: <CigaretteRecommendation />,
         },
-      
+
         {
           path: "achievement",
           element: <ManageAachiement />,
         },
-         { path: "notification", 
-          element: <CreateNotification /> },
+        { path: "notification", element: <CreateNotification /> },
       ],
     },
 

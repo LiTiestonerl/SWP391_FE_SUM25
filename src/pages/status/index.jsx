@@ -350,7 +350,7 @@ const StatusPage = () => {
                   </label>
                   <InputNumber
                     min={0}
-                    max={500}
+                    max={100}
                     value={formData.cigarettesPerDay}
                     onChange={(value) =>
                       handleInputChange("cigarettesPerDay", value)
