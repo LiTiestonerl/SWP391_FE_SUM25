@@ -8,7 +8,7 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
   const [memberPackages, setMemberPackages] = useState([]);
   const [duration, setDuration] = useState(null);
   const [packageName, setPackageName] = useState('');
-  const [touched, setTouched] = useState(false); // ✅ chỉ báo lỗi sau submit
+  const [touched, setTouched] = useState(false);
   const [form, setForm] = useState({
     name: '',
     reason: '',
@@ -21,7 +21,6 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
     pricePerCigaretteNumeric: 0,
   });
 
-  // Load member packages
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -44,7 +43,6 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
         if (activePkg) {
           setDuration(activePkg.duration);
           setPackageName(activePkg.packageName);
-          // 🔁 CHỈ đặt tên nếu trước đó chưa có name
           setForm(prev => ({
             ...prev,
             name: prev.name || `Quit in ${activePkg.duration} Days`,
@@ -52,14 +50,12 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
         } else {
           setDuration(30);
           setPackageName('DEFAULT');
-          // 🔁 CHỈ đặt tên nếu trước đó chưa có name
           setForm(prev => ({ ...prev, name: prev.name || 'Quit in 30 Days' }));
         }
       } catch (err) {
         console.error('Fetch membership/packages error:', err);
         setDuration(30);
         setPackageName('DEFAULT');
-        // 🔁 CHỈ đặt tên nếu trước đó chưa có name
         setForm(prev => ({ ...prev, name: prev.name || 'Quit in 30 Days' }));
       }
     };
@@ -67,7 +63,6 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
     if (open) fetchData();
   }, [open]);
 
-  // Load cigarette packages
   useEffect(() => {
     const fetchCigPackages = async () => {
       try {
@@ -85,14 +80,10 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    if (name === 'startDate') {
-      const newStart = dayjs(value);
-      const totalDays = Number(duration) || 0;
-      const newEnd = totalDays > 0 ? newStart.add(totalDays - 1, 'day') : newStart;
+    if (name === 'startDate' || name === 'endDate') {
       setForm(prev => ({
         ...prev,
-        startDate: value,
-        endDate: newEnd.format('YYYY-MM-DD'),
+        [name]: value,
       }));
       return;
     }
@@ -127,6 +118,7 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
   const validateForm = () => {
     if (form.reason.trim().length < 5) return false;
     if (!form.startDate) return false;
+    if (!form.endDate) return false;
     if (!form.package) return false;
     if (!form.averageCigarettes) return false;
     if (!form.pricePerCigarette) return false;
@@ -135,7 +127,7 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
 
   const submit = (e) => {
     e.preventDefault();
-    setTouched(true); // ✅ bắt đầu hiện lỗi khi submit
+    setTouched(true);
 
     if (!validateForm()) return;
 
@@ -148,13 +140,17 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
       p => String(p.cigarettePackageId) === form.package
     );
 
+    const start = dayjs(form.startDate);
+    const end = dayjs(form.endDate);
+    const durationDays = end.diff(start, 'day') + 1;
+
     const planData = {
       ...form,
       reason: reasonTrim,
       averageCigarettes: avgCigs,
       pricePerCigarette: pricePer,
       averageSpending: avgSpending,
-      durationInDays: Number(duration) || 0,
+      durationInDays: durationDays > 0 ? durationDays : 0,
       membershipPackageName: packageName,
       brand: selectedPackage?.brand || '',
       flavor: selectedPackage?.flavor || '',
@@ -317,13 +313,19 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
                   )}
                 </div>
                 <div className="flex-1">
-                  <label className="text-gray-500 block mb-1">End Date</label>
+                  <label className="text-gray-500 block mb-1">End Date <span className="text-red-500">*</span></label>
                   <input
                     type="date"
+                    name="endDate"
                     value={form.endDate}
-                    disabled
-                    className="w-full border p-3 rounded bg-gray-100"
+                    onChange={handleChange}
+                    className={`w-full border p-3 rounded ${
+                      touched && !form.endDate ? 'border-red-400' : ''
+                    }`}
                   />
+                  {touched && !form.endDate && (
+                    <p className="text-xs text-red-500 mt-1">Please select an end date.</p>
+                  )}
                 </div>
               </div>
 
