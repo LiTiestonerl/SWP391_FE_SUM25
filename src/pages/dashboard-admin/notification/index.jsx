@@ -140,7 +140,7 @@ const CreateNotification = () => {
         >
           <Select placeholder="Chọn loại">
             <Option value="BADGE">Huy hiệu</Option>
-            <Option value="COACH_REPLY">Tin</Option>
+            <Option value="COACH_REPLY">Tin nhắn từ Coach</Option>
             <Option value="COMMUNITY">Cộng đồng</Option>
             <Option value="SYSTEM">Hệ thống</Option>
             <Option value="MOTIVATION">Động lực</Option>
