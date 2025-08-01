@@ -139,6 +139,7 @@ const QuitPlanOverview = () => {
                       startDate: plan.startDate,
                       durationInDays: plan.durationInDays || duration,
                       selectedPlan: "CUSTOM",
+                      weeks: [[]],
                     },
                   })
                 }

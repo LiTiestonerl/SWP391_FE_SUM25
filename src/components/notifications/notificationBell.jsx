@@ -11,7 +11,7 @@ const NotificationBell = ({ notifications = [], isDarkMode }) => {
     .sort((a, b) => new Date(b.sendDate) - new Date(a.sendDate))
     .slice(0, 5);
 
-  const count = notifications.length;
+const count = notifications.filter(n => n.status !== 'READ').length;
   const displayCount = count > 5 ? '5+' : count;
 
   const popoverContent = (

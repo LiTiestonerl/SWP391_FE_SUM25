@@ -1,27 +1,21 @@
-// Header.jsx
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FiMenu, FiX, FiSun, FiMoon } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/features/userSlice";
 import NotificationBell from "../notifications/notificationBell";
-import { fetchUserNotifications } from "../../services/notificationService";
+import api from "../../configs/axios";
 import "./header.css";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false); // ✅ Mặc định là trắng
   const [showDropdown, setShowDropdown] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [isDarkMode, setIsDarkMode] = useState(false); // ✅ chuyển nền
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
   const user = useSelector((state) => state.user);
-  const userId =
-    user?.id ||
-    user?.user?.id ||
-    Number(localStorage.getItem("accountId")) ||
-    null;
 
   const navItems = [
     { id: 1, label: "Home", href: "home" },
@@ -34,8 +28,8 @@ const Header = () => {
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
-  const toggleTheme = () => setIsDarkMode(!isDarkMode);
   const toggleDropdown = () => setShowDropdown(!showDropdown);
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -43,12 +37,21 @@ const Header = () => {
   };
 
   useEffect(() => {
-    if (userId) {
-      fetchUserNotifications(userId).then((data) => {
-        setNotifications(data || []);
-      });
+    const fetchNotifications = async () => {
+      try {
+        const res = await api.get("/notifications/me");
+        setNotifications(res.data || []);
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    };
+
+    if (user) {
+      fetchNotifications();
+    } else {
+      setNotifications([]);
     }
-  }, [userId]);
+  }, [user]);
 
   useEffect(() => {
     document.body.className = isDarkMode ? "dark" : "light";
@@ -78,7 +81,7 @@ const Header = () => {
               </span>
             </Link>
 
-            <nav className="hidden md:flex space-x-6">
+            <nav className="hidden md:flex space-x-8">
               {navItems.map((item) => (
                 <Link
                   key={item.id}
@@ -91,7 +94,6 @@ const Header = () => {
             </nav>
 
             <div className="flex items-center space-x-4">
-              {/* ✅ Chỉ hiện chuông nếu đã login */}
               {user && (
                 <NotificationBell
                   notifications={notifications}
@@ -99,7 +101,7 @@ const Header = () => {
                 />
               )}
 
-              {/* 🌙 Chuyển theme */}
+              {/* Theme toggle */}
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
@@ -109,7 +111,10 @@ const Header = () => {
 
               {user ? (
                 <div className="relative">
-                  <button onClick={toggleDropdown} className="flex items-center">
+                  <button
+                    onClick={toggleDropdown}
+                    className="flex items-center space-x-2 focus:outline-none"
+                  >
                     <img
                       src={
                         localStorage.getItem("custom_avatar") ||
@@ -124,11 +129,12 @@ const Header = () => {
                       }}
                     />
                   </button>
+
                   {showDropdown && (
                     <div
-                      className={`absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 ${
+                      className={`absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50 ring-1 ring-black ring-opacity-5 ${
                         isDarkMode ? "bg-gray-800" : "bg-white"
-                      } ring-1 ring-black ring-opacity-5 z-50`}
+                      }`}
                     >
                       {user?.role === "ADMIN" && (
                         <Link
@@ -173,13 +179,13 @@ const Header = () => {
                 <div className="hidden md:flex items-center space-x-4">
                   <button
                     onClick={() => navigate("login")}
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none"
                   >
                     Login
                   </button>
                   <button
                     onClick={() => navigate("register")}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none"
                   >
                     Register
                   </button>
@@ -188,14 +194,13 @@ const Header = () => {
 
               <button
                 onClick={toggleMenu}
-                className="md:hidden p-2 rounded-md focus:outline-none"
+                className="md:hidden p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
               >
                 {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
               </button>
             </div>
           </div>
 
-          {/* Mobile nav */}
           <div className={`md:hidden ${isOpen ? "block" : "hidden"}`}>
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navItems.map((item) => (
@@ -234,7 +239,7 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Marquee chạy ngang */}
+      {/* Marquee */}
       <div className="marquee-container dark">
         <div className="marquee-text text-white">
           NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE

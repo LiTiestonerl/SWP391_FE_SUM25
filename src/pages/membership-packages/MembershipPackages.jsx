@@ -1,31 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Button, Popconfirm, message } from "antd";
+import { Button, Modal, message } from "antd";
+import { useSelector } from "react-redux";
 import api from "../../configs/axios";
-
-const testimonials = [
-  {
-    name: "John Doe",
-    quote:
-      "Thanks to HEALTH+, I’ve significantly reduced smoking and feel healthier!",
-    image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=80&h=80&q=80",
-  },
-  {
-    name: "Jane Smith",
-    quote: "The coach support in the OTHERS plan is amazing, totally worth it!",
-    image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=80&h=80&q=80",
-  },
-];
 
 const Membership = () => {
   const [plans, setPlans] = useState([]);
   const [currentPackageId, setCurrentPackageId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const user = useSelector((state) => state.user);
+  const userRole = user?.role;
+  const isBlockedRole = userRole === "COACH" || userRole === "ADMIN";
 
   const fetchPackages = async () => {
     try {
@@ -46,7 +36,6 @@ const Membership = () => {
   const fetchCurrentUserPackage = async () => {
     try {
       const res = await api.get("/user-membership/me");
-      console.log("Fetched current package:", res.data);
       if (res.data?.memberPackageId) {
         setCurrentPackageId(Number(res.data.memberPackageId));
       }
@@ -65,6 +54,15 @@ const Membership = () => {
         error?.response?.data?.message || "Hủy gói thất bại. Vui lòng thử lại."
       );
     }
+  };
+
+  const showCancelModal = () => {
+    setCancelModalOpen(true);
+  };
+
+  const confirmCancelPackage = async () => {
+    setCancelModalOpen(false);
+    await handleCancelPackage();
   };
 
   useEffect(() => {
@@ -89,6 +87,11 @@ const Membership = () => {
   }, [location.state]);
 
   const handleChoosePlan = (plan) => {
+    if (isBlockedRole) {
+      alert("Tài khoản Admin hoặc Coach không thể chọn gói.");
+      return;
+    }
+
     const token = localStorage.getItem("token");
     if (!token) {
       alert("Vui lòng đăng nhập để mua gói!");
@@ -141,12 +144,9 @@ const Membership = () => {
             backgroundColor: "#4a5568",
           }}
         />
-        <div
-          className="absolute inset-0 z-10"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.1)" }}
-        />
+        <div className="absolute inset-0 z-10 bg-black opacity-10" />
         <div className="relative z-20 max-w-4xl px-4 pt-16">
-          <h1 className="text-4xl md:text-6xl font-extrabold !text-white mb-6">
+          <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-6">
             Start Your Smoke-Free Journey
           </h1>
           <p className="text-lg md:text-xl text-white mb-8 max-w-3xl mx-auto">
@@ -222,12 +222,15 @@ const Membership = () => {
                   </span>
                 )}
 
-                <h3 className="text-2xl font-extrabold uppercase text-gray-800 mb-4 flex items-center gap-2">
+                <h3 className="text-2xl font-extrabold uppercase text-gray-800 mb-4">
                   {plan.packageName}
-                  {isCurrentPlan && (
+                </h3>
+
+                {isCurrentPlan && (
+                  <div className="flex items-center gap-2 mb-4 text-green-600 font-semibold">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-6 w-6 text-green-500"
+                      className="h-5 w-5"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -239,15 +242,20 @@ const Membership = () => {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                  )}
-                </h3>
+                    <span>Currently Subscribed</span>
+                  </div>
+                )}
 
                 <div className="text-3xl font-bold text-gray-900 mb-2">
                   {plan.price === 0
                     ? "FREE"
                     : `${plan.price.toLocaleString()} VND`}
                 </div>
-                <p className="text-gray-500 mb-6">{plan.duration} ngày</p>
+                <p className="text-gray-500 mb-6">
+                  {plan.price === 0
+                    ? "Không giới hạn"
+                    : `${plan.duration} ngày`}
+                </p>
 
                 <ul className="space-y-3 mb-8 flex-grow">
                   {plan.featuresDescription
@@ -255,10 +263,10 @@ const Membership = () => {
                     .map((feature, idx) => (
                       <li
                         key={idx}
-                        className="flex items-center text-gray-700"
+                        className="flex items-start text-gray-700 gap-2"
                       >
                         <svg
-                          className="w-5 h-5 text-green-500 mr-2"
+                          className="w-5 h-5 text-green-500 mt-1 shrink-0"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -270,79 +278,59 @@ const Membership = () => {
                             d="M5 13l4 4L19 7"
                           />
                         </svg>
-                        {feature.trim()}
+                        <span>{feature.trim()}</span>
                       </li>
                     ))}
                 </ul>
 
                 <button
                   onClick={() => {
-                    if (!isCurrentPlan && !isDowngrade)
+                    if (!isCurrentPlan && !isDowngrade && !isBlockedRole) {
                       handleChoosePlan(plan);
+                    }
                   }}
-                  disabled={isCurrentPlan || isDowngrade}
+                  disabled={isCurrentPlan || isDowngrade || isBlockedRole}
                   className={`w-full py-3 rounded-lg font-semibold transition duration-300 ${
-                    isCurrentPlan || isDowngrade
+                    isCurrentPlan || isDowngrade || isBlockedRole
                       ? "bg-gray-400 cursor-not-allowed"
                       : plan.buttonColor + " text-white"
                   }`}
                 >
-                  {isCurrentPlan
+                  {isBlockedRole
+                    ? "Can't Select"
+                    : isCurrentPlan
                     ? "Current Plan"
                     : isDowngrade
                     ? "Cannot Downgrade"
                     : "Select Plan"}
                 </button>
 
-                {/* Nút hủy gói */}
-                {isCurrentPlan && plan.price > 0 && (
-                  <Popconfirm
-                    title="Bạn chắc chắn muốn hủy gói này?"
-                    onConfirm={handleCancelPackage}
-                    okText="Đồng ý"
-                    cancelText="Hủy"
-                  >
-                    <Button danger type="primary" className="mt-4 w-full">
+                {isCurrentPlan && plan.price > 0 && !isBlockedRole && (
+                  <>
+                    <Button
+                      danger
+                      type="primary"
+                      className="mt-4 w-full"
+                      onClick={showCancelModal}
+                    >
                       Hủy gói
                     </Button>
-                  </Popconfirm>
+
+                    <Modal
+                      title="Xác nhận hủy gói"
+                      open={cancelModalOpen}
+                      onOk={confirmCancelPackage}
+                      onCancel={() => setCancelModalOpen(false)}
+                      okText="Đồng ý"
+                      cancelText="Hủy"
+                    >
+                      <p>Bạn chắc chắn muốn hủy gói hiện tại?</p>
+                    </Modal>
+                  </>
                 )}
               </motion.div>
             );
           })}
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="bg-gray-100 py-16 px-4">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-4xl font-bold text-center text-gray-900 mb-12"
-        >
-          Success Stories
-        </motion.h2>
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-          {testimonials.map((testimonial, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.2 }}
-              className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center text-center"
-            >
-              <img
-                src={testimonial.image}
-                alt={testimonial.name}
-                className="w-16 h-16 rounded-full object-cover mb-4"
-              />
-              <p className="text-gray-600 italic mb-4">"{testimonial.quote}"</p>
-              <p className="font-semibold text-gray-800">
-                {testimonial.name}
-              </p>
-            </motion.div>
-          ))}
         </div>
       </section>
     </div>

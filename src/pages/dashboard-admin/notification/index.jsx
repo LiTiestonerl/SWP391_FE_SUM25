@@ -160,7 +160,7 @@ const CreateNotification = () => {
           name="sendDate"
           rules={[{ required: true, message: "Vui lòng chọn ngày gửi" }]}
         >
-          <DatePicker showTime format="YYYY-MM-DD HH:mm" className="w-full" />
+          <DatePicker format={"YYYY-MM-DD"} className="w-full" />
         </Form.Item>
 
         <Form.Item>

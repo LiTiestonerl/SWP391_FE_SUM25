@@ -80,9 +80,11 @@ function Membership() {
   };
 
   const onFinish = async (values) => {
-    values.featuresDescription = values.featuresDescription
-      .replace(/\. /g, ".\n")
-      .replace(/; /g, ";\n");
+    if (values.featuresDescription) {
+      values.featuresDescription = values.featuresDescription
+        .replace(/\. /g, ".\n")
+        .replace(/; /g, ";\n");
+    }
 
     try {
       if (isEditing && editId !== null) {
@@ -125,40 +127,40 @@ function Membership() {
       key: "duration",
       sorter: (a, b) => a.duration - b.duration,
     },
-   {
-  title: "Features Description",
-  dataIndex: "featuresDescription",
-  key: "featuresDescription",
-  render: (text) => (
-    <ul
-      style={{
-        whiteSpace: "pre-wrap",
-        wordBreak: "break-word",
-        maxWidth: 800,
-        lineHeight: 1.6,
-        padding: "6px 0",
-        margin: 0,
-      }}
-    >
-      {text
-        .split(/(?<=[.!?])\s+/) 
-        .map((line, index) => (
-          <li
-            key={index}
+    {
+      title: "Features Description",
+      dataIndex: "featuresDescription",
+      key: "featuresDescription",
+      render: (text) =>
+        text ? (
+          <ul
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              maxWidth: 800,
+              lineHeight: 1.6,
+              padding: "6px 0",
+              margin: 0,
             }}
           >
-            <span style={{ color: "green" }}>✔</span>
-            <span>{line.trim()}</span>
-          </li>
-        ))}
-    </ul>
-  ),
-},
-
+            {text.split(/(?<=[.!?])\s+/).map((line, index) => (
+              <li
+                key={index}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <span style={{ fontSize: "1.2rem" }}>✅</span>
+                <span>{line.trim()}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <i style={{ color: "gray" }}>No description</i>
+        ),
+    },
     {
       title: "Actions",
       key: "actions",
@@ -212,7 +214,7 @@ function Membership() {
         dataSource={filteredData}
         columns={columns}
         rowKey="memberPackageId"
-        scroll={{ x: "max-content" }} // ✅ chống cắt nội dung dài
+        scroll={{ x: "max-content" }}
       />
 
       <Modal
@@ -240,9 +242,7 @@ function Membership() {
           <Form.Item
             name="packageName"
             label="Package Name"
-            rules={[
-              { required: true, message: "Please enter the package name." },
-            ]}
+            rules={[{ required: true, message: "Please enter the package name." }]}
           >
             <Input />
           </Form.Item>
@@ -266,9 +266,7 @@ function Membership() {
           <Form.Item
             name="featuresDescription"
             label="Features Description"
-            rules={[
-              { required: true, message: "Please enter features." },
-            ]}
+            rules={[{ required: true, message: "Please enter features." }]}
           >
             <Input.TextArea
               rows={6}

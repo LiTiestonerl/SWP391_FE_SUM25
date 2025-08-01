@@ -6,7 +6,6 @@ import {
   Modal,
   Select,
   Tag,
-  Popconfirm,
   message,
 } from "antd";
 import {
@@ -32,10 +31,14 @@ const ManageAccount = () => {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [loading, setLoading] = useState(false);
+
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [tempRoleId, setTempRoleId] = useState("");
   const [tempStatus, setTempStatus] = useState("inactive");
+
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -151,14 +154,14 @@ const ManageAccount = () => {
                 setModalVisible(true);
               }}
             />
-            <Popconfirm
-              title="Bạn có chắc chắn muốn xóa người dùng này?"
-              onConfirm={() => handleDelete(record.userId)}
-              okText="Xóa"
-              cancelText="Hủy"
-            >
-              <Button icon={<DeleteOutlined />} danger />
-            </Popconfirm>
+            <Button
+              icon={<DeleteOutlined />}
+              danger
+              onClick={() => {
+                setUserToDelete(record);
+                setDeleteModalVisible(true);
+              }}
+            />
           </>
         );
       },
@@ -193,6 +196,7 @@ const ManageAccount = () => {
         pagination={{ pageSize: 10 }}
       />
 
+      {/* Modal cập nhật người dùng */}
       <Modal
         title="Cập nhật người dùng"
         visible={modalVisible}
@@ -208,8 +212,8 @@ const ManageAccount = () => {
               value={tempRoleId}
               onChange={(value) => setTempRoleId(value)}
             >
-              <Option value={1}>User</Option>
-              <Option value={2}>Coach</Option>
+              <Option value={1}>Coach</Option>
+              <Option value={3}>User</Option>
             </Select>
           </div>
 
@@ -225,6 +229,25 @@ const ManageAccount = () => {
             </Select>
           </div>
         </div>
+      </Modal>
+
+      {/* Modal xác nhận xóa */}
+      <Modal
+        title="Xác nhận xóa người dùng"
+        visible={deleteModalVisible}
+        onCancel={() => setDeleteModalVisible(false)}
+        onOk={() => {
+          handleDelete(userToDelete.userId);
+          setDeleteModalVisible(false);
+        }}
+        okText="Xóa"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true }}
+      >
+        <p>
+          Bạn có chắc chắn muốn xóa người dùng{" "}
+          <strong>{userToDelete?.userName}</strong> không?
+        </p>
       </Modal>
     </div>
   );

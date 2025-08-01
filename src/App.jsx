@@ -29,12 +29,12 @@ import Social from "./pages/social";
 import StatusPage from "./pages/status";
 import NewsDetailPage from "./pages/newsdetail";
 import CigarettePackages from "./pages/dashboard-admin/cigarettepackages";
-import CreateNotification from "./pages/dashboard-admin/notification";
 import Payment from "./pages/payment-result/Payment";
 import Achievement from "./pages/achievement";
 import ManageAachiement from "./pages/dashboard-admin/achievement";
-import QuitPlanAdmin from "./pages/dashboard-admin/quitplan";
 import CoachProfile from "./pages/coachProfile";
+import CreateNotification from "./pages/dashboard-admin/notification";
+import CigaretteRecommendation from "./pages/dashboard-admin/cigaretterecommendation";
 
 function App() {
   const router = createBrowserRouter([
@@ -140,15 +140,16 @@ function App() {
           element: <CigarettePackages />,
         },
         {
+          path: "cigaretterecommendation",
+          element: <CigaretteRecommendation />,
+        },
+      
+        {
           path: "achievement",
           element: <ManageAachiement />,
         },
-        { path: "notification", element: <CreateNotification /> },
-        {
-          path: "quitplan",
-          element: <QuitPlanAdmin />,
-        },
-
+         { path: "notification", 
+          element: <CreateNotification /> },
       ],
     },
 

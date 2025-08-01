@@ -15,8 +15,8 @@ import {
   UserOutlined,
   BellOutlined,
   StarOutlined,
-  CompassOutlined ,
-  
+  CompassOutlined,
+  MedicineBoxOutlined ,
 } from "@ant-design/icons";
 import { Breadcrumb, Layout, Menu, theme } from "antd";
 import { Link, Outlet } from "react-router-dom";
@@ -49,11 +49,14 @@ const items = [
   getItem("Manage Account", "manageaccount", <UserOutlined />),
   getItem("Membership", "membership", <MobileOutlined />),
   getItem("Cigarette Packages", "cigarettepackages", <FileOutlined />),
-  getItem("Cigarette Recommendation", "cigaretterecommendation", <FileOutlined />),
+  getItem(
+    "Cigarette Recommendation",
+    "cigaretterecommendation",
+    <MedicineBoxOutlined  />
+  ),
   getItem("Achievement", "achievement", <StarOutlined />),
   getItem("Notification", "notification", <BellOutlined />),
-  getItem("Quit Plan", "quitplan", <CompassOutlined  />),
-
+  getItem("Quit Plan", "quitplan", <CompassOutlined />),
 ];
 const Dashbroad = () => {
   const [collapsed, setCollapsed] = useState(false);
