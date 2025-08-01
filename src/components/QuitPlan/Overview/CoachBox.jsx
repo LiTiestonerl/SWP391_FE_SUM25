@@ -71,16 +71,38 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
   const isFree = String(membership || '').toUpperCase().includes('FREE');
   const selected = coachList.find((c) => c.userId === selectedCoachId);
 
-  // 🔹 Load coach từ API
+  // 🔹 Load coach list từ API
   useEffect(() => {
     api.get('/coach')
       .then(res => {
-        setCoachList(res.data || []);
+        const list = (res.data || []).map(c => ({
+          ...c,
+          specialization: c.roleName || 'Coach',
+          avatarUrl: c.avatarUrl || null,
+        }));
+        setCoachList(list);
       })
-      .catch(err => {
-        console.error('Failed to load coach list', err);
-      });
+      .catch(err => console.error('Failed to load coach list', err));
   }, []);
+
+  // 🔹 Nếu có selectedCoachId nhưng chưa có trong danh sách thì fetch chi tiết
+  useEffect(() => {
+    if (!selectedCoachId) return;
+    const found = coachList.find(c => c.userId === selectedCoachId);
+    if (found) return;
+
+    api.get(`/coach/${selectedCoachId}`)
+      .then(res => {
+        if (!res?.data) return;
+        const detail = {
+          ...res.data,
+          specialization: res.data.roleName || 'Coach',
+          avatarUrl: res.data.avatarUrl || null,
+        };
+        setCoachList(prev => prev.some(c => c.userId === detail.userId) ? prev : [detail, ...prev]);
+      })
+      .catch(err => console.error('Failed to load coach detail', err));
+  }, [selectedCoachId, coachList]);
 
   const handleOpenSelector = () => {
     if (isFree) {
@@ -99,7 +121,6 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
   return (
     <>
       <style>{customScrollbarStyles}</style>
-
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden min-h-[685px] flex flex-col">
         <h3 className="text-lg font-semibold text-emerald-700 px-6 pt-6 pb-1">Coach</h3>
 
@@ -132,7 +153,7 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
             </div>
             <div className="p-6 flex flex-col flex-1 overflow-hidden text-[14px] text-gray-700 space-y-2 leading-relaxed">
               <h4 className="text-xl font-bold text-gray-800">{selected.fullName}</h4>
-              <p className="text-emerald-600 font-medium">{selected.specialization || 'Coach'}</p>
+              <p className="text-emerald-600 font-medium">{selected.specialization}</p>
               <p><span className="font-semibold text-gray-800">Experience:</span> {selected.experience || 0} years</p>
               <p><span className="font-semibold text-gray-800">Qualification:</span> {selected.qualification || 'N/A'}</p>
               <p className="italic text-gray-600">{selected.introduction || ''}</p>
@@ -185,7 +206,7 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
                     <button
                       key={coach.userId}
                       onClick={() => {
-                        onSelect(coach.userId);
+                        onSelect(coach); // trả full object cho parent
                         setShowSelector(false);
                       }}
                       className="min-w-[240px] flex-shrink-0 flex flex-col items-center gap-2 border p-4 rounded-2xl bg-white hover:bg-emerald-50"
@@ -199,7 +220,7 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
                       </div>
                       <div className="text-sm text-center mt-2">
                         <div className="font-semibold text-gray-800 text-[14px]">{coach.fullName}</div>
-                        <div className="text-gray-500 text-xs">{coach.specialization || 'Coach'}</div>
+                        <div className="text-gray-500 text-xs">{coach.specialization}</div>
                       </div>
                     </button>
                   ))}

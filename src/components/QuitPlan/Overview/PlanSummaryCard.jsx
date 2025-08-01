@@ -2,15 +2,6 @@ import React from 'react';
 import dayjs from 'dayjs';
 import { FiEdit2, FiTrash2, FiCheckCircle } from 'react-icons/fi';
 
-const coachList = [
-  { id: 1, name: "Dr. Sarah Johnson" },
-  { id: 2, name: "Michael Chen" },
-  { id: 3, name: "Emma Williams" },
-  { id: 4, name: "Dr. Robert Anderson" },
-  { id: 5, name: "Dr. Emily Nguyen" },
-  { id: 6, name: "Dr. David Lee" },
-];
-
 const formatMoney = (amount) => {
   if (!amount && amount !== 0) return '0 VND';
   const num = Number(String(amount).replace(/[.,]/g, ''));
@@ -26,10 +17,7 @@ const PlanSummaryCard = ({ plan, onEdit, onDelete, onComplete }) => {
   const totalDays = dayjs(plan.endDate).diff(dayjs(plan.startDate), 'day') + 1;
   const percent = Math.min(100, Math.max(0, Math.round((daysPassed / totalDays) * 100)));
 
-  const selectedCoach = coachList.find(c => c.id === plan.coach);
   const isCompleted = plan?.status?.toLowerCase?.() === 'completed';
-
-  // ✅ Lấy brand từ plan.brand (được trả về từ Create), có fallback nhẹ nếu tương lai đổi field
   const brandName = plan.brand || plan?.cigaretteBrand || 'N/A';
 
   return (
@@ -63,7 +51,7 @@ const PlanSummaryCard = ({ plan, onEdit, onDelete, onComplete }) => {
       <h2 className="text-xl font-bold text-emerald-700">{plan.name}</h2>
       <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-gray-600">
         <div><b className="text-gray-800">Reason:</b> {plan.reason}</div>
-        <div><b className="text-gray-800">Coach:</b> {selectedCoach?.name || 'Not selected'}</div>
+        <div><b className="text-gray-800">Coach:</b> {plan.coachName || 'Not selected'}</div>
         <div><b className="text-gray-800">Status:</b> {plan.status ?? 'Active'}</div>
         <div><b className="text-gray-800">Addiction:</b> {plan.addictionLevel}</div>
         <div><b className="text-gray-800">Start:</b> {dayjs(plan.startDate).format('DD/MM/YYYY')}</div>

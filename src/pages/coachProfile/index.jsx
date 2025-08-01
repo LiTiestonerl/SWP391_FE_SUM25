@@ -80,26 +80,6 @@ const CoachProfile = () => {
     <div className="max-w-4xl mx-auto mt-[10rem] p-4 md:p-8 bg-gray-50">
       {/* Avatar & Info */}
       <div className="flex flex-col md:flex-row items-center gap-6 mb-8">
-        <div className="relative">
-          <img
-            src={
-              coachData.avatar ||
-              "https://images.unsplash.com/photo-1494790108377-be9c29b29330"
-            }
-            alt={coachData.fullName}
-            className="w-32 h-32 rounded-full object-cover shadow-lg"
-            onError={(e) => {
-              e.target.src =
-                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde";
-            }}
-          />
-          <span
-            className={`absolute bottom-0 right-0 w-6 h-6 rounded-full ${
-              coachData.status === "active" ? "bg-green-500" : "bg-red-500"
-            } border-2 border-white`}
-            title={`Status: ${coachData.status}`}
-          ></span>
-        </div>
         <div className="text-center md:text-left">
           <h1 className="text-3xl font-bold text-gray-800">{coachData.fullName}</h1>
           <div className="flex items-center gap-2 justify-center md:justify-start mt-2">
