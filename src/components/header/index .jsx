@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/features/userSlice";
 import NotificationBell from "../notifications/notificationBell";
-import api from "../../configs/axios"; // Đường dẫn tới file axios config
+import api from "../../configs/axios";
 import "./header.css";
 
 const Header = () => {
@@ -15,6 +15,12 @@ const Header = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
+  const userId = user?.id || user?.userId;
+
+  const avatarSrc =
+    localStorage.getItem(`custom_avatar_${userId}`) ||
+    user?.avatar ||
+    "/images/avatar.jpg";
 
   const navItems = [
     { id: 1, label: "Home", href: "home" },
@@ -47,7 +53,7 @@ const Header = () => {
     if (user) {
       fetchNotifications();
     } else {
-      setNotifications([]); // reset khi logout
+      setNotifications([]);
     }
   }, [user]);
 
@@ -56,6 +62,7 @@ const Header = () => {
       <header className="fixed w-full top-0 z-50 bg-gray-900 text-white transition-all duration-300">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
+            {/* Logo */}
             <Link to="/" className="flex-shrink-0 flex items-center space-x-2">
               <img
                 src="/images/logo.jpg"
@@ -69,6 +76,7 @@ const Header = () => {
               <span className="text-sm font-bold tracking-wide">NoSmoking</span>
             </Link>
 
+            {/* Navigation Links */}
             <nav className="hidden md:flex space-x-8">
               {navItems.map((item) => (
                 <Link
@@ -81,6 +89,7 @@ const Header = () => {
               ))}
             </nav>
 
+            {/* Right actions: notifications + avatar/login */}
             <div className="flex items-center space-x-4">
               {user && (
                 <NotificationBell
@@ -96,16 +105,12 @@ const Header = () => {
                     className="flex items-center space-x-2 focus:outline-none"
                   >
                     <img
-                      src={
-                        localStorage.getItem("custom_avatar") ||
-                        user?.avatar ||
-                        "/images/avatar.jpg"
-                      }
+                      src={avatarSrc}
                       alt={user?.fullName}
                       className="h-8 w-8 rounded-full object-cover"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = "https://via.placeholder.com/32";
+                        e.target.src = "/images/avatar.jpg";
                       }}
                     />
                   </button>
@@ -121,7 +126,6 @@ const Header = () => {
                           Dashboard
                         </Link>
                       )}
-
                       <Link
                         to="/user-profile"
                         onClick={() => setShowDropdown(false)}
@@ -129,7 +133,6 @@ const Header = () => {
                       >
                         Profile
                       </Link>
-
                       <button
                         onClick={handleLogout}
                         className="block w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700"
@@ -156,6 +159,7 @@ const Header = () => {
                 </div>
               )}
 
+              {/* Mobile menu button */}
               <button
                 onClick={toggleMenu}
                 className="md:hidden p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
@@ -165,6 +169,7 @@ const Header = () => {
             </div>
           </div>
 
+          {/* Mobile menu */}
           <div className={`md:hidden ${isOpen ? "block" : "hidden"}`}>
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navItems.map((item) => (
@@ -197,18 +202,16 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Marquee */}
+      {/* Marquee banner */}
       <div className="marquee-container dark">
         <div className="marquee-text text-white">
-          NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE
         </div>
       </div>
     </>

@@ -1,52 +1,58 @@
 import React, { useState, useEffect } from "react";
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell,
 } from "recharts";
-import {
-  FaTasks,
-  FaFileAlt,
-  FaDollarSign,
-  FaMedal,
-} from "react-icons/fa";
+import { FaTasks, FaFileAlt, FaDollarSign, FaMedal } from "react-icons/fa";
 import api from "../../../configs/axios";
 
 const Overview = () => {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-
   const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [quitplansRes, postsRes, paymentsRes, packagesRes, badgesRes] =
+        const [quitplansRes, postsRes, paymentsRes, badgesRes] =
           await Promise.all([
-            api.get("/admin/dashboard/quitplans"),
+            api.get("/admin/dashboard/users/monthly"),
             api.get("/admin/dashboard/posts"),
             api.get("/admin/dashboard/payments"),
-            api.get("/admin/dashboard/packages"),
-            api.get("/admin/dashboard/badges"),
+            api.get("/admin/dashboard/coaches/monthly"),
           ]);
 
-        const quitplans = quitplansRes.data;
+        const quitplansData = quitplansRes.data;
+        const badgesData = badgesRes.data;
         const posts = postsRes.data;
         const payments = paymentsRes.data;
-        const packages = packagesRes.data;
-        const badges = badgesRes.data;
 
-        setData({ quitplans, posts, payments, packages, badges });
+        const totalUsers = quitplansData.reduce(
+          (acc, current) => acc + current.count,
+          0
+        );
+        const totalCoaches = badgesData.reduce(
+          (acc, current) => acc + current.count,
+          0
+        );
 
-        // Chart data mock từ quitplans (có thể cập nhật bằng dữ liệu thời gian thực nếu BE cung cấp)
+        setData({
+          posts,
+          payments,
+          totalUsers,
+          totalCoaches,
+        });
+
+        // Chart hiển thị số lượng user và coach
         setChartData([
-          { name: "Active", value: quitplans.activePlans },
-          { name: "Completed", value: quitplans.completedPlans },
-          { name: "Canceled", value: quitplans.canceledPlans },
+          { name: "Users", value: totalUsers },
+          { name: "Coaches", value: totalCoaches },
         ]);
       } catch (err) {
         console.error("Failed to load dashboard data:", err);
@@ -88,7 +94,7 @@ const Overview = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <MetricCard
           title="Total User"
-          value={data.quitplans.totalPlans}
+          value={data.totalUsers}
           icon={FaTasks}
           color="bg-blue-500"
         />
@@ -107,49 +113,48 @@ const Overview = () => {
         />
         <MetricCard
           title="Total Coach"
-          value={data.badges.totalBadgesAwarded}
+          value={data.totalCoaches}
           icon={FaMedal}
           color="bg-purple-500"
         />
       </div>
 
-      {/* Chart */}
+      {/* Bar Chart */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          Quit Plan Status
+          Số lượng Users và Coaches
         </h2>
 
         <div className="h-[400px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
+            <BarChart
               data={chartData}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
             >
-              <defs>
-                <linearGradient id="colorQuit" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis dataKey="name" stroke="#6B7280" fontSize={12} />
-              <YAxis stroke="#6B7280" fontSize={12} tickFormatter={(v) => v.toLocaleString()} />
+              <YAxis
+                stroke="#6B7280"
+                fontSize={12}
+                tickFormatter={(value) => value.toLocaleString()}
+              />
               <Tooltip
+                formatter={(value) => [`${value.toLocaleString()}`, "Số lượng"]}
                 contentStyle={{
                   backgroundColor: "#FFF",
-                  border: "none",
                   borderRadius: "8px",
                   boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                 }}
               />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="#3B82F6"
-                fillOpacity={1}
-                fill="url(#colorQuit)"
-              />
-            </AreaChart>
+              <Bar dataKey="value">
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.name === "Users" ? "#3B82F6" : "#8B5CF6"}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>

@@ -4,6 +4,9 @@ import api from "../../configs/axios";
 import { useDispatch } from "react-redux";
 import { login } from "../../redux/features/userSlice";
 import { Modal, Input, Button, message } from "antd";
+import { updateMembership } from "../../redux/features/userSlice";
+import { useNavigate } from "react-router-dom";
+import { FiArrowUpCircle } from "react-icons/fi";
 
 import {
   FiHome,
@@ -31,6 +34,8 @@ const Social = () => {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState(null);
+  const [showUpgradeMessage, setShowUpgradeMessage] = useState(false);
+  const navigate = useNavigate();
 
   const healthStats = {
     daysSmokeFree: 30,
@@ -56,21 +61,67 @@ const Social = () => {
   };
 
   useEffect(() => {
-    fetchPosts();
-  }, []);
+    const fetchData = async () => {
+      // Kiểm tra user trước tiên
+      if (!user || !user.token) {
+        message.error("Vui lòng đăng nhập để tiếp tục.");
+        navigate("/login");
+        return;
+      }
+
+      setLoading(true); // 1. Bật loading CHỈ MỘT LẦN ở đầu
+      setError(null);
+
+      try {
+        // Lấy thông tin gói thành viên
+        const membershipRes = await api.get("/user-membership/me");
+        dispatch(updateMembership(membershipRes.data));
+        const membership = membershipRes.data;
+
+        const isFreePlan = membership?.memberPackageId === 10;
+        const hasNoPlan = !membership;
+
+        // Dựa vào gói thành viên để quyết định hiển thị gì
+        if (isFreePlan || hasNoPlan) {
+          setShowUpgradeMessage(true);
+        } else {
+          setShowUpgradeMessage(false);
+          // Chỉ fetch bài viết khi user có quyền
+          const postsRes = await api.get("posts");
+          const data = Array.isArray(postsRes.data)
+            ? postsRes.data
+            : postsRes.data.data || [];
+          setPosts(data);
+        }
+      } catch (err) {
+        console.error("Lỗi khi tải dữ liệu:", err);
+        setError("Không thể tải dữ liệu. Vui lòng thử lại.");
+        setShowUpgradeMessage(true); // Hiện thông báo nâng cấp nếu có lỗi
+      } finally {
+        setLoading(false); // 2. Tắt loading CHỈ MỘT LẦN ở cuối cùng
+      }
+    };
+
+    fetchData();
+  }, [user?.token, dispatch, navigate]); // Thêm dispatch và navigate vào mảng phụ thuộc
 
   const handlePostSubmit = async (e) => {
     e.preventDefault();
     if (!newPost.trim()) return;
 
     try {
+      const avatar =
+        localStorage.getItem(`custom_avatar_${user?.userId || user?.id}`) ||
+        user?.avatar ||
+        "/images/avatar.jpg";
+
       const res = await api.post("posts", {
         title: `Post by ${getDisplayName(user)}`,
         content: newPost,
         status: "published",
         userId: user.userId,
         userName: getDisplayName(user),
-        userAvatar: user.avatar || "",
+        userAvatar: avatar,
       });
 
       setPosts((prev) => [res.data, ...prev]);
@@ -126,7 +177,29 @@ const Social = () => {
       console.error("Failed to post comment:", err);
     }
   };
-
+  if (showUpgradeMessage) {
+    return (
+      <div className="pt-24 min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-lg mx-auto">
+          <FiArrowUpCircle className="mx-auto text-green-500 text-6xl mb-4" />
+          <h1 className="text-3xl font-bold text-gray-800 mb-3">
+            Nâng cấp để tham gia cộng đồng
+          </h1>
+          <p className="text-gray-600 mb-8">
+            Gói hiện tại không cho phép truy cập vào cộng đồng. Hãy nâng cấp để
+            chia sẻ, bình luận và kết nối với người khác trên hành trình bỏ
+            thuốc của bạn.
+          </p>
+          <button
+            onClick={() => navigate("/membership")}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out transform hover:scale-105"
+          >
+            Xem các gói nâng cấp
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gray-50 pt-[104px]">
       <div className="max-w-7xl mx-auto px-4 pb-8 flex flex-col md:flex-row gap-6">
@@ -161,11 +234,14 @@ const Social = () => {
               <div className="flex items-center space-x-3 mb-4">
                 <img
                   src={
-                    user.avatar ||
-                    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde"
+                    localStorage.getItem(
+                      `custom_avatar_${user?.userId || user?.id}`
+                    ) ||
+                    user?.avatar ||
+                    "/images/avatar.jpg"
                   }
                   alt="User avatar"
-                  className="h-10 w-10 rounded-full"
+                  className="h-10 w-10 rounded-full object-cover"
                 />
                 <div
                   onClick={() => setIsModalOpen(true)}
@@ -190,9 +266,9 @@ const Social = () => {
                 >
                   <div className="flex items-center space-x-3 mb-4">
                     <img
-                      src={post.userAvatar || "https://placehold.co/40x40"}
-                      alt={post.userName}
-                      className="h-10 w-10 rounded-full"
+                      src={post.userAvatar || "/images/avatar.jpg"}
+                      alt={post.userName || "Anonymous"}
+                      className="h-10 w-10 rounded-full object-cover"
                     />
                     <div>
                       <h3 className="font-semibold">

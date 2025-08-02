@@ -9,14 +9,16 @@ import {
 } from "react-icons/fi";
 import api from "../../configs/axios";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
-import "./UserProfile.css";
-import { useDispatch } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { updateAvatar } from "../../redux/features/userSlice";
+import "./UserProfile.css";
 
 const UserProfile = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const currentUser = useSelector((state) => state.user);
+  const userId = currentUser?.id || currentUser?.userId;
+
   const avatarInputRef = useRef(null);
   const coverInputRef = useRef(null);
 
@@ -27,7 +29,7 @@ const UserProfile = () => {
   const [comments, setComments] = useState({});
   const [visibleComments, setVisibleComments] = useState({});
   const [newComments, setNewComments] = useState({});
-  const user = useSelector((state) => state.user);
+
   const toBase64 = (file) =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -36,19 +38,32 @@ const UserProfile = () => {
       reader.onerror = (error) => reject(error);
     });
 
-  const dispatch = useDispatch();
+  const getAvatar = () =>
+    localStorage.getItem(`custom_avatar_${userId}`) ||
+    currentUser?.avatar ||
+    "/images/avatar.jpg";
+
+  const getCover = () =>
+    localStorage.getItem(`custom_cover_${userId}`) ||
+    currentUser?.coverPhoto ||
+    "https://images.unsplash.com/photo-1584036561566-baf8f5f1b144";
+
+  const [profileInfo, setProfileInfo] = useState({
+    location: currentUser?.location || "",
+    occupation: currentUser?.occupation || "",
+    smokeFreeDate: currentUser?.smokeFreeDate || "",
+    avatar: getAvatar(),
+    coverPhoto: getCover(),
+  });
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const base64 = await toBase64(file);
-
     setProfileInfo((prev) => ({ ...prev, avatar: base64 }));
-
+    localStorage.setItem(`custom_avatar_${userId}`, base64);
     dispatch(updateAvatar(base64));
-
-    localStorage.setItem("custom_avatar", base64);
   };
 
   const handleCoverChange = async (e) => {
@@ -57,50 +72,20 @@ const UserProfile = () => {
 
     const base64 = await toBase64(file);
     setProfileInfo((prev) => ({ ...prev, coverPhoto: base64 }));
-    localStorage.setItem("custom_cover", base64);
-  };
-
-  const [profileInfo, setProfileInfo] = useState({
-    location: currentUser?.location || "",
-    occupation: currentUser?.occupation || "",
-    smokeFreeDate: currentUser?.smokeFreeDate || "",
-    avatar: localStorage.getItem("custom_avatar") || currentUser?.avatar || "",
-    coverPhoto:
-      localStorage.getItem("custom_cover") || currentUser?.coverPhoto || "",
-  });
-
-  const userProfile = {
-    name:
-      currentUser?.name ||
-      currentUser?.fullName ||
-      currentUser?.login ||
-      currentUser?.email ||
-      "Anonymous",
-    avatar: currentUser?.avatar || "/images/avatar.jpg",
-    coverPhoto:
-      currentUser?.coverPhoto ||
-      "https://images.unsplash.com/photo-1584036561566-baf8f5f1b144",
-    stats: {
-      daysSmokeFree: currentUser?.stats?.daysSmokeFree || 0,
-      moneySaved: currentUser?.stats?.moneySaved || 0,
-      healthScore: currentUser?.stats?.healthScore || 0,
-    },
+    localStorage.setItem(`custom_cover_${userId}`, base64);
   };
 
   const handlePostSubmit = async () => {
     if (!currentUser) return alert("Bạn cần đăng nhập để đăng bài");
 
     const postPayload = {
-      title: `Post by ${userProfile.name}`,
+      title: `Post by ${currentUser.fullName || currentUser.email}`,
       content: newContent,
       status: "published",
     };
 
-    console.log("📤 Sending post payload:", postPayload);
-
     try {
       const response = await api.post("posts", postPayload);
-      console.log("✅ Post created:", response.data);
       setPosts([response.data, ...posts]);
       setNewContent("");
       setIsModalOpen(false);
@@ -114,27 +99,24 @@ const UserProfile = () => {
   };
 
   useEffect(() => {
-    const userId = currentUser?.id || currentUser?.userId;
     if (!userId) return;
 
     const fetchPosts = async () => {
       try {
         const res = await api.get(`posts/user/${userId}`);
-        const postsData = Array.isArray(res.data) ? res.data : [];
-        setPosts(postsData);
+        setPosts(Array.isArray(res.data) ? res.data : []);
       } catch (error) {
         console.error("❌ Error fetching posts", error);
       }
     };
 
     fetchPosts();
-  }, [currentUser?.id, currentUser?.userId]);
+  }, [userId]);
 
   const toggleComments = async (postId) => {
     const isVisible = visibleComments[postId];
     setVisibleComments((prev) => ({ ...prev, [postId]: !isVisible }));
 
-    // Nếu chưa load comment thì fetch
     if (!isVisible && !comments[postId]) {
       try {
         const res = await api.get(`/posts/${postId}/comments`);
@@ -144,6 +126,7 @@ const UserProfile = () => {
       }
     }
   };
+
   const handleCommentSubmit = async (postId) => {
     const content = newComments[postId]?.trim();
     if (!content) return;
@@ -163,22 +146,6 @@ const UserProfile = () => {
     } catch (err) {
       console.error("❌ Không thể gửi comment:", err);
     }
-    const response = await api.post("/auth/google", {
-      credential: googleCredential,
-    });
-
-    // Kiểm tra dữ liệu trả về
-    console.log("✅ Google login response:", response.data);
-
-    // Dispatch vào Redux
-    dispatch(
-      login({
-        userId: response.data.userId || response.data.id,
-        email: response.data.email,
-        fullName: response.data.fullName || response.data.name,
-        avatar: response.data.avatar || response.data.picture,
-      })
-    );
   };
 
   return (
@@ -188,7 +155,7 @@ const UserProfile = () => {
         <div className="relative">
           <div className="h-80 rounded-b-lg overflow-hidden">
             <img
-              src={profileInfo.coverPhoto || userProfile.coverPhoto}
+              src={profileInfo.coverPhoto}
               alt="Cover"
               className="w-full h-full object-cover"
             />
@@ -214,8 +181,8 @@ const UserProfile = () => {
           <div className="flex items-center space-x-4">
             <div className="relative">
               <img
-                src={profileInfo.avatar || userProfile.avatar}
-                alt={userProfile.name}
+                src={profileInfo.avatar}
+                alt={currentUser?.fullName}
                 className="w-32 h-32 rounded-full border-4 border-white object-cover"
               />
               <button
@@ -234,14 +201,10 @@ const UserProfile = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                {currentUser?.fullName ||
-                  currentUser?.userName ||
-                  currentUser?.email}
+                {currentUser?.fullName || currentUser?.userName || currentUser?.email}
               </h1>
             </div>
           </div>
-
-          <div className="mt-4 sm:mt-0"></div>
         </div>
 
         {/* Tabs */}
@@ -250,7 +213,7 @@ const UserProfile = () => {
             {[
               { label: "Posts" },
               { label: "Status", onClick: () => navigate("/status") },
-              { label: "Achivement", onClick: () => navigate("/achievement") },
+              { label: "Achievement", onClick: () => navigate("/achievement") },
             ].map((item, index) => (
               <div
                 key={index}
@@ -300,10 +263,7 @@ const UserProfile = () => {
                     className="w-full border px-3 py-2 rounded"
                     value={profileInfo.location}
                     onChange={(e) =>
-                      setProfileInfo({
-                        ...profileInfo,
-                        location: e.target.value,
-                      })
+                      setProfileInfo({ ...profileInfo, location: e.target.value })
                     }
                   />
                   <input
@@ -312,10 +272,7 @@ const UserProfile = () => {
                     className="w-full border px-3 py-2 rounded"
                     value={profileInfo.occupation}
                     onChange={(e) =>
-                      setProfileInfo({
-                        ...profileInfo,
-                        occupation: e.target.value,
-                      })
+                      setProfileInfo({ ...profileInfo, occupation: e.target.value })
                     }
                   />
                   <input
@@ -323,10 +280,7 @@ const UserProfile = () => {
                     className="w-full border px-3 py-2 rounded"
                     value={profileInfo.smokeFreeDate}
                     onChange={(e) =>
-                      setProfileInfo({
-                        ...profileInfo,
-                        smokeFreeDate: e.target.value,
-                      })
+                      setProfileInfo({ ...profileInfo, smokeFreeDate: e.target.value })
                     }
                   />
                   <div className="flex gap-2">
@@ -355,12 +309,8 @@ const UserProfile = () => {
                 <div className="bg-white rounded-lg shadow p-6">
                   <div className="flex space-x-4">
                     <img
-                      src={
-                        localStorage.getItem("custom_avatar") ||
-                        user?.avatar ||
-                        "/images/avatar.jpg"
-                      }
-                      alt={user?.fullName}
+                      src={profileInfo.avatar}
+                      alt={currentUser?.fullName}
                       className="h-10 w-10 rounded-full"
                     />
                     <div
@@ -374,20 +324,12 @@ const UserProfile = () => {
               )}
 
               {posts.map((post) => (
-                <div
-                  key={post.postId}
-                  className="bg-white rounded-lg shadow p-6"
-                >
+                <div key={post.postId} className="bg-white rounded-lg shadow p-6">
                   <div className="flex items-center space-x-3 mb-4">
                     <img
-                      onClick={() => handleViewPost(post.postId)}
-                      src={
-                        localStorage.getItem("custom_avatar") ||
-                        user?.avatar ||
-                        "/images/avatar.jpg"
-                      }
-                      alt={user?.fullName}
-                      className="h-10 w-10 rounded-full cursor-pointer hover:opacity-80"
+                      src={profileInfo.avatar}
+                      alt={currentUser?.fullName}
+                      className="h-10 w-10 rounded-full"
                     />
                     <div>
                       <h3 className="font-semibold">
@@ -400,7 +342,6 @@ const UserProfile = () => {
                   </div>
                   <p className="text-gray-800 mb-4">{post.content}</p>
 
-                  {/* Vùng hiển thị comment nếu được bật */}
                   {visibleComments[post.postId] && (
                     <div className="space-y-2 border-t pt-4 mt-2">
                       {(comments[post.postId] || []).map((cmt) => (
@@ -408,12 +349,9 @@ const UserProfile = () => {
                           key={cmt.commentId}
                           className="text-sm text-gray-700 bg-gray-100 px-3 py-2 rounded"
                         >
-                          <strong>{cmt.userName || "Ẩn danh"}:</strong>{" "}
-                          {cmt.content}
+                          <strong>{cmt.userName || "Ẩn danh"}:</strong> {cmt.content}
                         </div>
                       ))}
-
-                      {/* Ô nhập comment mới */}
                       <div className="flex items-center mt-2">
                         <input
                           type="text"
@@ -436,6 +374,7 @@ const UserProfile = () => {
                       </div>
                     </div>
                   )}
+
                   <div className="flex items-center space-x-6 text-gray-500 mt-4">
                     <button
                       onClick={() => toggleComments(post.postId)}
@@ -444,7 +383,6 @@ const UserProfile = () => {
                       <FiMessageSquare className="h-5 w-5" />
                       <span className="text-sm">Comments</span>
                     </button>
-
                     <button className="flex items-center space-x-2 hover:text-blue-600">
                       <FiShare2 className="h-5 w-5" />
                     </button>

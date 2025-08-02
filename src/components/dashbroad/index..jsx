@@ -45,7 +45,6 @@ const headerMenu = (
 
 const items = [
   getItem("Overview", "overview", <PieChartOutlined />),
-  getItem("Manage Rating", "managerating", <DesktopOutlined />),
   getItem("Manage Account", "manageaccount", <UserOutlined />),
   getItem("Membership", "membership", <MobileOutlined />),
   getItem("Cigarette Packages", "cigarettepackages", <FileOutlined />),

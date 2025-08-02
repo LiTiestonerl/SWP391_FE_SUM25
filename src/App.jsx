@@ -8,7 +8,6 @@ import { persistor, store } from "./redux/store";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import OverviewPage from "./pages/dashboard-admin/overview";
-import ManageRating from "./pages/dashboard-admin/managerating";
 import ForgotPasswordPage from "./pages/dashboard-admin/forgot-password";
 import NotificationsPage from "./pages/notifications";
 import QuitPlanPage from "./pages/quit-plan";
@@ -122,10 +121,7 @@ function App() {
           path: "overview",
           element: <OverviewPage />,
         },
-        {
-          path: "managerating",
-          element: <ManageRating />,
-        },
+     
         {
           path: "manageaccount",
           element: <ManageAccount />,
