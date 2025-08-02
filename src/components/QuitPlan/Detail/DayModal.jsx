@@ -1,31 +1,34 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Modal as AntdModal, Input, Button, Tooltip, Divider, message } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
-import api from "../../../configs/axios";
+import { quitProgressService, noSmokingHelpers } from "../../../services/quitPlanService";
 
 const DayModal = ({ open, onClose, day, weekNumber, weekTitle, onDelete }) => {
-  if (!day) return null;
-
   const [cigarettesSmoked, setCigarettesSmoked] = useState(0);
   const [smokingFreeDays, setSmokingFreeDays] = useState(0);
   const [healthStatus, setHealthStatus] = useState("");
   const [stageId, setStageId] = useState(1);
   const [loading, setLoading] = useState(false);
 
+  if (!day) return null;
+
   const handleSave = async () => {
     setLoading(true);
     try {
-      await api.post("/quit-progress/update", {
+      await quitProgressService.updateProgress({
         date: day.date,
         cigarettesSmoked,
         smokingFreeDays,
         healthStatus,
         stageId,
       });
-      message.success("Progress saved successfully!");
+
+      const motivationalMsg = noSmokingHelpers.getMotivationalMessage(smokingFreeDays);
+      message.success(`Progress saved! ${motivationalMsg}`);
       onClose();
     } catch (error) {
-      message.error("Failed to save progress.");
+      console.error('Error saving progress:', error);
+      message.error("Failed to save progress. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -37,9 +40,10 @@ const DayModal = ({ open, onClose, day, weekNumber, weekTitle, onDelete }) => {
       onCancel={onClose}
       footer={null}
       width={600}
-      closable={false}
       centered
+      closable={false}
     >
+      {/* Header */}
       <div className="flex justify-between items-center border-b border-gray-300 px-6 py-3 bg-white">
         <h2 className="text-xl font-bold text-gray-800">
           Update Progress - {day.title || `Day ${day.dayNumber}`} (Week: {weekTitle || weekNumber})
@@ -59,6 +63,7 @@ const DayModal = ({ open, onClose, day, weekNumber, weekTitle, onDelete }) => {
         </div>
       </div>
 
+      {/* Content */}
       <div className="px-6 py-4 space-y-4">
         <div>
           <label className="font-medium text-gray-700">Date:</label>

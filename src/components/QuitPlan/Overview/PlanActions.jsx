@@ -81,6 +81,71 @@ export const ConfirmCompleteModal = ({ open, onClose, onConfirm }) => (
   </AnimatePresence>
 );
 
+export const ConfirmCancelModal = ({ open, onClose, onConfirm }) => {
+  const [reason, setReason] = useState('');
+
+  const handleConfirm = () => {
+    onConfirm(reason || 'User requested cancellation');
+    setReason('');
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            className="bg-white rounded-xl p-6 shadow-xl max-w-md w-full space-y-4"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.8 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">⏸️</div>
+              <h3 className="text-lg font-bold text-orange-600">Cancel No Smoking Plan?</h3>
+            </div>
+            <p className="text-sm text-gray-600">
+              Are you sure you want to cancel your No Smoking plan? You can always create a new one later.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reason for cancellation (optional):
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="w-full border rounded-lg p-3 text-sm"
+                rows={3}
+                placeholder="Let us know why you're cancelling..."
+              />
+            </div>
+            <div className="flex gap-3 pt-3">
+              <button
+                onClick={handleConfirm}
+                className="flex-1 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+              >
+                Cancel Plan
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-1 py-2 border rounded hover:bg-gray-100"
+              >
+                Keep Plan
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
   const [touched, setTouched] = useState(false);
   const [form, setForm] = useState({
@@ -247,4 +312,3 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
     </AnimatePresence>
   );
 };
-
