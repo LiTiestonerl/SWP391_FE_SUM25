@@ -34,7 +34,6 @@ import Achievement from "./pages/achievement";
 import ManageAachiement from "./pages/dashboard-admin/achievement";
 import CoachProfile from "./pages/coachProfile";
 import CreateNotification from "./pages/dashboard-admin/notification";
-import CigaretteRecommendation from "./pages/dashboard-admin/cigaretterecommendation";
 
 function App() {
   const router = createBrowserRouter([
@@ -139,10 +138,7 @@ function App() {
           path: "cigarettepackages",
           element: <CigarettePackages />,
         },
-        {
-          path: "cigaretterecommendation",
-          element: <CigaretteRecommendation />,
-        },
+        
 
         {
           path: "achievement",
