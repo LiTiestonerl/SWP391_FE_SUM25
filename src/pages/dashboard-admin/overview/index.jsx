@@ -87,7 +87,7 @@ const Overview = () => {
       {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <MetricCard
-          title="Total Quit Plans"
+          title="Total User"
           value={data.quitplans.totalPlans}
           icon={FaTasks}
           color="bg-blue-500"
@@ -106,7 +106,7 @@ const Overview = () => {
           prefix="$"
         />
         <MetricCard
-          title="Badges Awarded"
+          title="Total Coach"
           value={data.badges.totalBadgesAwarded}
           icon={FaMedal}
           color="bg-purple-500"

@@ -20,10 +20,14 @@ const Membership = () => {
   const fetchPackages = async () => {
     try {
       const response = await api.get("/member-packages");
+      const hiddenPackagesStr = localStorage.getItem("hiddenPackages");
+      const hiddenPackageIds = hiddenPackagesStr ? JSON.parse(hiddenPackagesStr) : [];
+
       const apiPlans = response?.data.map((plan) => ({
         ...plan,
         buttonColor: getButtonColor(plan.packageName),
         recommended: plan.packageName === "HEALTH+",
+         isHidden: hiddenPackageIds.includes(plan.memberPackageId),
       }));
       setPlans(apiPlans);
     } catch (error) {
@@ -87,8 +91,10 @@ const Membership = () => {
   }, [location.state]);
 
   const handleChoosePlan = (plan) => {
-    if (isBlockedRole) {
-      alert("Tài khoản Admin hoặc Coach không thể chọn gói.");
+    if (isBlockedRole || plan.isHidden) {
+      if (isBlockedRole) {
+        alert("Tài khoản Admin hoặc Coach không thể chọn gói.");
+      }
       return;
     }
 
@@ -209,10 +215,11 @@ const Membership = () => {
                   ${index === 0 ? "bg-green-50 border-green-500" : ""}
                   ${index === 1 ? "bg-yellow-50 border-yellow-500" : ""}
                   ${index === 2 ? "bg-blue-50 border-blue-500" : ""}
-                `}
+                  ${plan.isHidden ? "opacity-50 pointer-events-none" : ""}`
+                }
               >
                 {plan.recommended && (
-                  <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-2xl">
+                 <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-2xl">
                     Most Popular
                   </span>
                 )}
@@ -284,19 +291,20 @@ const Membership = () => {
                 </ul>
 
                 <button
-                  onClick={() => {
-                    if (!isCurrentPlan && !isDowngrade && !isBlockedRole) {
-                      handleChoosePlan(plan);
-                    }
-                  }}
-                  disabled={isCurrentPlan || isDowngrade || isBlockedRole}
+                  onClick={() => handleChoosePlan(plan)}
+                 
+                  disabled={
+                    isCurrentPlan || isDowngrade || isBlockedRole || plan.isHidden
+                  }
                   className={`w-full py-3 rounded-lg font-semibold transition duration-300 ${
-                    isCurrentPlan || isDowngrade || isBlockedRole
+                    isCurrentPlan || isDowngrade || isBlockedRole || plan.isHidden
                       ? "bg-gray-400 cursor-not-allowed"
                       : plan.buttonColor + " text-white"
                   }`}
                 >
-                  {isBlockedRole
+                   {plan.isHidden
+                    ? "Hidden"
+                    : isBlockedRole
                     ? "Can't Select"
                     : isCurrentPlan
                     ? "Current Plan"

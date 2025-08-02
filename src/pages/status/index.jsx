@@ -8,13 +8,30 @@ import { useNavigate } from "react-router-dom";
 
 const { Option } = Select;
 
+const packageImages = {
+  1: "/cigarette/1.jpg",
+  2: "/cigarette/2.jpg",
+  3: "/cigarette/3.jpg",
+  4: "/cigarette/4.jpg",
+  5: "/cigarette/5.jpg",
+  6: "/cigarette/6.jpg",
+  7: "/cigarette/7.jpg",
+  8: "/cigarette/8.jpg",
+  9: "/cigarette/9.jpg",
+  10: "/cigarette/10.jpg",
+  11: "/cigarette/11.jpg",
+  12: "/cigarette/12.jpg",
+  13: "/cigarette/13.jpg",
+  14: "/cigarette/14.jpg",
+};
+
 const StatusPage = () => {
   const navigate = useNavigate();
 
   const handleGoToQuitPlan = () => {
     navigate("/quit-plan");
   };
-
+  const [existingStatus, setExistingStatus] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [hasExistingStatus, setHasExistingStatus] = useState(false);
   const [packages, setPackages] = useState([]);
@@ -25,7 +42,7 @@ const StatusPage = () => {
     preferredFlavor: "CHOCOLATE",
     preferredNicotineLevel: "ZERO",
     packageId: null,
-    recordDate: dayjs().format("YYYY-MM-DD"),
+    recordDate: null,
   });
 
   const maxCigarettes = 20;
@@ -82,11 +99,6 @@ const StatusPage = () => {
     if (!formData.packageId) {
       errors.packageId = "Vui lòng chọn gói thuốc của bạn.";
     }
-
-    if (!formData.recordDate) {
-      errors.recordDate = "Vui lòng chọn ngày ghi nhận.";
-    }
-
     setValidationErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -94,11 +106,15 @@ const StatusPage = () => {
       return;
     }
 
+    const { recordDate, ...rest } = formData;
+
     const payload = {
       ...formData,
       preferredNicotineLevel: formData.preferredNicotineLevel?.toUpperCase(),
-      recordDate: dayjs(formData.recordDate).format("YYYY-MM-DD"),
     };
+    if (hasExistingStatus && existingStatus?.recordDate) {
+      payload.recordDate = existingStatus.recordDate;
+    }
 
     try {
       if (hasExistingStatus) {
@@ -108,6 +124,19 @@ const StatusPage = () => {
         await api.post("/smoking-status", payload);
         message.success("Lưu trạng thái thành công!");
       }
+
+      // ✅ Cập nhật lại giao diện (không cần reload)
+      const refreshed = await api.get("/smoking-status");
+      if (refreshed.data) {
+        setFormData({
+          ...refreshed.data,
+          packageId: refreshed.data.cigarettePackageId,
+          preferredNicotineLevel:
+            refreshed.data.preferredNicotineLevel?.toUpperCase(),
+        });
+        setExistingStatus(refreshed.data);
+      }
+
       setIsEditing(false);
       setHasExistingStatus(true);
       setValidationErrors({});
@@ -155,6 +184,7 @@ const StatusPage = () => {
             preferredNicotineLevel:
               res.data.preferredNicotineLevel?.toUpperCase(),
           });
+          setExistingStatus(res.data);
           setHasExistingStatus(true);
           setIsEditing(false);
         } else {
@@ -205,6 +235,9 @@ const StatusPage = () => {
   const selectedPackage = packages.find(
     (pkg) => String(pkg.cigarettePackageId) === String(formData.packageId)
   );
+  const packageImage = selectedPackage
+    ? packageImages[selectedPackage.cigarettePackageId]
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -318,11 +351,27 @@ const StatusPage = () => {
                     </h2>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Package:</span>
-                      <span className="font-medium text-gray-800">
-                        {selectedPackage
-                          ? `${selectedPackage.cigaretteBrand} - ${selectedPackage.cigarettePackageName}`
-                          : formData.cigarettePackageName || formData.packageId}
-                      </span>
+                      {selectedPackage ? (
+                        <div className="flex items-center gap-4">
+                          {packageImage && (
+                            <img
+                              src={packageImage}
+                              alt={`${selectedPackage.cigaretteBrand} - ${selectedPackage.cigarettePackageName}`}
+                              className="w-20 h-20 object-contain rounded shadow"
+                            />
+                          )}
+                          <div>
+                            <p className="font-medium text-gray-800">
+                              {selectedPackage.cigaretteBrand} -{" "}
+                              {selectedPackage.cigarettePackageName}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="font-medium text-gray-800">
+                          {formData.cigarettePackageName || formData.packageId}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -459,27 +508,6 @@ const StatusPage = () => {
                   {validationErrors.packageId && (
                     <p className="text-red-500 text-xs mt-1">
                       {validationErrors.packageId}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block mb-1 text-gray-700">
-                    Record Date
-                  </label>
-                  <DatePicker
-                    value={
-                      formData.recordDate ? dayjs(formData.recordDate) : null
-                    }
-                    onChange={(date, dateString) =>
-                      handleInputChange("recordDate", dateString)
-                    }
-                    style={{ width: "100%" }}
-                    status={validationErrors.recordDate ? "error" : ""}
-                  />
-                  {validationErrors.recordDate && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {validationErrors.recordDate}
                     </p>
                   )}
                 </div>

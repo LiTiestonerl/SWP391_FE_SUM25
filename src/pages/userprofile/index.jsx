@@ -113,22 +113,22 @@ const UserProfile = () => {
     navigate(`/posts/${postId}`);
   };
 
-useEffect(() => {
-  const userId = currentUser?.id || currentUser?.userId;
-  if (!userId) return;
+  useEffect(() => {
+    const userId = currentUser?.id || currentUser?.userId;
+    if (!userId) return;
 
-  const fetchPosts = async () => {
-    try {
-      const res = await api.get(`posts/user/${userId}`);
-      const postsData = Array.isArray(res.data) ? res.data : [];
-      setPosts(postsData);
-    } catch (error) {
-      console.error("❌ Error fetching posts", error);
-    }
-  };
+    const fetchPosts = async () => {
+      try {
+        const res = await api.get(`posts/user/${userId}`);
+        const postsData = Array.isArray(res.data) ? res.data : [];
+        setPosts(postsData);
+      } catch (error) {
+        console.error("❌ Error fetching posts", error);
+      }
+    };
 
-  fetchPosts();
-}, [currentUser?.id, currentUser?.userId]);
+    fetchPosts();
+  }, [currentUser?.id, currentUser?.userId]);
 
   const toggleComments = async (postId) => {
     const isVisible = visibleComments[postId];
@@ -163,21 +163,23 @@ useEffect(() => {
     } catch (err) {
       console.error("❌ Không thể gửi comment:", err);
     }
-    const response = await api.post("/auth/google", { credential: googleCredential });
+    const response = await api.post("/auth/google", {
+      credential: googleCredential,
+    });
 
-// Kiểm tra dữ liệu trả về
-console.log("✅ Google login response:", response.data);
+    // Kiểm tra dữ liệu trả về
+    console.log("✅ Google login response:", response.data);
 
-// Dispatch vào Redux
-dispatch(login({
-  userId: response.data.userId || response.data.id,
-  email: response.data.email,
-  fullName: response.data.fullName || response.data.name,
-  avatar: response.data.avatar || response.data.picture,
-}));
-
+    // Dispatch vào Redux
+    dispatch(
+      login({
+        userId: response.data.userId || response.data.id,
+        email: response.data.email,
+        fullName: response.data.fullName || response.data.name,
+        avatar: response.data.avatar || response.data.picture,
+      })
+    );
   };
-  
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-y-auto">
@@ -236,22 +238,10 @@ dispatch(login({
                   currentUser?.userName ||
                   currentUser?.email}
               </h1>
-              <p className="text-gray-600">0 friends</p>
             </div>
           </div>
 
-          <div className="flex space-x-2 mt-4 sm:mt-0">
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700">
-              + Add to story
-            </button>
-            <button className="bg-gray-200 px-4 py-2 rounded-md font-medium text-gray-800 hover:bg-gray-300 flex items-center space-x-1">
-              <FiCamera />
-              <span>Edit profile</span>
-            </button>
-            <button className="bg-gray-200 w-10 h-10 rounded-md flex items-center justify-center hover:bg-gray-300">
-              ⋮
-            </button>
-          </div>
+          <div className="mt-4 sm:mt-0"></div>
         </div>
 
         {/* Tabs */}
@@ -259,24 +249,16 @@ dispatch(login({
           <div className="flex items-center space-x-6 overflow-x-auto text-gray-600 font-medium pt-4">
             {[
               { label: "Posts" },
-              { label: "Chat", onClick: () => navigate("/chat") }, // ✅ Thay ở đây
               { label: "Status", onClick: () => navigate("/status") },
               { label: "Achivement", onClick: () => navigate("/achievement") },
-              { label: "Videos" },
-              { label: "Reels" },
-              { label: "More ▾" },
             ].map((item, index) => (
-              <button
+              <div
                 key={index}
+                className="cursor-pointer px-4 py-2 hover:bg-gray-200 rounded-md text-gray-700 font-medium"
                 onClick={item.onClick}
-                className={`pb-2 ${
-                  item.label === "Posts"
-                    ? "text-blue-600 border-b-2 border-blue-600 font-semibold"
-                    : "hover:text-blue-600 hover:border-b-2 hover:border-blue-400"
-                }`}
               >
                 {item.label}
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -363,30 +345,6 @@ dispatch(login({
                   </div>
                 </div>
               )}
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-4">Progress Stats</h2>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Smoke-free days</span>
-                  <span className="font-semibold text-green-600">
-                    {userProfile.stats.daysSmokeFree}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Money saved</span>
-                  <span className="font-semibold text-green-600">
-                    ${userProfile.stats.moneySaved}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Health score</span>
-                  <span className="font-semibold text-blue-600">
-                    {userProfile.stats.healthScore}%
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
 
