@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export const ConfirmDeleteModal = ({ open, onClose, onConfirm }) => (
   <AnimatePresence>
@@ -81,27 +81,85 @@ export const ConfirmCompleteModal = ({ open, onClose, onConfirm }) => (
   </AnimatePresence>
 );
 
+export const ConfirmCancelModal = ({ open, onClose, onConfirm }) => {
+  const [reason, setReason] = useState('');
+
+  const handleConfirm = () => {
+    onConfirm(reason || 'User requested cancellation');
+    setReason('');
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            className="bg-white rounded-xl p-6 shadow-xl max-w-md w-full space-y-4"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.8 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">⏸️</div>
+              <h3 className="text-lg font-bold text-orange-600">Cancel No Smoking Plan?</h3>
+            </div>
+            <p className="text-sm text-gray-600">
+              Are you sure you want to cancel your No Smoking plan? You can always create a new one later.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reason for cancellation (optional):
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="w-full border rounded-lg p-3 text-sm"
+                rows={3}
+                placeholder="Let us know why you're cancelling..."
+              />
+            </div>
+            <div className="flex gap-3 pt-3">
+              <button
+                onClick={handleConfirm}
+                className="flex-1 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+              >
+                Cancel Plan
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-1 py-2 border rounded hover:bg-gray-100"
+              >
+                Keep Plan
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
   const [touched, setTouched] = useState(false);
   const [form, setForm] = useState({
-    name: plan?.name || "",
-    reason: plan?.reason || "",
-    addictionLevel: plan?.addictionLevel || "Mild",
-    package: plan?.package || "",
-    averageCigarettes: plan?.averageCigarettes || "",
-    pricePerCigarette: plan?.pricePerCigarette || "",
-    averageSpending: plan?.averageSpending || "",
+    title: plan?.title || '',
+    reason: plan?.reason || '',
+    customNotes: plan?.customNotes || '',
   });
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const validateForm = () => {
+    if (!form.title.trim()) return false;
     if (form.reason.trim().length < 5) return false;
-    if (!form.name) return false;
-    if (!form.package) return false;
-    if (!form.averageCigarettes) return false;
-    if (!form.pricePerCigarette) return false;
     return true;
   };
 
@@ -109,7 +167,7 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
     e.preventDefault();
     setTouched(true);
     if (!validateForm()) return;
-    onSave(form);
+    onSave(form); // Đảm bảo lưu đúng dữ liệu
   };
 
   return (
@@ -129,19 +187,17 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
             exit={{ scale: 0.8, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold text-emerald-700 mb-4">
-              Edit Plan
-            </h3>
+            <h3 className="text-lg font-semibold text-emerald-700 mb-4">Edit Plan</h3>
             <form onSubmit={submit} className="space-y-4 text-sm">
-              {/* Name */}
+              {/* Title */}
               <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Plan Name</label>
+                <label className="font-medium text-gray-700">Plan Title</label>
                 <input
-                  name="name"
-                  value={form.name}
+                  name="title"
+                  value={form.title}
                   onChange={handleChange}
                   className={`col-span-2 border p-3 rounded ${
-                    touched && !form.name ? "border-red-400" : ""
+                    touched && !form.title ? 'border-red-400' : ''
                   }`}
                 />
               </div>
@@ -153,87 +209,23 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
                   name="reason"
                   value={form.reason}
                   onChange={handleChange}
+                  placeholder="E.g. For my health, my family..."
                   className={`col-span-2 border p-3 rounded ${
-                    touched && form.reason.trim().length < 5
-                      ? "border-red-400"
-                      : ""
-                  }`}
-                  placeholder="E.g. for my family, save money..."
-                />
-              </div>
-
-              {/* Addiction Level */}
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">
-                  Addiction Level
-                </label>
-                <select
-                  name="addictionLevel"
-                  value={form.addictionLevel}
-                  onChange={handleChange}
-                  className="col-span-2 border p-3 rounded"
-                >
-                  <option value="Mild">Mild (1-10 cigs/day)</option>
-                  <option value="Moderate">Moderate (11-20 cigs/day)</option>
-                  <option value="Severe">Severe (20+ cigs/day)</option>
-                </select>
-              </div>
-
-              {/* Package */}
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">
-                  Cigarette Brand
-                </label>
-                <input
-                  name="package"
-                  value={form.package}
-                  onChange={handleChange}
-                  className={`col-span-2 border p-3 rounded ${
-                    touched && !form.package ? "border-red-400" : ""
+                    touched && form.reason.trim().length < 5 ? 'border-red-400' : ''
                   }`}
                 />
               </div>
 
-              {/* Average Cigarettes */}
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Cigs/day</label>
-                <input
-                  name="averageCigarettes"
-                  type="number"
-                  value={form.averageCigarettes}
+              {/* Notes */}
+              <div className="grid grid-cols-3 gap-3 items-start">
+                <label className="font-medium text-gray-700 pt-2">Note</label>
+                <textarea
+                  name="customNotes"
+                  rows={3}
+                  value={form.customNotes}
                   onChange={handleChange}
-                  className={`col-span-2 border p-3 rounded ${
-                    touched && !form.averageCigarettes ? "border-red-400" : ""
-                  }`}
-                />
-              </div>
-
-              {/* Price per cigarette */}
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">
-                  Price/cig (VND)
-                </label>
-                <input
-                  name="pricePerCigarette"
-                  value={form.pricePerCigarette}
-                  onChange={handleChange}
-                  className={`col-span-2 border p-3 rounded ${
-                    touched && !form.pricePerCigarette ? "border-red-400" : ""
-                  }`}
-                />
-              </div>
-
-              {/* Average spending */}
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">
-                  Avg Spending
-                </label>
-                <input
-                  name="averageSpending"
-                  value={form.averageSpending}
-                  onChange={handleChange}
-                  className="col-span-2 border p-3 rounded bg-gray-100"
-                  disabled
+                  placeholder="E.g. Start your smoke-free journey today..."
+                  className="col-span-2 border p-3 rounded resize-none"
                 />
               </div>
 

@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
-  MessageOutlined,
-  CheckSquareOutlined,
   CalendarOutlined,
-  CheckOutlined,
 } from "@ant-design/icons";
-import Modal from "./Modal";
+import DayModal from "./DayModal";
 
 const DayCard = ({ day, weekNumber, planStartDate }) => {
   const [open, setOpen] = useState(false);
@@ -13,22 +10,17 @@ const DayCard = ({ day, weekNumber, planStartDate }) => {
   const [isCompleted, setIsCompleted] = useState(false);
 
   useEffect(() => {
-    // Lấy trạng thái completed từ localStorage (ưu tiên hơn tasks)
     const saved = localStorage.getItem(`day-${day.id}`);
     if (saved) {
       const parsed = JSON.parse(saved);
       setIsCompleted(!!parsed.completed);
     } else {
-      // fallback: nếu không có localStorage, kiểm tra task
       const completedCount = day.tasks?.filter((t) => t.done).length || 0;
       setIsCompleted(completedCount === day.tasks?.length);
     }
   }, [day]);
 
   if (deleted) return null;
-
-  const completed = day.tasks.filter((t) => t.done).length;
-  const total = day.tasks.length;
 
   return (
     <>
@@ -43,20 +35,6 @@ const DayCard = ({ day, weekNumber, planStartDate }) => {
       >
         <div className="flex justify-between items-start mb-1">
           <div className="flex items-center gap-2 text-base font-semibold text-gray-800">
-            {isCompleted && (
-              <div
-                className="flex items-center justify-center"
-                style={{
-                  width: "16px",
-                  height: "16px",
-                  backgroundColor: "#22A06B",
-                  borderRadius: "50%",
-                  lineHeight: 1,
-                }}
-              >
-                <CheckOutlined style={{ color: "#fff", fontSize: "10px" }} />
-              </div>
-            )}
             <span>Day {day.dayNumber}</span>
           </div>
         </div>
@@ -66,23 +44,13 @@ const DayCard = ({ day, weekNumber, planStartDate }) => {
             <CalendarOutlined />
             {day.date}
           </div>
-          <div className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-[#baf3db] text-[#216e4e] font-medium">
-            <CheckSquareOutlined />
-            {completed}/{total}
-          </div>
-        </div>
-
-        <div className="flex justify-end items-center text-xs px-1 text-[#216e4e] font-medium">
-          <MessageOutlined className="mr-1" />
-          {day.comments?.length || 0}
         </div>
       </div>
 
-      <Modal
+      <DayModal
         open={open}
         onClose={() => {
           setOpen(false);
-          // Cập nhật lại trạng thái completed sau khi modal đóng
           const saved = localStorage.getItem(`day-${day.id}`);
           if (saved) {
             const parsed = JSON.parse(saved);

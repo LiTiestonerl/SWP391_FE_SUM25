@@ -1,28 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom"; // thêm useNavigate
+import { useLocation, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import WeekColumn from "./WeekColumn";
-import api from "../../../configs/axios";
-import { Button, Tooltip } from "antd"; // thêm antd Button + Tooltip
-import { ExportOutlined } from "@ant-design/icons"; // icon out
-
-const samplePlans = [
-  "Avoid smoking area after lunch",
-  "Chew gum instead of smoking",
-  "Take a 10-minute walk",
-  "Drink a glass of water",
-  "Watch motivational videos",
-  "Review your quit reason",
-  "Meditate for 5 minutes",
-  "Write journal entry",
-  "Call your coach",
-  "Deep breathing practice",
-];
+import { LeftOutlined } from "@ant-design/icons";
+import { motion } from "framer-motion"; // 💡 thêm hiệu ứng động
 
 const generateQuitPlan = (startDate, durationInDays) => {
   const weeks = [];
   let dayCounter = 1;
-  let taskIndex = 0;
   const totalWeeks = Math.ceil(durationInDays / 7);
 
   for (let w = 0; w < totalWeeks; w++) {
@@ -30,16 +15,7 @@ const generateQuitPlan = (startDate, durationInDays) => {
     for (let d = 0; d < 7; d++) {
       if (dayCounter > durationInDays) break;
 
-      const tasks = Array.from({
-        length: 2 + Math.floor(Math.random() * 2),
-      }).map(() => {
-        const title = samplePlans[taskIndex % samplePlans.length];
-        taskIndex++;
-        return {
-          title,
-          done: Math.random() < 0.5,
-        };
-      });
+      const tasks = [];
 
       days.push({
         id: `${dayCounter}-${w}`,
@@ -64,90 +40,64 @@ const generateQuitPlan = (startDate, durationInDays) => {
 
 const QuitPlan = () => {
   const location = useLocation();
-  const navigate = useNavigate(); // thêm điều hướng
+  const navigate = useNavigate();
   const [plan, setPlan] = useState(null);
-  const [freeDays, setFreeDays] = useState(30); // fallback mặc định 30 ngày
 
   useEffect(() => {
-    if (!location.state?.memberPackageId) return;
+    let startDate;
+    let durationInDays;
 
-    const id = location.state.memberPackageId;
-
-    api
-      .get("/member-packages")
-      .then((res) => {
-        const matched = res.data?.find((pkg) => pkg.id === id);
-        if (matched) {
-          setFreeDays(matched.duration || 30); // Ưu tiên lấy duration thật, fallback 30
-        }
-      })
-      .catch(() => setFreeDays(30));
-  }, [location.state]);
-
-  useEffect(() => {
-    let state = location.state;
-
-    if (!state) {
-      const saved = localStorage.getItem("quitPlanDetailState");
-      if (saved) {
-        state = JSON.parse(saved);
-      }
+    if (location.state?.startDate && location.state?.endDate) {
+      startDate = dayjs(location.state.startDate);
+      const endDate = dayjs(location.state.endDate);
+      durationInDays = endDate.diff(startDate, "day") + 1;
+    } else {
+      startDate = dayjs();
+      durationInDays = 7;
     }
 
-    if (!state) return;
-
-    const startDate = dayjs(state.startDate);
-    const durationInDays = state.durationInDays || freeDays; // Ưu tiên state, fallback freeDays
-    const membership = state.selectedPlan || "HEALTH+";
-
-    localStorage.setItem("quitPlanDetailState", JSON.stringify(state));
-
     const generated = generateQuitPlan(startDate, durationInDays);
-    setPlan({
-      ...generated,
-      membership,
-    });
-  }, [location.state, freeDays]);
+    setPlan(generated);
+  }, [location.state]);
 
-  if (!plan?.weeks?.length) {
-    return (
-      <div className="text-center py-20 text-gray-500">
-        No quit plan found. Please start a plan from the Overview page.
-      </div>
-    );
-  }
+  if (!plan?.weeks?.length) return <p className="text-center text-gray-500">No plan found.</p>;
 
   return (
-    <div
-      className="min-h-screen bg-[hsla(105,_55.35%,_35.59%,_0.9)] px-6 overflow-x-auto relative pt-32"
-      // giảm pt-48 -> pt-32 (hoặc pt-28)
+    <motion.div
+      className="relative min-h-screen bg-[hsla(105,_55.35%,_35.59%,_0.9)] pt-48 px-6"
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
     >
-      {/* Nút OUT giữ nguyên */}
-      <Tooltip title="Back to Quit Plan List">
-        <Button
-          type="primary"
-          shape="circle"
-          size="large"
-          icon={<ExportOutlined />}
-          className="!absolute left-6 top-28 shadow-lg"
-          onClick={() => navigate("/quit-plan")}
-        />
-      </Tooltip>
+      {/* Nút back có hiệu ứng scale và shadow */}
+      <motion.button
+        className="absolute top-30 left-4 w-10 h-10 rounded-full bg-white shadow-md hover:bg-gray-100 flex items-center justify-center z-50"
+        whileHover={{ scale: 1.1, boxShadow: "0 4px 10px rgba(0,0,0,0.2)" }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => navigate("/quit-plan")}
+      >
+        <LeftOutlined />
+      </motion.button>
 
-      {/* bỏ mt-6 ở đây */}
-      <div className="flex gap-6 items-start mt-14">
-        {plan.weeks.map((week, idx) => (
-          <WeekColumn
-            key={idx}
-            weekNumber={idx + 1}
-            days={week}
-            planStartDate={plan.startDate}
-            membership={plan.membership}
-            freeDays={freeDays}
-          />
-        ))}
+      {/* Danh sách week cuộn ngang mượt mà */}
+      <div className="overflow-x-auto scroll-smooth">
+        <motion.div
+          className="flex gap-6 items-start"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          {plan.weeks.map((week, idx) => (
+            <WeekColumn
+              key={idx}
+              weekNumber={idx + 1}
+              days={week}
+              planStartDate={plan.startDate}
+            />
+          ))}
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import api from '../../../configs/axios';
@@ -68,35 +68,48 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const scrollRef = useRef(null);
 
-  const isFree = String(membership || '').toUpperCase().includes('HEALTH');
-  const selected = coachList.find((c) => c.id === selectedCoachId);
+  const isFree = String(membership || '').toUpperCase().includes('FREE');
+  const selected = coachList.find((c) => c.userId === selectedCoachId);
 
-useEffect(() => {
-  api.get('/coach')
-    .then((res) => {
-      const formatted = res.data.map(c => ({
-        id: c.userId,
-        name: c.fullName || c.userName || "Không rõ",
-      }));
-      setCoachList(formatted);
+  // 🔹 Load coach list từ API
+  useEffect(() => {
+    api.get('/coach')
+      .then(res => {
+        const list = (res.data || []).map(c => ({
+          ...c,
+          specialization: c.roleName || 'Coach',
+          avatarUrl: c.avatarUrl || null,
+        }));
+        setCoachList(list);
+      })
+      .catch(err => console.error('Failed to load coach list', err));
+  }, []);
 
-      // Nếu chưa có coach được chọn, chọn mặc định là người đầu tiên
-      if (!selectedCoachId && formatted.length > 0) {
-        onSelect(formatted[0].id);
-      }
-    })
-    .catch((err) => {
-      console.error("Lỗi khi tải danh sách huấn luyện viên:", err);
-    });
-}, []);
+  // 🔹 Nếu có selectedCoachId nhưng chưa có trong danh sách thì fetch chi tiết
+  useEffect(() => {
+    if (!selectedCoachId) return;
+    const found = coachList.find(c => c.userId === selectedCoachId);
+    if (found) return;
 
+    api.get(`/coach/${selectedCoachId}`)
+      .then(res => {
+        if (!res?.data) return;
+        const detail = {
+          ...res.data,
+          specialization: res.data.roleName || 'Coach',
+          avatarUrl: res.data.avatarUrl || null,
+        };
+        setCoachList(prev => prev.some(c => c.userId === detail.userId) ? prev : [detail, ...prev]);
+      })
+      .catch(err => console.error('Failed to load coach detail', err));
+  }, [selectedCoachId, coachList]);
 
   const handleOpenSelector = () => {
     if (isFree) {
       setShowUpgrade(true);
-    } else {
-      setShowSelector(true);
+      return;
     }
+    setShowSelector(true);
   };
 
   const scroll = (direction) => {
@@ -108,8 +121,7 @@ useEffect(() => {
   return (
     <>
       <style>{customScrollbarStyles}</style>
-
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden min-h-[300px] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-xl overflow-hidden min-h-[685px] flex flex-col">
         <h3 className="text-lg font-semibold text-emerald-700 px-6 pt-6 pb-1">Coach</h3>
 
         {!selected ? (
@@ -119,6 +131,11 @@ useEffect(() => {
               className="w-[80%] aspect-[4/5] bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-emerald-400 transition"
             >
               <div className="text-center">
+                <img
+                  src="https://cdn-icons-png.flaticon.com/512/847/847969.png"
+                  alt="Select Coach"
+                  className="w-20 h-20 opacity-60 mx-auto mb-3"
+                />
                 <p className="text-gray-500 text-sm">
                   {isFree ? 'Upgrade to select your coach' : 'Click to select your coach'}
                 </p>
@@ -126,28 +143,40 @@ useEffect(() => {
             </div>
           </div>
         ) : (
-          <div className="p-6 flex flex-col flex-1 overflow-hidden text-[14px] text-gray-700 space-y-2 leading-relaxed">
-            <h4 className="text-xl font-bold text-gray-800">{selected.name}</h4>
-
-            <div className="flex gap-3 mt-auto pt-4">
-              <button
-                onClick={handleOpenSelector}
-                className="flex-1 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
-              >
-                Change Coach
-              </button>
-              <button
-                onClick={() => navigate('/chat')}
-                className="flex-1 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
-              >
-                Chat
-              </button>
+          <>
+            <div className="w-[90%] h-76 rounded-xl bg-gray-100 ring-2 ring-gray-300 mx-auto mt-3 flex items-center justify-center overflow-hidden">
+              {selected.avatarUrl ? (
+                <img src={selected.avatarUrl} alt={selected.fullName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-gray-400">No Image</span>
+              )}
             </div>
-          </div>
+            <div className="p-6 flex flex-col flex-1 overflow-hidden text-[14px] text-gray-700 space-y-2 leading-relaxed">
+              <h4 className="text-xl font-bold text-gray-800">{selected.fullName}</h4>
+              <p className="text-emerald-600 font-medium">{selected.specialization}</p>
+              <p><span className="font-semibold text-gray-800">Experience:</span> {selected.experience || 0} years</p>
+              <p><span className="font-semibold text-gray-800">Qualification:</span> {selected.qualification || 'N/A'}</p>
+              <p className="italic text-gray-600">{selected.introduction || ''}</p>
+              <div className="flex gap-3 mt-auto pt-4">
+                <button
+                  onClick={handleOpenSelector}
+                  className="flex-1 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                >
+                  Change Coach
+                </button>
+                <button
+                  onClick={() => navigate('/chat')}
+                  className="flex-1 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                >
+                  Chat
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Coach selector popup */}
+      {/* Popup chọn coach */}
       <AnimatePresence>
         {showSelector && (
           <motion.div
@@ -175,18 +204,23 @@ useEffect(() => {
                 <div ref={scrollRef} className="flex gap-6 overflow-x-auto custom-scrollbar pb-4 px-8">
                   {coachList.map((coach) => (
                     <button
-                      key={coach.id}
+                      key={coach.userId}
                       onClick={() => {
-                        onSelect(coach.id);
+                        onSelect(coach); // trả full object cho parent
                         setShowSelector(false);
                       }}
                       className="min-w-[240px] flex-shrink-0 flex flex-col items-center gap-2 border p-4 rounded-2xl bg-white hover:bg-emerald-50"
                     >
-                      <div className="w-full h-[180px] rounded-xl bg-gray-100 ring-1 ring-gray-200 flex items-center justify-center text-gray-400 text-sm">
-                        No Image
+                      <div className="w-full h-[180px] rounded-xl overflow-hidden ring-1 ring-gray-200">
+                        {coach.avatarUrl ? (
+                          <img src={coach.avatarUrl} alt={coach.fullName} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-gray-400">No Image</span>
+                        )}
                       </div>
                       <div className="text-sm text-center mt-2">
-                        <div className="font-semibold text-gray-800 text-[14px]">{coach.name}</div>
+                        <div className="font-semibold text-gray-800 text-[14px]">{coach.fullName}</div>
+                        <div className="text-gray-500 text-xs">{coach.specialization}</div>
                       </div>
                     </button>
                   ))}
@@ -204,7 +238,7 @@ useEffect(() => {
         )}
       </AnimatePresence>
 
-      {/* Upgrade popup */}
+      {/* Popup upgrade */}
       <UpgradeModal
         open={showUpgrade}
         onClose={() => setShowUpgrade(false)}
