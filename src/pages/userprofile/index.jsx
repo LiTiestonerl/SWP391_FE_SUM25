@@ -8,7 +8,7 @@ import {
   FiCamera,
 } from "react-icons/fi";
 import api from "../../configs/axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { updateAvatar } from "../../redux/features/userSlice";
 import "./UserProfile.css";
@@ -17,6 +17,10 @@ const UserProfile = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const currentUser = useSelector((state) => state.user);
+  const { userId: profileUserId } = useParams();
+  const isOwnProfile = !profileUserId || currentUser?.id === profileUserId;
+  const userIdToFetch = isOwnProfile ? currentUser?.id : profileUserId;
+  const [viewedUser, setViewedUser] = useState(null);
   const userId = currentUser?.id || currentUser?.userId;
 
   const avatarInputRef = useRef(null);
@@ -201,7 +205,9 @@ const UserProfile = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                {currentUser?.fullName || currentUser?.userName || currentUser?.email}
+                {currentUser?.fullName ||
+                  currentUser?.userName ||
+                  currentUser?.email}
               </h1>
             </div>
           </div>
@@ -213,6 +219,8 @@ const UserProfile = () => {
             {[
               { label: "Posts" },
               { label: "Status", onClick: () => navigate("/status") },
+             { label: "Chat", onClick: () => navigate("/chat") }, 
+        
               { label: "Achievement", onClick: () => navigate("/achievement") },
             ].map((item, index) => (
               <div
@@ -263,7 +271,10 @@ const UserProfile = () => {
                     className="w-full border px-3 py-2 rounded"
                     value={profileInfo.location}
                     onChange={(e) =>
-                      setProfileInfo({ ...profileInfo, location: e.target.value })
+                      setProfileInfo({
+                        ...profileInfo,
+                        location: e.target.value,
+                      })
                     }
                   />
                   <input
@@ -272,7 +283,10 @@ const UserProfile = () => {
                     className="w-full border px-3 py-2 rounded"
                     value={profileInfo.occupation}
                     onChange={(e) =>
-                      setProfileInfo({ ...profileInfo, occupation: e.target.value })
+                      setProfileInfo({
+                        ...profileInfo,
+                        occupation: e.target.value,
+                      })
                     }
                   />
                   <input
@@ -280,7 +294,10 @@ const UserProfile = () => {
                     className="w-full border px-3 py-2 rounded"
                     value={profileInfo.smokeFreeDate}
                     onChange={(e) =>
-                      setProfileInfo({ ...profileInfo, smokeFreeDate: e.target.value })
+                      setProfileInfo({
+                        ...profileInfo,
+                        smokeFreeDate: e.target.value,
+                      })
                     }
                   />
                   <div className="flex gap-2">
@@ -324,7 +341,10 @@ const UserProfile = () => {
               )}
 
               {posts.map((post) => (
-                <div key={post.postId} className="bg-white rounded-lg shadow p-6">
+                <div
+                  key={post.postId}
+                  className="bg-white rounded-lg shadow p-6"
+                >
                   <div className="flex items-center space-x-3 mb-4">
                     <img
                       src={profileInfo.avatar}
@@ -349,7 +369,8 @@ const UserProfile = () => {
                           key={cmt.commentId}
                           className="text-sm text-gray-700 bg-gray-100 px-3 py-2 rounded"
                         >
-                          <strong>{cmt.userName || "Ẩn danh"}:</strong> {cmt.content}
+                          <strong>{cmt.userName || "Ẩn danh"}:</strong>{" "}
+                          {cmt.content}
                         </div>
                       ))}
                       <div className="flex items-center mt-2">

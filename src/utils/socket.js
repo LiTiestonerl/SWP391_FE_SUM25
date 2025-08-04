@@ -1,7 +1,7 @@
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 
-const SOCKET_URL = "http://localhost:8080/ws-chat"; // đổi nếu dùng domain thật
+const SOCKET_URL = "http://localhost:8080/ws-chat"; 
 
 let stompClient = null;
 
@@ -12,7 +12,7 @@ export const connectWebSocket = (onMessageReceived) => {
     onConnect: () => {
       console.log("✅ WebSocket connected");
 
-      const currentUserId = localStorage.getItem("userId"); // hoặc từ redux
+      const currentUserId = localStorage.getItem("userId"); 
       if (!currentUserId) {
         console.warn("No userId found to subscribe!");
         return;
