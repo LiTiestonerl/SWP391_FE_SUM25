@@ -67,7 +67,7 @@ const generateStagesSmooth = ({
       stageStartDate: stageStart.format("YYYY-MM-DD"),
       stageEndDate: stageStart.add(stageDays - 1, "day").format("YYYY-MM-DD"),
       targetCigarettesPerDay: target,
-      notes: STAGE_NOTES(i, target).join("\n\n"), // Luôn tạo notes mới
+      notes: STAGE_NOTES(i, target).join("\n\n"),
       isLocked: false,
       durationInDays: stageDays,
     });
@@ -153,7 +153,8 @@ const StageList = ({
         durationInDays: 7,
       });
     }
-    return [...realStages, ...extraStages];
+    // Sắp xếp lại theo stageId
+    return [...realStages, ...extraStages].sort((a, b) => a.stageId - b.stageId);
   }, [isFree, realStages]);
 
   const unlockedCount = useMemo(
@@ -201,41 +202,43 @@ const StageList = ({
       </div>
 
       <ul className="space-y-2.5 mb-4">
-        {visibleStages.map((stage) => {
-          const isCompleted = completedStages.includes(stage.stageId);
-          return (
-            <li
-              key={stage.stageId}
-              onClick={() => handleStageClick(stage)}
-              className={`border-1 rounded-lg p-3 cursor-pointer transition flex justify-between items-start gap-3 ${stage.isLocked
-                ? "bg-gray-50 border-gray-300 hover:bg-gray-100" // Viền xám đậm khi locked
-                : "border-gray-800 hover:border-gray-600 hover:bg-gray-50" // Viền đen (#333) và hover đen đậm
-                } ${isCompleted && !stage.isLocked ? "bg-green-50 border-green-600" : "" // Viền xanh khi hoàn thành
-                }`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-gray-800 flex items-center gap-2">
-                  <span className="truncate">{stage.stageName}</span>
-                  {isCompleted && !stage.isLocked && (
-                    <FaCheckCircle className="text-green-500 text-lg flex-shrink-0" />
-                  )}
-                  {stage.isLocked && <FaLock className="text-yellow-600 flex-shrink-0" />}
+        {visibleStages
+          .sort((a, b) => a.stageId - b.stageId) // Thêm dòng này để sắp xếp theo stageId
+          .map((stage) => {
+            const isCompleted = completedStages.includes(stage.stageId);
+            return (
+              <li
+                key={stage.stageId}
+                onClick={() => handleStageClick(stage)}
+                className={`border-1 rounded-lg p-3 cursor-pointer transition flex justify-between items-start gap-3 ${stage.isLocked
+                    ? "bg-gray-50 border-gray-300 hover:bg-gray-100"
+                    : "border-gray-800 hover:border-gray-600 hover:bg-gray-50"
+                  } ${isCompleted && !stage.isLocked ? "bg-green-50 border-green-600" : ""
+                  }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-gray-800 flex items-center gap-2">
+                    <span className="truncate">{stage.stageName}</span>
+                    {isCompleted && !stage.isLocked && (
+                      <FaCheckCircle className="text-green-500 text-lg flex-shrink-0" />
+                    )}
+                    {stage.isLocked && <FaLock className="text-yellow-600 flex-shrink-0" />}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {dayjs(stage.stageStartDate).format("MMM D")} →{" "}
+                    {dayjs(stage.stageEndDate).format("MMM D")}
+                    <span className="ml-2 text-gray-400">({stage.durationInDays} days)</span>
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {dayjs(stage.stageStartDate).format("MMM D")} →{" "}
-                  {dayjs(stage.stageEndDate).format("MMM D")}
-                  <span className="ml-2 text-gray-400">({stage.durationInDays} days)</span>
+                <div className="flex items-center gap-2">
+                  <div className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full flex items-center">
+                    <span className="mr-1">🎯</span>
+                    {stage.targetCigarettesPerDay} cigs/day
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full flex items-center">
-                  <span className="mr-1">🎯</span>
-                  {stage.targetCigarettesPerDay} cigs/day
-                </div>
-              </div>
-            </li>
-          );
-        })}
+              </li>
+            );
+          })}
       </ul>
 
       {/* Modal xem chi tiết stage - ĐÃ ĐIỀU CHỈNH */}
