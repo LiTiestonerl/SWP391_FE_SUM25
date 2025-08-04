@@ -8,14 +8,12 @@ import { persistor, store } from "./redux/store";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import OverviewPage from "./pages/dashboard-admin/overview";
-import ManageRating from "./pages/dashboard-admin/managerating";
 import ForgotPasswordPage from "./pages/dashboard-admin/forgot-password";
 import NotificationsPage from "./pages/notifications";
 import QuitPlanPage from "./pages/quit-plan";
 import Footer from "./components/footer";
 import Header from "./components/header/index ";
 import NewsPage from "./pages/news";
-import RankPage from "./components/rank/RankPage";
 import CoachesPage from "./components/coaches/CoachesPage";
 import BecomeCoachPage from "./components/BecomeCoach/BecomeCoachPage";
 import Verify from "./pages/verify";
@@ -34,7 +32,6 @@ import Achievement from "./pages/achievement";
 import ManageAachiement from "./pages/dashboard-admin/achievement";
 import CoachProfile from "./pages/coachProfile";
 import CreateNotification from "./pages/dashboard-admin/notification";
-import CigaretteRecommendation from "./pages/dashboard-admin/cigaretterecommendation";
 
 function App() {
   const router = createBrowserRouter([
@@ -55,10 +52,6 @@ function App() {
         {
           path: "home",
           element: <HomePage />,
-        },
-        {
-          path: "rank",
-          element: <RankPage />,
         },
         {
           path: "news",
@@ -123,10 +116,7 @@ function App() {
           path: "overview",
           element: <OverviewPage />,
         },
-        {
-          path: "managerating",
-          element: <ManageRating />,
-        },
+     
         {
           path: "manageaccount",
           element: <ManageAccount />,
@@ -139,17 +129,13 @@ function App() {
           path: "cigarettepackages",
           element: <CigarettePackages />,
         },
-        {
-          path: "cigaretterecommendation",
-          element: <CigaretteRecommendation />,
-        },
-      
+        
+
         {
           path: "achievement",
           element: <ManageAachiement />,
         },
-         { path: "notification", 
-          element: <CreateNotification /> },
+        { path: "notification", element: <CreateNotification /> },
       ],
     },
 

@@ -11,16 +11,21 @@ const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [isDarkMode, setIsDarkMode] = useState(false); // ✅ chuyển nền
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
+  const userId = user?.id || user?.userId;
+
+  const avatarSrc =
+    localStorage.getItem(`custom_avatar_${userId}`) ||
+    user?.avatar ||
+    "/images/avatar.jpg";
 
   const navItems = [
     { id: 1, label: "Home", href: "home" },
     { id: 2, label: "Social", href: "social" },
-    { id: 3, label: "Rank", href: "rank" },
     { id: 4, label: "Coaches", href: "coaches" },
     { id: 5, label: "News", href: "news" },
     { id: 6, label: "Membership", href: "membership" },
@@ -76,9 +81,7 @@ const Header = () => {
                   e.target.src = "https://via.placeholder.com/32";
                 }}
               />
-              <span className="text-sm font-bold tracking-wide">
-                NoSmoking
-              </span>
+              <span className="text-sm font-bold tracking-wide">NoSmoking</span>
             </Link>
 
             <nav className="hidden md:flex space-x-8">
@@ -116,16 +119,12 @@ const Header = () => {
                     className="flex items-center space-x-2 focus:outline-none"
                   >
                     <img
-                      src={
-                        localStorage.getItem("custom_avatar") ||
-                        user?.avatar ||
-                        "/images/avatar.jpg"
-                      }
+                      src={avatarSrc}
                       alt={user?.fullName}
                       className="h-8 w-8 rounded-full object-cover"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = "https://via.placeholder.com/32";
+                        e.target.src = "/images/avatar.jpg";
                       }}
                     />
                   </button>
@@ -149,7 +148,6 @@ const Header = () => {
                           Dashboard
                         </Link>
                       )}
-
                       <Link
                         to="/user-profile"
                         onClick={() => setShowDropdown(false)}
@@ -161,7 +159,6 @@ const Header = () => {
                       >
                         Profile
                       </Link>
-
                       <button
                         onClick={handleLogout}
                         className={`block w-full text-left px-4 py-2 text-sm ${
@@ -239,14 +236,11 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Marquee */}
       <div className="marquee-container dark">
         <div className="marquee-text text-white">
-          NOSMOKE &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NOSMOKE
+          NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE
+          &nbsp;&nbsp;&nbsp; NOSMOKE &nbsp;&nbsp;&nbsp; NOSMOKE
         </div>
       </div>
     </>

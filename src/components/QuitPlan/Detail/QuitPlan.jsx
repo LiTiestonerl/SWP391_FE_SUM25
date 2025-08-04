@@ -1,83 +1,103 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 import WeekColumn from "./WeekColumn";
-import { Button, Tooltip } from "antd";
-import { ExportOutlined, PlusOutlined } from "@ant-design/icons";
+import { LeftOutlined } from "@ant-design/icons";
+import { motion } from "framer-motion"; // 💡 thêm hiệu ứng động
+
+const generateQuitPlan = (startDate, durationInDays) => {
+  const weeks = [];
+  let dayCounter = 1;
+  const totalWeeks = Math.ceil(durationInDays / 7);
+
+  for (let w = 0; w < totalWeeks; w++) {
+    const days = [];
+    for (let d = 0; d < 7; d++) {
+      if (dayCounter > durationInDays) break;
+
+      const tasks = [];
+
+      days.push({
+        id: `${dayCounter}-${w}`,
+        dayNumber: dayCounter,
+        date: startDate.add(dayCounter - 1, "day").format("YYYY-MM-DD"),
+        status: "",
+        tasks,
+        comments: [],
+      });
+
+      dayCounter++;
+    }
+    weeks.push(days);
+  }
+
+  return {
+    startDate: startDate.format("YYYY-MM-DD"),
+    endDate: startDate.add(durationInDays - 1, "day").format("YYYY-MM-DD"),
+    weeks,
+  };
+};
 
 const QuitPlan = () => {
   const location = useLocation();
   const navigate = useNavigate();
-
   const [plan, setPlan] = useState(null);
 
   useEffect(() => {
-    let state = location.state;
-    if (!state) {
-      const saved = localStorage.getItem("quitPlanDetailState");
-      if (saved) state = JSON.parse(saved);
+    let startDate;
+    let durationInDays;
+
+    if (location.state?.startDate && location.state?.endDate) {
+      startDate = dayjs(location.state.startDate);
+      const endDate = dayjs(location.state.endDate);
+      durationInDays = endDate.diff(startDate, "day") + 1;
+    } else {
+      startDate = dayjs();
+      durationInDays = 7;
     }
-    if (!state) return;
 
-    localStorage.setItem("quitPlanDetailState", JSON.stringify(state));
-    const { startDate, selectedPlan, weeks } = state;
-
-    setPlan({
-      startDate,
-      membership: selectedPlan || "CUSTOM",
-      weeks: Array.isArray(weeks) ? weeks : [[]],
-    });
+    const generated = generateQuitPlan(startDate, durationInDays);
+    setPlan(generated);
   }, [location.state]);
 
-  const handleAddWeek = () => {
-    setPlan((prev) => ({
-      ...prev,
-      weeks: [...prev.weeks, []], // thêm tuần mới rỗng
-    }));
-  };
-
-  if (!plan?.weeks?.length) {
-    return (
-      <div className="text-center py-20 text-gray-500">
-        No quit plan found. Please start a plan from the Overview page.
-      </div>
-    );
-  }
+  if (!plan?.weeks?.length) return <p className="text-center text-gray-500">No plan found.</p>;
 
   return (
-    <div className="min-h-screen bg-[hsla(105,_55.35%,_35.59%,_0.9)] px-6 overflow-x-auto relative pt-32">
-      <Tooltip title="Back to Quit Plan List">
-        <Button
-          type="primary"
-          shape="circle"
-          size="large"
-          icon={<ExportOutlined />}
-          className="!absolute left-6 top-28 shadow-lg"
-          onClick={() => navigate("/quit-plan")}
-        />
-      </Tooltip>
+    <motion.div
+      className="relative min-h-screen bg-[hsla(105,_55.35%,_35.59%,_0.9)] pt-48 px-6"
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Nút back có hiệu ứng scale và shadow */}
+      <motion.button
+        className="absolute top-30 left-4 w-10 h-10 rounded-full bg-white shadow-md hover:bg-gray-100 flex items-center justify-center z-50"
+        whileHover={{ scale: 1.1, boxShadow: "0 4px 10px rgba(0,0,0,0.2)" }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => navigate("/quit-plan")}
+      >
+        <LeftOutlined />
+      </motion.button>
 
-      <div className="flex gap-6 items-start mt-14">
-        {plan.weeks.map((week, idx) => (
-          <div id={`week-${idx + 1}`} key={idx}>
+      {/* Danh sách week cuộn ngang mượt mà */}
+      <div className="overflow-x-auto scroll-smooth">
+        <motion.div
+          className="flex gap-6 items-start"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          {plan.weeks.map((week, idx) => (
             <WeekColumn
+              key={idx}
               weekNumber={idx + 1}
               days={week}
               planStartDate={plan.startDate}
             />
-          </div>
-        ))}
-
-        {/* 👉 Nút Add another list */}
-        <Button
-          onClick={handleAddWeek}
-          type="dashed"
-          className="h-[200px] min-w-[200px] flex items-center justify-center text-lg font-semibold"
-        >
-          <PlusOutlined />
-          Add another list
-        </Button>
+          ))}
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

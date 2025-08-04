@@ -6,7 +6,7 @@ export const quitPlanService = {
   createPlan: async (planData) => {
     try {
       const response = await api.post('/quit-plan', {
-        title: planData.name || planData.title,
+        title: planData.title,
         startDate: planData.startDate,
         expectedEndDate: planData.endDate || planData.expectedEndDate,
         reason: planData.reason,
@@ -15,7 +15,6 @@ export const quitPlanService = {
         userId: planData.userId,
         coachId: planData.coachId || null,
         recommendedPackageId: planData.recommendedPackageId || null,
-        cigarettesPerDay: planData.averageCigarettes || planData.cigarettesPerDay
       });
       return response.data;
     } catch (error) {
@@ -59,25 +58,31 @@ export const quitPlanService = {
 
   // Update quit plan (user)
   updatePlan: async (planId, planData) => {
-    try {
-      const response = await api.put(`/quit-plan/${planId}/user`, {
-        title: planData.name || planData.title,
-        startDate: planData.startDate,
-        expectedEndDate: planData.endDate || planData.expectedEndDate,
-        reason: planData.reason,
-        stagesDescription: planData.stagesDescription || '',
-        customNotes: planData.customNotes || '',
-        userId: planData.userId,
-        coachId: planData.coachId || null,
-        recommendedPackageId: planData.recommendedPackageId || null,
-        cigarettesPerDay: planData.averageCigarettes || planData.cigarettesPerDay
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error updating quit plan:', error);
-      throw error;
-    }
-  },
+  try {
+    const response = await api.put(`/quit-plan/${planId}/user`, {
+      title: planData.title,
+      startDate: planData.startDate,
+      expectedEndDate: planData.expectedEndDate || planData.endDate,
+      reason: planData.reason,
+      stagesDescription: planData.stagesDescription || '',
+      customNotes: planData.customNotes || '',
+      userId: planData.userId,
+      coachId: planData.coachId || null,
+      recommendedPackageId: planData.recommendedPackageId || null,
+    }, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating quit plan:', {
+      error: error.response?.data || error.message,
+      config: error.config
+    });
+    throw error;
+  }
+},
 
   // Complete quit plan
   completePlan: async (planId) => {
@@ -138,7 +143,6 @@ export const quitPlanService = {
         userId: planData.userId,
         coachId: planData.coachId || null,
         recommendedPackageId: planData.recommendedPackageId || null,
-        cigarettesPerDay: planData.averageCigarettes || planData.cigarettesPerDay
       });
       return response.data;
     } catch (error) {

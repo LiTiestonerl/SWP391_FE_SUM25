@@ -1,43 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { AnimatePresence, motion } from 'framer-motion';
 import dayjs from 'dayjs';
 import api from '../../../configs/axios';
 
 const CreatePlanModal = ({ open, onClose, onCreate }) => {
-  const [packages, setPackages] = useState([]);
-  const [memberPackages, setMemberPackages] = useState([]);
   const [duration, setDuration] = useState(null);
   const [packageName, setPackageName] = useState('');
   const [touched, setTouched] = useState(false);
   const [form, setForm] = useState({
     name: '',
     reason: '',
-    addictionLevel: 'Mild',
-    package: '',
     startDate: '',
     endDate: '',
-    averageCigarettes: '',
-    pricePerCigarette: '',
-    pricePerCigaretteNumeric: 0,
+    customNotes: '',
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pkgListRes, meRes] = await Promise.all([
+        const [pkgListRes, meRes, smokingStatusRes] = await Promise.all([
           api.get('/member-packages'),
           api.get('/user-membership/me'),
+          api.get('/smoking-status').catch(() => ({ data: null }))
         ]);
 
         const pkgs = pkgListRes?.data ?? [];
-        setMemberPackages(pkgs);
-
+        const smokingData = smokingStatusRes?.data;
         const memberPackageId = meRes?.data?.memberPackageId;
-        let activePkg = pkgs.find(p => Number(p.memberPackageId) === Number(memberPackageId));
 
+        let activePkg = pkgs.find(p => Number(p.memberPackageId) === Number(memberPackageId));
         if (!activePkg) {
-          activePkg =
-            pkgs.find(p => String(p.packageName).toUpperCase().includes('FREE')) || pkgs[0];
+          activePkg = pkgs.find(p => String(p.packageName).toUpperCase().includes('FREE')) || pkgs[0];
         }
 
         if (activePkg) {
@@ -45,100 +38,42 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
           setPackageName(activePkg.packageName);
           setForm(prev => ({
             ...prev,
-            name: prev.name || `Quit in ${activePkg.duration} Days`,
+            name: prev.name || `No Smoking Plan - ${activePkg.duration} Days`,
           }));
         } else {
           setDuration(30);
           setPackageName('DEFAULT');
-          setForm(prev => ({ ...prev, name: prev.name || 'Quit in 30 Days' }));
+          setForm(prev => ({ ...prev, name: prev.name || 'No Smoking Plan - 30 Days' }));
         }
+
       } catch (err) {
         console.error('Fetch membership/packages error:', err);
         setDuration(30);
         setPackageName('DEFAULT');
-        setForm(prev => ({ ...prev, name: prev.name || 'Quit in 30 Days' }));
+        setForm(prev => ({ ...prev, name: prev.name || 'No Smoking Plan - 30 Days' }));
       }
     };
 
     if (open) fetchData();
   }, [open]);
 
-  useEffect(() => {
-    const fetchCigPackages = async () => {
-      try {
-        const res = await api.get('/cigarette-packages');
-        setPackages(res.data || []);
-      } catch (err) {
-        console.error('Failed to fetch cigarette packages', err);
-      }
-    };
-    if (open) fetchCigPackages();
-  }, [open]);
-
-  const parseMoneyInput = (value) => Number(String(value).replace(/[^0-9]/g, ''));
-
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    if (name === 'startDate' || name === 'endDate') {
-      setForm(prev => ({
-        ...prev,
-        [name]: value,
-      }));
-      return;
-    }
-
-    if (name === 'pricePerCigarette') {
-      const numericValue = parseMoneyInput(value);
-      setForm(prev => ({
-        ...prev,
-        [name]: value,
-        pricePerCigaretteNumeric: numericValue,
-      }));
-      return;
-    }
-
-    if (name === 'package') {
-      const selected = packages.find(p => String(p.cigarettePackageId) === value);
-      const autoPrice = selected
-        ? Math.round(selected.pricePerPack / selected.sticksPerPack)
-        : '';
-      setForm(prev => ({
-        ...prev,
-        package: value,
-        pricePerCigarette: autoPrice,
-        pricePerCigaretteNumeric: autoPrice,
-      }));
-      return;
-    }
-
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const validateForm = () => {
+    if (!form.name.trim()) return false;
     if (form.reason.trim().length < 5) return false;
     if (!form.startDate) return false;
     if (!form.endDate) return false;
-    if (!form.package) return false;
-    if (!form.averageCigarettes) return false;
-    if (!form.pricePerCigarette) return false;
     return true;
   };
 
   const submit = (e) => {
     e.preventDefault();
     setTouched(true);
-
     if (!validateForm()) return;
-
-    const reasonTrim = form.reason.trim();
-    const avgCigs = parseInt(form.averageCigarettes) || 0;
-    const pricePer = form.pricePerCigaretteNumeric || 0;
-    const avgSpending = avgCigs * pricePer;
-
-    const selectedPackage = packages.find(
-      p => String(p.cigarettePackageId) === form.package
-    );
 
     const start = dayjs(form.startDate);
     const end = dayjs(form.endDate);
@@ -146,19 +81,12 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
 
     const planData = {
       ...form,
-      reason: reasonTrim,
-      averageCigarettes: avgCigs,
-      pricePerCigarette: pricePer,
-      averageSpending: avgSpending,
+      title: form.name,
+      reason: form.reason.trim(),
       durationInDays: durationDays > 0 ? durationDays : 0,
       membershipPackageName: packageName,
-      brand: selectedPackage?.brand || '',
-      flavor: selectedPackage?.flavor || '',
-      nicotineLevel: selectedPackage?.nicotineLevel || '',
-      nicotineMg: selectedPackage?.nicotineMg || '',
-      sticksPerPack: selectedPackage?.sticksPerPack || '',
     };
-
+    console.log("planData: ", planData)
     onCreate(planData);
   };
 
@@ -181,21 +109,26 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
             onClick={e => e.stopPropagation()}
           >
             <h2 className="text-2xl font-bold text-emerald-600 mb-4">Create Quit Plan</h2>
-
             <p className="mb-2 text-sm text-gray-600">
               Membership: <b>{packageName || '...'}</b> — Duration:&nbsp;
               <b>{duration != null ? `${duration} Days` : '...'}</b>
             </p>
 
             <form onSubmit={submit} className="space-y-4 text-sm">
-              <input
-                name="name"
-                value={form.name}
-                disabled
-                className="w-full border p-3 rounded bg-gray-100"
-              />
+              <div>
+                <label className="block mb-1 text-gray-700 font-medium">
+                  Plan Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  maxLength={100}
+                  placeholder="e.g., 30 Days to Freedom"
+                  className={`w-full border p-3 rounded ${touched && !form.name.trim() ? 'border-red-400' : ''}`}
+                />
+              </div>
 
-              {/* Reason */}
               <div>
                 <label className="block mb-1 text-gray-700 font-medium">
                   Reason <span className="text-red-500">*</span>
@@ -205,131 +138,51 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
                   value={form.reason}
                   onChange={handleChange}
                   maxLength={240}
-                  placeholder="E.g. for my family, save money, improve health..."
-                  className={`w-full border p-3 rounded ${
-                    touched && form.reason.trim().length < 5 ? 'border-red-400' : ''
-                  }`}
+                  placeholder="Why do you want to quit smoking?"
+                  className={`w-full border p-3 rounded ${touched && form.reason.trim().length < 5 ? 'border-red-400' : ''}`}
                 />
-                {touched && form.reason.trim().length < 5 && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Please enter at least 5 characters for the reason.
-                  </p>
-                )}
               </div>
 
-              {/* Addiction level */}
-              <select
-                name="addictionLevel"
-                value={form.addictionLevel}
-                onChange={handleChange}
-                className="w-full border p-3 rounded"
-              >
-                <option value="Mild">Mild (1-10 cigarettes/day)</option>
-                <option value="Moderate">Moderate (11-20 cigarettes/day)</option>
-                <option value="Severe">Severe (20+ cigarettes/day)</option>
-              </select>
-
-              {/* Package */}
               <div>
-                <select
-                  name="package"
-                  value={form.package}
+                <label className="block mb-1 text-gray-700 font-medium">
+                  Custom Notes
+                </label>
+                <textarea
+                  name="customNotes"
+                  value={form.customNotes}
                   onChange={handleChange}
-                  className={`w-full border p-3 rounded ${
-                    touched && !form.package ? 'border-red-400' : ''
-                  }`}
-                >
-                  <option value="">Select a cigarette package</option>
-                  {packages.map(p => (
-                    <option key={p.cigarettePackageId} value={p.cigarettePackageId}>
-                      {p.cigarettePackageName} — {p.brand} ({p.flavor}, {p.nicotineLevel})
-                    </option>
-                  ))}
-                </select>
-                {touched && !form.package && (
-                  <p className="text-xs text-red-500 mt-1">Please select a cigarette package.</p>
-                )}
+                  placeholder="Any notes for yourself or your coach..."
+                  className="w-full border p-3 rounded min-h-[80px]"
+                />
               </div>
 
-              {/* Smoking habit */}
-              <div className="space-y-2">
-                <h3 className="font-medium text-emerald-700">Smoking Habit</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-gray-500 block mb-1">Cigarettes/day</label>
-                    <input
-                      type="number"
-                      name="averageCigarettes"
-                      value={form.averageCigarettes}
-                      onChange={handleChange}
-                      className={`w-full border p-2 rounded ${
-                        touched && !form.averageCigarettes ? 'border-red-400' : ''
-                      }`}
-                      min="1"
-                      placeholder="20"
-                    />
-                    {touched && !form.averageCigarettes && (
-                      <p className="text-xs text-red-500 mt-1">
-                        Please enter number of cigarettes/day.
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-gray-500 block mb-1">Price per cig (VND)</label>
-                    <input
-                      type="text"
-                      name="pricePerCigarette"
-                      value={form.pricePerCigarette}
-                      onChange={handleChange}
-                      className={`w-full border p-2 rounded ${
-                        touched && !form.pricePerCigarette ? 'border-red-400' : ''
-                      }`}
-                      placeholder="1.000"
-                    />
-                    {touched && !form.pricePerCigarette && (
-                      <p className="text-xs text-red-500 mt-1">
-                        Please enter price per cigarette.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Dates */}
               <div className="flex gap-4 text-xs">
                 <div className="flex-1">
-                  <label className="text-gray-500 block mb-1">Start Date <span className="text-red-500">*</span></label>
+                  <label className="text-gray-500 block mb-1">
+                    Start Date <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="date"
                     name="startDate"
                     value={form.startDate}
                     onChange={handleChange}
-                    className={`w-full border p-3 rounded ${
-                      touched && !form.startDate ? 'border-red-400' : ''
-                    }`}
+                    className={`w-full border p-3 rounded ${touched && !form.startDate ? 'border-red-400' : ''}`}
                   />
-                  {touched && !form.startDate && (
-                    <p className="text-xs text-red-500 mt-1">Please select a start date.</p>
-                  )}
                 </div>
                 <div className="flex-1">
-                  <label className="text-gray-500 block mb-1">End Date <span className="text-red-500">*</span></label>
+                  <label className="text-gray-500 block mb-1">
+                    End Date <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="date"
                     name="endDate"
                     value={form.endDate}
                     onChange={handleChange}
-                    className={`w-full border p-3 rounded ${
-                      touched && !form.endDate ? 'border-red-400' : ''
-                    }`}
+                    className={`w-full border p-3 rounded ${touched && !form.endDate ? 'border-red-400' : ''}`}
                   />
-                  {touched && !form.endDate && (
-                    <p className="text-xs text-red-500 mt-1">Please select an end date.</p>
-                  )}
                 </div>
               </div>
 
-              {/* Buttons */}
               <div className="flex gap-4 text-sm">
                 <button
                   type="submit"

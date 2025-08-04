@@ -21,29 +21,24 @@ const STAGE_NOTES = (stageNum, targetCigs) => {
 const generateStagesSmooth = ({
   startDate,
   durationInDays,
-  addictionLevel,
   initialCigarettes,
 }) => {
   const start = dayjs(startDate);
-  const totalStages = Math.max(1, Math.ceil((Number(durationInDays) || 0) / 7));
-
-  const level = (addictionLevel || "").toUpperCase();
-  const beta = level === "SEVERE" ? 1.3 : level === "MODERATE" ? 1.0 : 0.8;
+  const end = start.add(durationInDays - 1, 'day'); // Calculate end date from duration
+  const totalDays = end.diff(start, 'day') + 1;
+  const totalStages = Math.max(1, Math.ceil(totalDays / 7));
 
   const init = Math.max(1, Number(initialCigarettes) || 8);
 
   const stages = [];
   for (let i = 1; i <= totalStages; i++) {
     const stageStart = start.add((i - 1) * 7, "day");
-    const daysRemaining = (Number(durationInDays) || 0) - (i - 1) * 7;
+    const daysRemaining = totalDays - (i - 1) * 7;
     const stageDays = i === totalStages ? Math.max(1, daysRemaining) : Math.min(7, daysRemaining);
 
     const p = totalStages === 1 ? 1 : (i - 1) / (totalStages - 1);
-
-    let target = i === totalStages ? 0 : Math.ceil(init * Math.pow(1 - p, beta));
-
-    if (i === totalStages - 1) target = Math.max(1, target);
-    if (i < totalStages - 1) target = Math.max(1, target);
+    let target = i === totalStages ? 0 : Math.ceil(init * Math.pow(1 - p, 1.0));
+    target = Math.max(i === totalStages ? 0 : 1, target);
 
     stages.push({
       stageId: i,
@@ -149,7 +144,7 @@ const StageList = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-6 max-h-[680px] overflow-y-auto ring-1 ring-emerald-100">
+    <div className="bg-white rounded-2xl shadow-xl p-6 max-h-[420px] overflow-y-auto ring-1 ring-emerald-100">
       <h3 className="text-lg font-semibold text-emerald-700 mb-3">📅 Weekly Quit Plan</h3>
 
       {description && (
@@ -157,12 +152,14 @@ const StageList = ({
       )}
 
       <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-        <h4 className="font-medium text-gray-800 capitalize">{addictionLevel} addiction</h4>
-        <p className="text-xs text-gray-600 mt-1">
-          {unlockedCount} of {visibleStages.length} weeks unlocked •{" "}
-          {isFree ? `FREE plan` : `${membership} Package`}
-        </p>
-      </div>
+  <h4 className="font-medium text-gray-800">Plan Timeline</h4>
+  <p className="text-xs text-gray-600 mt-1">
+    {dayjs(startDate).format("MMM D, YYYY")} →{" "}
+    {dayjs(startDate).add(durationInDays - 1, "day").format("MMM D, YYYY")}
+    {" • "}
+    {unlockedCount} of {visibleStages.length} weeks unlocked
+  </p>
+</div>
 
       <ul className="space-y-3 mb-4">
         {visibleStages.map((stage) => {
@@ -239,6 +236,7 @@ const StageList = ({
               >
                 View Stage Details
               </Button>
+              
               <Button
                 onClick={() => handleCompleteStage(selectedStage.stageId)}
                 disabled={selectedStage.isLocked || completedStages.includes(selectedStage.stageId)}

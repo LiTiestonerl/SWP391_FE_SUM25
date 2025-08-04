@@ -20,6 +20,7 @@ function Membership() {
   const [form] = Form.useForm();
   const [data, setData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [hiddenPackages, setHiddenPackages] = useState([]);
 
   const fetchData = async () => {
     try {
@@ -35,9 +36,9 @@ function Membership() {
           if (expireDate.isBefore(now)) {
             try {
               await api.delete(`/member-packages/${pkg.memberPackageId}`);
-              console.log(`🗑️ Deleted expired package: ${pkg.packageName}`);
+              console.log(` Deleted expired package: ${pkg.packageName}`);
             } catch (err) {
-              console.error("❌ Failed to delete expired package:", err);
+              console.error(" Failed to delete expired package:", err);
             }
             return null;
           }
@@ -55,10 +56,19 @@ function Membership() {
       toast.error("Error fetching data");
     }
   };
+useEffect(() => {
+  fetchData();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Load hidden packages from localStorage
+  const stored = localStorage.getItem("hiddenPackages");
+  if (stored) {
+    try {
+      setHiddenPackages(JSON.parse(stored));
+    } catch {
+      localStorage.removeItem("hiddenPackages"); // Nếu lỗi thì reset
+    }
+  }
+}, []);
 
   const handleDelete = async (id) => {
     try {
@@ -167,6 +177,9 @@ function Membership() {
       render: (_, record) => (
         <Space>
           <Button onClick={() => handleEdit(record)}>Edit</Button>
+          <Button type="dashed" onClick={() => handleHide(record)}>
+            Hide
+          </Button>
           <Popconfirm
             title="Are you sure to delete this package?"
             onConfirm={() => handleDelete(record.memberPackageId)}
@@ -180,23 +193,57 @@ function Membership() {
     },
   ];
 
-  const filteredData = data.filter((item) =>
-    item.packageName.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredData = data
+    .filter((item) => !hiddenPackages.includes(item.memberPackageId))
+    .filter((item) =>
+      item.packageName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+  const handleHide = (record) => {
+  const updated = [...hiddenPackages, record.memberPackageId];
+  setHiddenPackages(updated);
+  localStorage.setItem("hiddenPackages", JSON.stringify(updated)); // ⬅️ Lưu lại
+
+  toast.info(
+    `"${record.packageName}" đã bị ẩn. Gói này sẽ tự hiện lại sau 30 phút.`
   );
+
+  setTimeout(() => {
+    Modal.confirm({
+      title: `Xóa gói "${record.packageName}"?`,
+      content: "Gói đã bị ẩn 30 phút. Bạn có muốn xóa vĩnh viễn không?",
+      okText: "Xóa",
+      cancelText: "Giữ lại",
+      onOk: () => handleDelete(record.memberPackageId),
+      onCancel: () => handleUnhide(record.memberPackageId),
+    });
+  }, 30 * 60 * 1000);
+};
+
+
+  const handleUnhide = (id) => {
+  const updated = hiddenPackages.filter((pkgId) => pkgId !== id);
+  setHiddenPackages(updated);
+  localStorage.setItem("hiddenPackages", JSON.stringify(updated)); // ⬅️ Cập nhật lại storage
+  toast.success("Đã hiện lại gói.");
+};
+
 
   return (
     <div style={{ padding: "20px" }}>
       <h1 className="text-3xl font-bold underline mb-4">
         Membership Management
       </h1>
-
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-2">
         <Input.Search
           placeholder="Search by package name"
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{ width: 300 }}
           allowClear
         />
+        <div className="text-red-500 text-sm font-medium">
+          Lưu ý: ẩn 30 phút trước khi xóa
+        </div>
         <Button
           type="primary"
           onClick={() => {
@@ -216,6 +263,26 @@ function Membership() {
         rowKey="memberPackageId"
         scroll={{ x: "max-content" }}
       />
+      {hiddenPackages.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h3 className="text-lg font-semibold mb-2">Gói đang bị ẩn:</h3>
+          <ul>
+            {data
+              .filter((pkg) => hiddenPackages.includes(pkg.memberPackageId))
+              .map((pkg) => (
+                <li key={pkg.memberPackageId} style={{ marginBottom: 8 }}>
+                  <span className="mr-2">{pkg.packageName}</span>
+                  <Button
+                    size="small"
+                    onClick={() => handleUnhide(pkg.memberPackageId)}
+                  >
+                    Hiện lại
+                  </Button>
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
 
       <Modal
         open={isOpen}
@@ -242,7 +309,9 @@ function Membership() {
           <Form.Item
             name="packageName"
             label="Package Name"
-            rules={[{ required: true, message: "Please enter the package name." }]}
+            rules={[
+              { required: true, message: "Please enter the package name." },
+            ]}
           >
             <Input />
           </Form.Item>

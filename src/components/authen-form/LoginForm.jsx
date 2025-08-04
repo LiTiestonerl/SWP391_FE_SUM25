@@ -46,7 +46,12 @@ function LoginForm() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("refresh", data.refresh);
       toast.success("Đăng nhập thành công!");
-      navigate("/membership");
+
+      navigate(
+        data.role === "admin" || data.role === "ADMIN" || data.role === "ROLE_ADMIN"
+          ? "/"
+          : "/membership"
+      );
     } catch (err) {
       const raw = err.response?.data?.message || "";
       let msg = "Đăng nhập thất bại.";
@@ -97,12 +102,18 @@ function LoginForm() {
         refreshToken,
         userPublicId,
       };
+
       localStorage.setItem("token", token);
       localStorage.setItem("refresh", refreshToken);
       dispatch(login(userData));
 
       toast.success("Đăng nhập Google thành công!");
-      navigate("/membership");
+
+      navigate(
+        role === "admin" || role === "ADMIN" || role === "ROLE_ADMIN"
+          ? "/"
+          : "/membership"
+      );
     } catch (err) {
       console.error("❌ Google login failed", err);
       toast.error("Đăng nhập bằng Google thất bại.");

@@ -1,182 +1,355 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { cigaretteRecommendationService } from '../../../services/quitPlanService';
+import React, { useEffect, useState } from "react";
+import { Card, Row, Col, Typography, Spin, Tag, Divider } from "antd";
+import {
+  FaTint,
+  FaHashtag,
+  FaDollarSign,
+  FaLeaf,
+  FaChevronRight,
+  FaCheckCircle,
+  FaCheck,
+} from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+import api from "../../../configs/axios";
 
-const CigaretteRecommendations = ({ recommendations, currentCigaretteId }) => {
-  const [localRecommendations, setLocalRecommendations] = useState(recommendations || []);
-  const [loading, setLoading] = useState(false);
+const { Title, Text } = Typography;
+
+const OUTER_CARD = {
+  background: "#fff",
+  borderRadius: "12px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+  margin: "24px 0",
+};
+
+const INNER_CARD_STYLE = {
+  borderRadius: "8px",
+  overflow: "hidden",
+  minWidth: "100%",
+};
+
+const HEADER_GRADIENT = (colors) => ({
+  background: `linear-gradient(135deg, ${colors.join(", ")})`,
+  padding: "16px",
+  color: "#fff",
+});
+
+const labelStyle = { fontWeight: 600, marginRight: 8 };
+
+export default function CigaretteRecommendations({ onSelectPackage }) {
+  const [currentStatus, setCurrentStatus] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [selectedPackageId, setSelectedPackageId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successPackageId, setSuccessPackageId] = useState(null);
 
   useEffect(() => {
-    if (currentCigaretteId && !recommendations?.length) {
-      loadRecommendations();
-    }
-  }, [currentCigaretteId]);
+    async function fetchData() {
+      try {
+        const { data: status } = await api.get("/smoking-status");
+        setCurrentStatus(status);
 
-  const loadRecommendations = async () => {
-    setLoading(true);
+        if (status?.cigarettePackageId) {
+          const { data } = await api.get(
+            `/cigarette-recommendations/for-cigarette/${status.cigarettePackageId}`
+          );
+          setRecommendations(data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch recommendations:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  // Auto-rotate if few items
+  useEffect(() => {
+    if (recommendations.length > 1 && recommendations.length <= 3) {
+      const interval = setInterval(() => {
+        setCarouselIndex((prev) => (prev + 1) % recommendations.length);
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [recommendations]);
+
+  const handleSelect = async (recommendation) => {
+    if (isSubmitting) return;
+    
+    setSelectedPackageId(recommendation.toPackageId);
+    setIsSubmitting(true);
+    
     try {
-      const bestRecs = await cigaretteRecommendationService.getBestRecommendations(currentCigaretteId);
-      setLocalRecommendations(bestRecs.slice(0, 3)); // Show top 3
+      console.log("Selected package:", recommendation);
+      if (onSelectPackage) {
+        await onSelectPackage(recommendation);
+      }
+      setSuccessPackageId(recommendation.toPackageId);
     } catch (error) {
-      console.error('Error loading recommendations:', error);
+      console.error("Error selecting package:", error);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
+      // Reset success indicator after 3 seconds
+      setTimeout(() => setSuccessPackageId(null), 3000);
     }
   };
 
-  const displayRecommendations = recommendations || localRecommendations;
-
-  if (loading) {
+  if (loading) return <Spin tip="Loading recommendations..." />;
+    if (recommendations.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="text-3xl">🚭</div>
-          <h3 className="text-lg font-semibold text-gray-700">Loading Recommendations...</h3>
+      <Card style={OUTER_CARD} bordered>
+        <div style={{ textAlign: "center", padding: "32px" }}>
+          <Title level={4}>Không có đề xuất nào</Title>
+          <Text type="secondary">
+            Chúng tôi không tìm thấy gói thuốc nào phù hợp để đề xuất cho bạn lúc này.
+          </Text>
         </div>
-        <div className="animate-pulse space-y-3">
-          <div className="h-4 bg-gray-200 rounded"></div>
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-        </div>
-      </div>
+      </Card>
     );
-  }
+    }
 
-  if (!displayRecommendations?.length) {
-    return (
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="text-3xl">🚭</div>
-          <h3 className="text-lg font-semibold text-gray-700">Cigarette Alternatives</h3>
-        </div>
-        <div className="text-center py-8">
-          <div className="text-6xl mb-4">🌱</div>
-          <p className="text-gray-600 mb-4">
-            Great news! You're on your way to being completely smoke-free!
-          </p>
-          <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-            <h4 className="font-semibold text-emerald-700 mb-2">Healthy Alternatives:</h4>
-            <div className="space-y-2 text-sm text-emerald-600">
-              <div className="flex items-center gap-2">
-                <span>🥕</span>
-                <span>Carrot sticks or celery</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>🍃</span>
-                <span>Herbal tea or mint leaves</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>🧘‍♀️</span>
-                <span>Deep breathing exercises</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const currentRecommendation = recommendations[0];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl p-6 shadow-lg border border-gray-200"
-    >
-      <div className="flex items-center gap-3 mb-4">
-        <div className="text-3xl">🚭</div>
-        <div>
-          <h3 className="text-lg font-semibold text-gray-700">Lighter Alternatives</h3>
-          <p className="text-sm text-gray-500">Gradual reduction recommendations</p>
-        </div>
+    <Card style={OUTER_CARD} bordered>
+      <div style={{ textAlign: "center", padding: "16px 0" }}>
+        <Title level={3} style={{ margin: 0, color: "#333" }}>
+          🚬 Smoking Package Comparison
+        </Title>
+        <Text type="secondary">
+          Compare your current pack with our recommended options
+        </Text>
       </div>
-
-      <div className="space-y-4">
-        {displayRecommendations.map((rec, index) => (
-          <motion.div
-            key={rec.recId || index}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200"
+      <Divider />
+      <Row align="middle" justify="center" gutter={32}>
+        {/* Current Package */}
+        <Col xs={24} md={10}>
+          <Card
+            bordered={false}
+            style={INNER_CARD_STYLE}
+            bodyStyle={{ padding: 0, background: "#fff8e1" }}
           >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">📦</span>
-                  <h4 className="font-semibold text-gray-800">
-                    {rec.toCigaretteName || 'Alternative Option'}
-                  </h4>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-gray-500">Brand:</span>
-                    <span className="ml-1 font-medium">{rec.toBrand || 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Nicotine:</span>
-                    <span className="ml-1 font-medium text-green-600">
-                      {rec.toNicoteneStrength || 'Lower'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Flavor:</span>
-                    <span className="ml-1 font-medium">{rec.toFlavor || 'Similar'}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Price:</span>
-                    <span className="ml-1 font-medium">
-                      {rec.toPrice ? `${rec.toPrice.toLocaleString()} VND` : 'N/A'}
-                    </span>
-                  </div>
-                </div>
-
-                {rec.notes && (
-                  <div className="mt-3 p-2 bg-white rounded border border-blue-100">
-                    <p className="text-xs text-gray-600">
-                      <span className="font-medium">Note:</span> {rec.notes}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="ml-4 text-center">
-                <div className="bg-green-100 rounded-full p-2 mb-1">
-                  <span className="text-green-600 text-sm font-bold">
-                    #{rec.priorityOrder || index + 1}
-                  </span>
-                </div>
-                <span className="text-xs text-gray-500">Priority</span>
-              </div>
+            <div style={HEADER_GRADIENT(["#f9a825", "#f57f17"])}>
+              <Row justify="space-between" align="middle">
+                <Col>
+                  <Title level={5} style={{ margin: 0 }}>
+                    {currentRecommendation?.fromCigaretteName}
+                  </Title>
+                  <Text style={{ color: "rgba(255,255,255,0.85)" }}>
+                    {currentRecommendation?.fromBrand}
+                  </Text>
+                </Col>
+                <Col>
+                  <Tag color="warning">Current</Tag>
+                </Col>
+              </Row>
             </div>
+            <Row gutter={[16, 16]} style={{ padding: "16px" }}>
+              <Col span={12}>
+                <FaLeaf />{" "}
+                <Text>
+                  <span style={labelStyle}>Flavor:</span>
+                  {currentRecommendation?.fromFlavor}
+                </Text>
+              </Col>
+              <Col span={12}>
+                <FaTint />{" "}
+                <Text>
+                  <span style={labelStyle}>Nicotine:</span>
+                  {currentRecommendation?.fromNicoteneStrength}
+                </Text>
+              </Col>
+              <Col span={12}>
+                <FaHashtag />{" "}
+                <Text>
+                  <span style={labelStyle}>Sticks/Pack:</span>
+                  {currentRecommendation?.fromSticksPerPack}
+                </Text>
+              </Col>
+              <Col span={12}>
+                <FaDollarSign />{" "}
+                <Text>
+                  <span style={labelStyle}>Price:</span>
+                  {currentRecommendation?.fromPrice?.toLocaleString("en-US", {
+                    style: "currency",
+                    currency: "VND",
+                  })}
+                </Text>
+              </Col>
+            </Row>
+          </Card>
+        </Col>
 
-            <div className="mt-3 flex items-center gap-2">
-              <div className="flex-1 bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-red-400 to-green-400 h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${Math.max(20, 100 - (rec.priorityOrder || 1) * 20)}%` 
+        {/* Arrow */}
+        <Col xs={24} md={2} style={{ textAlign: "center" }}>
+          <FaChevronRight
+            size={36}
+            style={{ transform: "translateX(12px)" }}
+            color="#52c41a"
+          />
+        </Col>
+
+        {/* Recommended Packages */}
+        <Col xs={24} md={10}>
+          {recommendations.length > 3 ? (
+            <div style={{ overflowX: "auto", whiteSpace: "nowrap", paddingBottom: 12 }}>
+              {recommendations.map((rec, idx) => (
+                <motion.div
+                  key={idx}
+                  style={{
+                    display: "inline-block",
+                    width: 280,
+                    marginRight: 16,
+                    verticalAlign: "top",
                   }}
-                ></div>
-              </div>
-              <span className="text-xs text-gray-500">Reduction Level</span>
+                  whileHover={{ scale: 1.03 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <RecommendationCard 
+                    recommendation={rec} 
+                    onSelect={handleSelect}
+                    isSubmitting={isSubmitting && selectedPackageId === rec.toPackageId}
+                    isSuccess={successPackageId === rec.toPackageId}
+                  />
+                </motion.div>
+              ))}
             </div>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="mt-6 bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xl">⚠️</span>
-          <h4 className="font-semibold text-yellow-800">Important Reminder</h4>
-        </div>
-        <p className="text-sm text-yellow-700">
-          These are transitional alternatives to help reduce nicotine dependency. 
-          The ultimate goal is to become completely smoke-free for your health and well-being.
-        </p>
-      </div>
-    </motion.div>
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={carouselIndex}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                transition={{ duration: 0.5 }}
+              >
+                <RecommendationCard 
+                  recommendation={recommendations[carouselIndex]} 
+                  onSelect={handleSelect}
+                  isSubmitting={isSubmitting && selectedPackageId === recommendations[carouselIndex].toPackageId}
+                  isSuccess={successPackageId === recommendations[carouselIndex].toPackageId}
+                />
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </Col>
+      </Row>
+    </Card>
   );
-};
+}
 
-export default CigaretteRecommendations;
+function RecommendationCard({ recommendation, onSelect, isSubmitting, isSuccess }) {
+  return (
+    <Card
+      bordered={false}
+      style={INNER_CARD_STYLE}
+      bodyStyle={{ padding: 0, background: "#e8f5e9" }}
+    >
+      <div style={HEADER_GRADIENT(["#81c784", "#388e3c"])}>
+        <Row justify="space-between" align="middle">
+          <Col>
+            <Title level={5} style={{ margin: 0 }}>
+              {recommendation?.toCigaretteName}
+            </Title>
+            <Text style={{ color: "rgba(255,255,255,0.85)" }}>
+              {recommendation?.toBrand}
+            </Text>
+          </Col>
+          <Col>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {isSuccess && (
+                <FaCheck 
+                  style={{ 
+                    color: '#52c41a', 
+                    marginRight: 8,
+                    fontSize: 16
+                  }} 
+                />
+              )}
+              <Tag color="success">Recommended</Tag>
+            </div>
+          </Col>
+        </Row>
+      </div>
+
+      <Row gutter={[8, 8]} style={{ padding: "12px" }}>
+        <Col span={12}>
+          <FaLeaf />{" "}
+          <Text>
+            <span style={labelStyle}>Flavor:</span>
+            {recommendation?.toFlavor}
+          </Text>
+        </Col>
+        <Col span={12}>
+          <FaTint />{" "}
+          <Text>
+            <span style={labelStyle}>Nicotine:</span>
+            {recommendation?.toNicoteneStrength}
+          </Text>
+        </Col>
+        <Col span={12}>
+          <FaHashtag />{" "}
+          <Text>
+            <span style={labelStyle}>Sticks:</span>
+            {recommendation?.toSticksPerPack}
+          </Text>
+        </Col>
+        <Col span={12}>
+          <FaDollarSign />{" "}
+          <Text>
+            <span style={labelStyle}>Price:</span>
+            {recommendation?.toPrice?.toLocaleString("en-US", {
+              style: "currency",
+              currency: "VND",
+            })}
+          </Text>
+        </Col>
+      </Row>
+
+      {recommendation?.notes && (
+        <div style={{ padding: "0 16px 8px", display: "flex", gap: 8 }}>
+          <FaCheckCircle style={{ color: "#52c41a" }} />
+          <Text type="secondary">{recommendation.notes}</Text>
+        </div>
+      )}
+
+      <div style={{ padding: "0 16px 16px" }}>
+        <button
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            backgroundColor: isSuccess ? "#52c41a" : "#4caf50",
+            color: "#fff",
+            border: "none",
+            borderRadius: 6,
+            cursor: isSubmitting ? "not-allowed" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            opacity: isSubmitting ? 0.7 : 1,
+          }}
+          onClick={() => onSelect(recommendation)}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Spin size="small" />
+              Processing...
+            </>
+          ) : isSuccess ? (
+            <>
+              <FaCheck />
+              Selected
+            </>
+          ) : (
+            "Select this package"
+          )}
+        </button>
+      </div>
+    </Card>
+  );
+}

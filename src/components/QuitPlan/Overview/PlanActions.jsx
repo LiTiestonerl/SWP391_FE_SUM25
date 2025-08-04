@@ -149,24 +149,17 @@ export const ConfirmCancelModal = ({ open, onClose, onConfirm }) => {
 export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
   const [touched, setTouched] = useState(false);
   const [form, setForm] = useState({
-    name: plan?.name || '',
+    title: plan?.title || '',
     reason: plan?.reason || '',
-    addictionLevel: plan?.addictionLevel || 'Mild',
-    package: plan?.package || '',
-    averageCigarettes: plan?.averageCigarettes || '',
-    pricePerCigarette: plan?.pricePerCigarette || '',
-    averageSpending: plan?.averageSpending || ''
+    customNotes: plan?.customNotes || '',
   });
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const validateForm = () => {
+    if (!form.title.trim()) return false;
     if (form.reason.trim().length < 5) return false;
-    if (!form.name) return false;
-    if (!form.package) return false;
-    if (!form.averageCigarettes) return false;
-    if (!form.pricePerCigarette) return false;
     return true;
   };
 
@@ -174,7 +167,7 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
     e.preventDefault();
     setTouched(true);
     if (!validateForm()) return;
-    onSave(form);
+    onSave(form); // Đảm bảo lưu đúng dữ liệu
   };
 
   return (
@@ -196,15 +189,15 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
           >
             <h3 className="text-lg font-semibold text-emerald-700 mb-4">Edit Plan</h3>
             <form onSubmit={submit} className="space-y-4 text-sm">
-              {/* Name */}
+              {/* Title */}
               <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Plan Name</label>
+                <label className="font-medium text-gray-700">Plan Title</label>
                 <input
-                  name="name"
-                  value={form.name}
+                  name="title"
+                  value={form.title}
                   onChange={handleChange}
                   className={`col-span-2 border p-3 rounded ${
-                    touched && !form.name ? 'border-red-400' : ''
+                    touched && !form.title ? 'border-red-400' : ''
                   }`}
                 />
               </div>
@@ -216,77 +209,23 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
                   name="reason"
                   value={form.reason}
                   onChange={handleChange}
+                  placeholder="E.g. For my health, my family..."
                   className={`col-span-2 border p-3 rounded ${
                     touched && form.reason.trim().length < 5 ? 'border-red-400' : ''
                   }`}
-                  placeholder="E.g. for my family, save money..."
                 />
               </div>
 
-              {/* Addiction Level */}
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Addiction Level</label>
-                <select
-                  name="addictionLevel"
-                  value={form.addictionLevel}
+              {/* Notes */}
+              <div className="grid grid-cols-3 gap-3 items-start">
+                <label className="font-medium text-gray-700 pt-2">Note</label>
+                <textarea
+                  name="customNotes"
+                  rows={3}
+                  value={form.customNotes}
                   onChange={handleChange}
-                  className="col-span-2 border p-3 rounded"
-                >
-                  <option value="Mild">Mild (1-10 cigs/day)</option>
-                  <option value="Moderate">Moderate (11-20 cigs/day)</option>
-                  <option value="Severe">Severe (20+ cigs/day)</option>
-                </select>
-              </div>
-
-              {/* Package */}
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Cigarette Brand</label>
-                <input
-                  name="package"
-                  value={form.package}
-                  onChange={handleChange}
-                  className={`col-span-2 border p-3 rounded ${
-                    touched && !form.package ? 'border-red-400' : ''
-                  }`}
-                />
-              </div>
-
-              {/* Average Cigarettes */}
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Cigs/day</label>
-                <input
-                  name="averageCigarettes"
-                  type="number"
-                  value={form.averageCigarettes}
-                  onChange={handleChange}
-                  className={`col-span-2 border p-3 rounded ${
-                    touched && !form.averageCigarettes ? 'border-red-400' : ''
-                  }`}
-                />
-              </div>
-
-              {/* Price per cigarette */}
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Price/cig (VND)</label>
-                <input
-                  name="pricePerCigarette"
-                  value={form.pricePerCigarette}
-                  onChange={handleChange}
-                  className={`col-span-2 border p-3 rounded ${
-                    touched && !form.pricePerCigarette ? 'border-red-400' : ''
-                  }`}
-                />
-              </div>
-
-              {/* Average spending */}
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-medium text-gray-700">Avg Spending</label>
-                <input
-                  name="averageSpending"
-                  value={form.averageSpending}
-                  onChange={handleChange}
-                  className="col-span-2 border p-3 rounded bg-gray-100"
-                  disabled
+                  placeholder="E.g. Start your smoke-free journey today..."
+                  className="col-span-2 border p-3 rounded resize-none"
                 />
               </div>
 
