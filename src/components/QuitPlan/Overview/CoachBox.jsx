@@ -66,12 +66,24 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
   const [coachList, setCoachList] = useState([]);
   const [showSelector, setShowSelector] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [userMembership, setUserMembership] = useState(null);
   const scrollRef = useRef(null);
 
-  const isFree = String(membership || '').toUpperCase().includes('FREE');
+  // Check if user has free package (id 10)
+  const isFree = userMembership?.memberPackageId === 10;
+
   const selected = coachList.find((c) => c.userId === selectedCoachId);
 
-  // 🔹 Load coach list từ API
+  // Load user membership
+  useEffect(() => {
+    api.get('/user-membership/me')
+      .then(res => {
+        setUserMembership(res.data);
+      })
+      .catch(err => console.error('Failed to load user membership', err));
+  }, []);
+
+  // Load coach list
   useEffect(() => {
     api.get('/coach')
       .then(res => {
@@ -85,7 +97,7 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
       .catch(err => console.error('Failed to load coach list', err));
   }, []);
 
-  // 🔹 Nếu có selectedCoachId nhưng chưa có trong danh sách thì fetch chi tiết
+  // Load coach details if selected but not in list
   useEffect(() => {
     if (!selectedCoachId) return;
     const found = coachList.find(c => c.userId === selectedCoachId);
@@ -154,21 +166,20 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
             <div className="p-6 flex flex-col flex-1 overflow-hidden text-[14px] text-gray-700 space-y-2 leading-relaxed">
               <h4 className="text-xl font-bold text-gray-800">{selected.fullName}</h4>
               <p className="text-emerald-600 font-medium">{selected.specialization}</p>
-              <p><span className="font-semibold text-gray-800">Experience:</span> {selected.experience || 0} years</p>
-              <p><span className="font-semibold text-gray-800">Qualification:</span> {selected.qualification || 'N/A'}</p>
-              <p className="italic text-gray-600">{selected.introduction || ''}</p>
+              
+              {/* Contact Information Section */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <h5 className="font-semibold text-gray-800 mb-2">Contact Information</h5>
+                <p><span className="font-medium">Email:</span> {selected.email || 'N/A'}</p>
+                <p><span className="font-medium">Phone:</span> {selected.phone || 'N/A'}</p>
+              </div>
+
               <div className="flex gap-3 mt-auto pt-4">
                 <button
-                  onClick={handleOpenSelector}
-                  className="flex-1 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
-                >
-                  Change Coach
-                </button>
-                <button
                   onClick={() => navigate('/chat')}
-                  className="flex-1 px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                  className="w-full px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
                 >
-                  Chat
+                  Chat with Coach
                 </button>
               </div>
             </div>
@@ -176,7 +187,7 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
         )}
       </div>
 
-      {/* Popup chọn coach */}
+      {/* Coach selection popup */}
       <AnimatePresence>
         {showSelector && (
           <motion.div
@@ -206,7 +217,7 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
                     <button
                       key={coach.userId}
                       onClick={() => {
-                        onSelect(coach); // trả full object cho parent
+                        onSelect(coach);
                         setShowSelector(false);
                       }}
                       className="min-w-[240px] flex-shrink-0 flex flex-col items-center gap-2 border p-4 rounded-2xl bg-white hover:bg-emerald-50"
@@ -238,7 +249,7 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
         )}
       </AnimatePresence>
 
-      {/* Popup upgrade */}
+      {/* Upgrade popup */}
       <UpgradeModal
         open={showUpgrade}
         onClose={() => setShowUpgrade(false)}

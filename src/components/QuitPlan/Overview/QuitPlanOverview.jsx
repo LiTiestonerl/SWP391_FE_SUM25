@@ -14,7 +14,6 @@ import {
   ConfirmCancelModal,
 } from "./PlanActions";
 import CoachBox from "./CoachBox";
-import { CoachFeedbackCard } from "./CoachCard";
 import CigaretteRecommendations from "./CigaretteRecommendations";
 import api from "../../../configs/axios";
 import {
@@ -65,6 +64,7 @@ const QuitPlanOverview = () => {
   const [loading, setLoading] = useState(true);
   const [recommendations, setRecommendations] = useState([]);
   const [smokingFreeDays, setSmokingFreeDays] = useState(0);
+  const [coachList, setCoachList] = useState([]);
 
   const [showCreate, setCreate] = useState(false);
   const [showEdit, setEdit] = useState(false);
@@ -177,6 +177,20 @@ const QuitPlanOverview = () => {
       });
   }, [memberPackageId]);
 
+  const loadCoaches = async () => {
+    try {
+      const response = await api.get('/coach');
+      setCoachList(response.data || []);
+    } catch (error) {
+      console.error('Failed to load coaches:', error);
+    }
+  };
+
+  // Gọi hàm loadCoaches khi component mount (thêm vào useEffect)
+  useEffect(() => {
+    loadCoaches();
+  }, []);
+
   // Handle plan creation
   const handleCreatePlan = async (formData) => {
     if (!userId) {
@@ -254,16 +268,15 @@ const QuitPlanOverview = () => {
 
   const handleCoachChange = async (coach) => {
     try {
-      // 1. Kiểm tra dữ liệu đầu vào
       if (!plan?.planId || !coach?.userId) {
         message.error("Thông tin Kế hoạch hoặc Huấn luyện viên bị thiếu.");
         return;
       }
 
-      // 2. Gọi đúng API endpoint đã được tạo ở backend: /assign-coach
+      // Gọi API assign coach
       const response = await api.put(
         `/quit-plan/${plan.planId}/assign-coach?coachId=${coach.userId}`,
-        {}, // Body request có thể rỗng vì dữ liệu đã nằm trong URL
+        {},
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -271,24 +284,17 @@ const QuitPlanOverview = () => {
         }
       );
 
-      console.log("Phản hồi từ API gán coach:", response.data);
+      // Cập nhật state với đầy đủ thông tin coach
+      setPlan(prev => ({
+        ...prev,
+        coachId: coach.userId,
+        coachName: coach.fullName // Thêm trường coachName vào plan
+      }));
 
-      // 3. Cập nhật state bằng dữ liệu đầy đủ từ server trả về
-      // Điều này đảm bảo giao diện luôn đồng bộ 100% với database
-      setPlan(response.data);
-
-      message.success(
-        `Huấn luyện viên ${coach.fullName} đã được chỉ định thành công!`
-      );
+      message.success(`Huấn luyện viên ${coach.fullName} đã được chỉ định thành công!`);
     } catch (error) {
-      console.error("Lỗi khi chỉ định huấn luyện viên:", {
-        error: error.response?.data || error.message,
-      });
-      // Hiển thị lỗi từ backend nếu có
-      const errorMessage =
-        error.response?.data?.message ||
-        "Chỉ định huấn luyện viên thất bại. Vui lòng thử lại.";
-      message.error(errorMessage);
+      console.error("Lỗi khi chỉ định huấn luyện viên:", error);
+      message.error(error.response?.data?.message || "Chỉ định huấn luyện viên thất bại");
     }
   };
 
@@ -546,12 +552,16 @@ const QuitPlanOverview = () => {
                 <CoachBox
                   selectedCoachId={plan.coachId}
                   membership={membership}
-                  onSelect={handleCoachChange}
+                  onSelect={handleCoachChange} // Đảm bảo đang dùng hàm handleCoachChange đã sửa
+                  coachList={coachList} // Truyền danh sách coach xuống để không phải load lại
                 />
               </div>
               <div className="flex flex-col gap-6">
                 <PlanSummaryCard
-                  plan={plan}
+                  plan={{
+                    ...plan, // Giữ nguyên tất cả props cũ
+                    coachName: plan.coachId ? coachList.find(c => c.userId === plan.coachId)?.fullName : null
+                  }}
                   onEdit={() => setEdit(true)}
                   onDelete={() => setDel(true)}
                   onComplet
