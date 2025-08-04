@@ -1,27 +1,74 @@
-import React, { useState } from "react";
-import { Modal as AntdModal, Input, Button, Tooltip, Divider, message } from "antd";
-import { DeleteOutlined } from "@ant-design/icons";
+import React, { useState, useEffect } from "react";
+import { Modal as AntdModal, Input, Button, Divider, message } from "antd";
 import { quitProgressService, noSmokingHelpers } from "../../../services/quitPlanService";
+import dayjs from "dayjs";
 
-const DayModal = ({ open, onClose, day, weekNumber, weekTitle, onDelete }) => {
+const DayModal = ({ 
+  open, 
+  onClose, 
+  day, 
+  weekNumber, 
+  quitPlanStages, // Pass stages data from parent
+  planStartDate
+}) => {
   const [cigarettesSmoked, setCigarettesSmoked] = useState(0);
   const [smokingFreeDays, setSmokingFreeDays] = useState(0);
   const [healthStatus, setHealthStatus] = useState("");
-  const [stageId, setStageId] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  if (!day) return null;
+  // Find matching stage for the current day's date
+  const getStageForDate = (date) => {
+    if (!quitPlanStages || !date) return null;
+    
+    const currentDate = dayjs(date);
+    return quitPlanStages.find(stage => {
+      const startDate = dayjs(stage.stageStartDate);
+      const endDate = dayjs(stage.stageEndDate);
+      return currentDate.isBetween(startDate, endDate, null, '[]'); // Inclusive comparison
+    });
+  };
+
+  // Get correct stage info for current day
+  const getStageInfo = () => {
+    if (!day?.date) return { stageId: weekNumber, stageName: `Week ${weekNumber}` };
+    
+    const matchedStage = getStageForDate(day.date);
+    return {
+      stageId: matchedStage?.stageId || weekNumber,
+      stageName: matchedStage?.stageName || `Week ${weekNumber}`,
+      targetCigs: matchedStage?.targetCigarettesPerDay || 0
+    };
+  };
+
+  useEffect(() => {
+    if (day) {
+      // Reset form when day changes
+      setCigarettesSmoked(0);
+      setSmokingFreeDays(0);
+      setHealthStatus("");
+    }
+  }, [day]);
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      await quitProgressService.updateProgress({
+      const { stageId, stageName, targetCigs } = getStageInfo();
+      
+      // Calculate money saved based on target vs actual
+      const moneySaved = (targetCigs - cigarettesSmoked) * 1750; // Assuming 1750 VND per cigarette
+      
+      const progressData = {
         date: day.date,
         cigarettesSmoked,
         smokingFreeDays,
         healthStatus,
-        stageId,
-      });
+        stageId, // Correct stageId from matching
+        stageName, // Correct stageName from matching
+        moneySaved,
+        moneySpent: 0 // Can be calculated if needed
+      };
+
+      await quitProgressService.updateProgress(progressData);
 
       const motivationalMsg = noSmokingHelpers.getMotivationalMessage(smokingFreeDays);
       message.success(`Progress saved! ${motivationalMsg}`);
@@ -34,6 +81,10 @@ const DayModal = ({ open, onClose, day, weekNumber, weekTitle, onDelete }) => {
     }
   };
 
+  if (!day) return null;
+
+  const { stageId, stageName } = getStageInfo();
+
   return (
     <AntdModal
       open={open}
@@ -43,31 +94,25 @@ const DayModal = ({ open, onClose, day, weekNumber, weekTitle, onDelete }) => {
       centered
       closable={false}
     >
-      {/* Header */}
       <div className="flex justify-between items-center border-b border-gray-300 px-6 py-3 bg-white">
         <h2 className="text-xl font-bold text-gray-800">
-          Update Progress - {day.title || `Day ${day.dayNumber}`} (Week: {weekTitle || weekNumber})
+          Update Progress - Day {day.dayNumber}
         </h2>
-        <div className="flex items-center gap-3">
-          {onDelete && (
-            <Tooltip title="Delete this day">
-              <Button icon={<DeleteOutlined />} danger onClick={onDelete} />
-            </Tooltip>
-          )}
-          <button
-            onClick={onClose}
-            className="text-xl text-gray-500 hover:text-black"
-          >
-            ✕
-          </button>
-        </div>
+        <button onClick={onClose} className="text-xl text-gray-500 hover:text-black">
+          ✕
+        </button>
       </div>
 
-      {/* Content */}
       <div className="px-6 py-4 space-y-4">
-        <div>
-          <label className="font-medium text-gray-700">Date:</label>
-          <Input value={day.date} disabled />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="font-medium text-gray-700">Date:</label>
+            <Input value={day.date} disabled />
+          </div>
+          <div>
+            <label className="font-medium text-gray-700">Stage:</label>
+            <Input value={`${stageName} (ID: ${stageId})`} disabled />
+          </div>
         </div>
 
         <div>
@@ -99,17 +144,6 @@ const DayModal = ({ open, onClose, day, weekNumber, weekTitle, onDelete }) => {
             rows={4}
             showCount
             maxLength={300}
-            style={{ resize: "vertical" }}
-          />
-        </div>
-
-        <div>
-          <label className="font-medium text-gray-700">Stage ID:</label>
-          <Input
-            type="number"
-            min={1}
-            value={stageId}
-            onChange={(e) => setStageId(Number(e.target.value))}
           />
         </div>
 

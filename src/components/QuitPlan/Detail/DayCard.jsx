@@ -4,9 +4,8 @@ import {
 } from "@ant-design/icons";
 import DayModal from "./DayModal";
 
-const DayCard = ({ day, weekNumber, planStartDate }) => {
+const DayCard = ({ day, weekNumber, planStartDate, quitPlanStages }) => {
   const [open, setOpen] = useState(false);
-  const [deleted, setDeleted] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
 
   useEffect(() => {
@@ -20,7 +19,6 @@ const DayCard = ({ day, weekNumber, planStartDate }) => {
     }
   }, [day]);
 
-  if (deleted) return null;
 
   return (
     <>
@@ -60,7 +58,7 @@ const DayCard = ({ day, weekNumber, planStartDate }) => {
         day={day}
         weekNumber={weekNumber}
         planStartDate={planStartDate}
-        onDelete={() => setDeleted(true)}
+        quitPlanStages={quitPlanStages} // Add this prop
       />
     </>
   );

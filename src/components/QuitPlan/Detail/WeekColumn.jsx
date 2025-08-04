@@ -1,7 +1,7 @@
 import React from "react";
 import DayCard from "./DayCard";
 
-const WeekColumn = ({ weekNumber, days, planStartDate }) => {
+const WeekColumn = ({ weekNumber, days, planStartDate, quitPlanStages }) => {
   return (
     <div className="rounded-2xl shadow-lg w-70 min-w-[18rem] border overflow-hidden bg-white">
       <div
@@ -24,6 +24,7 @@ const WeekColumn = ({ weekNumber, days, planStartDate }) => {
                 day={day}
                 weekNumber={weekNumber}
                 planStartDate={planStartDate}
+                quitPlanStages={quitPlanStages} // Add this prop
               />
             </div>
           ))}

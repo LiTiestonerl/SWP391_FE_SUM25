@@ -571,9 +571,10 @@ const QuitPlanOverview = () => {
                   durationInDays={plan.durationInDays}
                   startDate={plan.startDate}
                   endDate={plan.endDate || plan.expectedEndDate}
-                  membership={plan.membership}
-                  planId={plan.id}
-                  averageCigarettes={plan.averageCigarettes}
+                  membership={membership}
+                  planId={plan.planId} // Đảm bảo dùng planId thay vì id
+                  averageCigarettes={plan.cigarettesPerDay} // Đổi tên prop cho đúng với API
+                  quitPlanStages={plan.quitPlanStages} // Truyền dữ liệu stages từ API
                 />
               </div>
             </div>
