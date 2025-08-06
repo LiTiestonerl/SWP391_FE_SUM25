@@ -58,31 +58,31 @@ export const quitPlanService = {
 
   // Update quit plan (user)
   updatePlan: async (planId, planData) => {
-  try {
-    const response = await api.put(`/quit-plan/${planId}/user`, {
-      title: planData.title,
-      startDate: planData.startDate,
-      expectedEndDate: planData.expectedEndDate || planData.endDate,
-      reason: planData.reason,
-      stagesDescription: planData.stagesDescription || '',
-      customNotes: planData.customNotes || '',
-      userId: planData.userId,
-      coachId: planData.coachId || null,
-      recommendedPackageId: planData.recommendedPackageId || null,
-    }, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error updating quit plan:', {
-      error: error.response?.data || error.message,
-      config: error.config
-    });
-    throw error;
-  }
-},
+    try {
+      const response = await api.put(`/quit-plan/${planId}/user`, {
+        title: planData.title,
+        startDate: planData.startDate,
+        expectedEndDate: planData.expectedEndDate || planData.endDate,
+        reason: planData.reason,
+        stagesDescription: planData.stagesDescription || '',
+        customNotes: planData.customNotes || '',
+        userId: planData.userId,
+        coachId: planData.coachId || null,
+        recommendedPackageId: planData.recommendedPackageId || null,
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating quit plan:', {
+        error: error.response?.data || error.message,
+        config: error.config
+      });
+      throw error;
+    }
+  },
 
   // Complete quit plan
   completePlan: async (planId) => {
@@ -187,39 +187,6 @@ export const cigaretteRecommendationService = {
     }
   },
 
-  // Get best recommendations for cigarette
-  getBestRecommendations: async (cigaretteId) => {
-    try {
-      const response = await api.get(`/cigarette-recommendations/best/${cigaretteId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching best recommendations:', error);
-      throw error;
-    }
-  },
-
-  // Get recommendations with lighter nicotine
-  getLighterNicotineRecommendations: async (cigaretteId) => {
-    try {
-      const response = await api.get(`/cigarette-recommendations/lighter-nicotine/${cigaretteId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching lighter nicotine recommendations:', error);
-      throw error;
-    }
-  },
-
-  // Get same brand lighter recommendations
-  getSameBrandLighterRecommendations: async (cigaretteId) => {
-    try {
-      const response = await api.get(`/cigarette-recommendations/same-brand-lighter/${cigaretteId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching same brand lighter recommendations:', error);
-      throw error;
-    }
-  },
-
   // Get same flavor recommendations
   getSameFlavorRecommendations: async (cigaretteId) => {
     try {
@@ -231,13 +198,59 @@ export const cigaretteRecommendationService = {
     }
   },
 
-  // Get recommendations by smoking status
-  getRecommendationsBySmokingStatus: async (smokingStatusId) => {
+  // Get same brand recommendations
+  getSameBrandRecommendations: async (cigaretteId) => {
     try {
-      const response = await api.get(`/cigarette-recommendations/by-smoking-status/${smokingStatusId}`);
+      const response = await api.get(`/cigarette-recommendations/same-brand/${cigaretteId}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching recommendations by smoking status:', error);
+      console.error('Error fetching same brand recommendations:', error);
+      throw error;
+    }
+  },
+
+  // Get comprehensive recommendations
+  getComprehensiveRecommendations: async (cigaretteId) => {
+    try {
+      const response = await api.get(`/cigarette-recommendations/comprehensive/${cigaretteId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching comprehensive recommendations:', error);
+      throw error;
+    }
+  },
+
+  // Get recommendations by smoking level
+  getRecommendationsBySmokingLevel: async (smokingLevel) => {
+    try {
+      const response = await api.get(`/cigarette-recommendations/by-smoking-level/${smokingLevel}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recommendations by smoking level:', error);
+      throw error;
+    }
+  },
+
+  // Get recommendations by preference
+  getRecommendationsByPreference: async (flavor, nicotineLevel) => {
+    try {
+      const response = await api.get('/cigarette-recommendations/by-preference', {
+        params: { flavor, nicotineLevel }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recommendations by preference:', error);
+      throw error;
+    }
+  },
+
+  // Get recommendations based on current cigarette
+  getRecommendationsBasedOnCurrent: async (cigaretteId) => {
+    try {
+      const response = await api.get(`/cigarette-recommendations/based-on-current/${cigaretteId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recommendations based on current cigarette:', error);
       throw error;
     }
   },

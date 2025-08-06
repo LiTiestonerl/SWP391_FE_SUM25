@@ -8,7 +8,8 @@ const PlanSummaryCard = ({
   onComplete,
   onCancel,
   isCompleted,
-  isCancelled
+  isCancelled,
+  isViewOnly = false
 }) => {
   const startDate = plan.startDate ? dayjs(plan.startDate) : dayjs();
   const endDate = plan.endDate 
@@ -22,9 +23,8 @@ const PlanSummaryCard = ({
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 ring-1 ring-emerald-200/60 hover:shadow-2xl transition relative min-h-[240px]">
-      <div className="absolute top-3 right-3 flex gap-2">
-        {/* Nút Complete - chỉ hiện khi plan chưa completed hoặc cancelled */}
-        {!isCompleted && !isCancelled && (
+      {!isViewOnly && !isCompleted && !isCancelled && (
+        <div className="absolute top-3 right-3 flex gap-2">
           <button
             onClick={onComplete}
             className="p-2 rounded-full bg-gray-100 hover:bg-emerald-100 text-emerald-600"
@@ -32,10 +32,6 @@ const PlanSummaryCard = ({
           >
             <FiCheckCircle />
           </button>
-        )}
-        
-        {/* Nút Cancel - chỉ hiện khi plan chưa completed hoặc cancelled */}
-        {!isCompleted && !isCancelled && (
           <button
             onClick={onCancel}
             className="p-2 rounded-full bg-gray-100 hover:bg-orange-100 text-orange-500"
@@ -43,19 +39,16 @@ const PlanSummaryCard = ({
           >
             <FiX />
           </button>
-        )}
-        
-        {/* Nút Edit */}
-        <button
-          onClick={onEdit}
-          className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
-          title="Edit Plan"
-        >
-          <FiEdit2 />
-        </button>
-      </div>
+          <button
+            onClick={onEdit}
+            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
+            title="Edit Plan"
+          >
+            <FiEdit2 />
+          </button>
+        </div>
+      )}
 
-      {/* Phần còn lại giữ nguyên */}
       <h2 className="text-2xl font-bold text-emerald-700 mb-4">{plan.name || plan.title}</h2>
       
       <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">

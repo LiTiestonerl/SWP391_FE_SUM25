@@ -1,106 +1,99 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Modal as AntdModal, Input, Button, Divider, message } from "antd";
-import { quitProgressService, noSmokingHelpers } from "../../../services/quitPlanService";
+import { quitProgressService } from "../../../services/quitPlanService";
 import dayjs from "dayjs";
+import isBetween from 'dayjs/plugin/isBetween';
+
+// Extend dayjs with isBetween plugin
+dayjs.extend(isBetween);
 
 const DayModal = ({ 
   open, 
   onClose, 
   day, 
-  weekNumber, 
-  quitPlanStages, // Pass stages data from parent
-  planStartDate
+  quitPlanStages,
+  isViewOnly = false,
+  planStatus = "IN_PROGRESS"
 }) => {
-  const [cigarettesSmoked, setCigarettesSmoked] = useState(0);
-  const [smokingFreeDays, setSmokingFreeDays] = useState(0);
-  const [healthStatus, setHealthStatus] = useState("");
+  const [cigarettesSmoked, setCigarettesSmoked] = useState(day?.cigarettesSmoked || 0);
+  const [smokingFreeDays, setSmokingFreeDays] = useState(day?.smokingFreeDays || 0);
+  const [healthStatus, setHealthStatus] = useState(day?.healthStatus || "");
   const [loading, setLoading] = useState(false);
+  const [currentStage, setCurrentStage] = useState(null);
 
-  // Find matching stage for the current day's date
-  const getStageForDate = (date) => {
-    if (!quitPlanStages || !date) return null;
+  const findStageForDate = (dateString) => {
+    if (!quitPlanStages || !dateString) return null;
     
-    const currentDate = dayjs(date);
-    return quitPlanStages.find(stage => {
-      const startDate = dayjs(stage.stageStartDate);
-      const endDate = dayjs(stage.stageEndDate);
-      return currentDate.isBetween(startDate, endDate, null, '[]'); // Inclusive comparison
-    });
-  };
-
-  // Get correct stage info for current day
-  const getStageInfo = () => {
-    if (!day?.date) return { stageId: weekNumber, stageName: `Week ${weekNumber}` };
-    
-    const matchedStage = getStageForDate(day.date);
-    return {
-      stageId: matchedStage?.stageId || weekNumber,
-      stageName: matchedStage?.stageName || `Week ${weekNumber}`,
-      targetCigs: matchedStage?.targetCigarettesPerDay || 0
-    };
+    try {
+      const currentDate = dayjs(dateString);
+      return quitPlanStages.find(stage => {
+        const startDate = dayjs(stage.stageStartDate);
+        const endDate = dayjs(stage.stageEndDate);
+        return currentDate.isBetween(startDate, endDate, 'day', '[]');
+      });
+    } catch (error) {
+      console.error('Error finding stage:', error);
+      return null;
+    }
   };
 
   useEffect(() => {
-    if (day) {
-      // Reset form when day changes
-      setCigarettesSmoked(0);
-      setSmokingFreeDays(0);
-      setHealthStatus("");
+    if (day?.date) {
+      const matchedStage = findStageForDate(day.date);
+      setCurrentStage(matchedStage);
+      
+      if (day.progressId) {
+        setCigarettesSmoked(day.cigarettesSmoked || 0);
+        setSmokingFreeDays(day.smokingFreeDays || 0);
+        setHealthStatus(day.healthStatus || "");
+      }
     }
   }, [day]);
 
   const handleSave = async () => {
+    if (!day || !currentStage) {
+      message.error("Missing required data");
+      return;
+    }
+
     setLoading(true);
     try {
-      const { stageId, stageName, targetCigs } = getStageInfo();
-      
-      // Calculate money saved based on target vs actual
-      const moneySaved = (targetCigs - cigarettesSmoked) * 1750; // Assuming 1750 VND per cigarette
-      
       const progressData = {
         date: day.date,
         cigarettesSmoked,
         smokingFreeDays,
         healthStatus,
-        stageId, // Correct stageId from matching
-        stageName, // Correct stageName from matching
-        moneySaved,
-        moneySpent: 0 // Can be calculated if needed
+        stageId: currentStage.stageId
       };
 
       await quitProgressService.updateProgress(progressData);
-
-      const motivationalMsg = noSmokingHelpers.getMotivationalMessage(smokingFreeDays);
-      message.success(`Progress saved! ${motivationalMsg}`);
-      onClose();
+      message.success("Progress saved successfully!");
+      onClose(true);
     } catch (error) {
-      console.error('Error saving progress:', error);
-      message.error("Failed to save progress. Please try again.");
+      console.error('Save progress error:', error);
+      message.error(error.response?.data?.message || "Failed to save progress");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!day) return null;
+  const isSaveDisabled = isViewOnly || planStatus !== "IN_PROGRESS" || !currentStage;
 
-  const { stageId, stageName } = getStageInfo();
+  if (!day) return null;
 
   return (
     <AntdModal
       open={open}
-      onCancel={onClose}
+      onCancel={() => onClose(false)}
       footer={null}
       width={600}
       centered
-      closable={false}
+      closable={!isViewOnly}
     >
       <div className="flex justify-between items-center border-b border-gray-300 px-6 py-3 bg-white">
         <h2 className="text-xl font-bold text-gray-800">
-          Update Progress - Day {day.dayNumber}
+          {isViewOnly ? "View Progress" : "Update Progress"} - {day.date}
         </h2>
-        <button onClick={onClose} className="text-xl text-gray-500 hover:text-black">
-          ✕
-        </button>
       </div>
 
       <div className="px-6 py-4 space-y-4">
@@ -111,7 +104,10 @@ const DayModal = ({
           </div>
           <div>
             <label className="font-medium text-gray-700">Stage:</label>
-            <Input value={`${stageName} (ID: ${stageId})`} disabled />
+            <Input 
+              value={currentStage ? `${currentStage.stageName} (ID: ${currentStage.stageId})` : "Not assigned"} 
+              disabled 
+            />
           </div>
         </div>
 
@@ -120,9 +116,16 @@ const DayModal = ({
           <Input
             type="number"
             min={0}
+            max={currentStage?.targetCigarettesPerDay || 20}
             value={cigarettesSmoked}
             onChange={(e) => setCigarettesSmoked(Number(e.target.value))}
+            disabled={isViewOnly}
           />
+          {currentStage && (
+            <p className="text-xs text-gray-500 mt-1">
+              Target: {currentStage.targetCigarettesPerDay} cigarettes/day
+            </p>
+          )}
         </div>
 
         <div>
@@ -132,29 +135,38 @@ const DayModal = ({
             min={0}
             value={smokingFreeDays}
             onChange={(e) => setSmokingFreeDays(Number(e.target.value))}
+            disabled={isViewOnly}
           />
         </div>
 
         <div>
           <label className="font-medium text-gray-700 block mb-1">Health Status:</label>
           <Input.TextArea
-            placeholder="How do you feel today?"
+            placeholder="How are you feeling today?"
             value={healthStatus}
             onChange={(e) => setHealthStatus(e.target.value)}
             rows={4}
             showCount
             maxLength={300}
+            disabled={isViewOnly}
           />
         </div>
 
-        <Divider />
-
-        <div className="flex justify-end gap-3">
-          <Button type="primary" onClick={handleSave} loading={loading}>
-            Save
-          </Button>
-          <Button onClick={onClose}>Cancel</Button>
-        </div>
+        {!isViewOnly && planStatus === "IN_PROGRESS" && (
+          <>
+            <Divider />
+            <div className="flex justify-end gap-3">
+              <Button 
+                type="primary" 
+                onClick={handleSave} 
+                loading={loading}
+              >
+                Save
+              </Button>
+              <Button onClick={onClose}>Cancel</Button>
+            </div>
+          </>
+        )}
       </div>
     </AntdModal>
   );

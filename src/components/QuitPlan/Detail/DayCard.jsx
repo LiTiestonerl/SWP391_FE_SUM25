@@ -4,7 +4,7 @@ import {
 } from "@ant-design/icons";
 import DayModal from "./DayModal";
 
-const DayCard = ({ day, weekNumber, planStartDate, quitPlanStages }) => {
+const DayCard = ({ day, weekNumber, planStartDate, quitPlanStages, isViewOnly = false }) => {
   const [open, setOpen] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
 
@@ -58,7 +58,8 @@ const DayCard = ({ day, weekNumber, planStartDate, quitPlanStages }) => {
         day={day}
         weekNumber={weekNumber}
         planStartDate={planStartDate}
-        quitPlanStages={quitPlanStages} // Add this prop
+        quitPlanStages={quitPlanStages}
+        isViewOnly={isViewOnly} // Add this prop
       />
     </>
   );

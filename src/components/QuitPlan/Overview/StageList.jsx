@@ -87,6 +87,7 @@ const StageList = ({
   planId,
   averageCigarettes,
   quitPlanStages,
+  isViewOnly = false,
 }) => {
   const navigate = useNavigate();
   const [selectedStage, setSelectedStage] = useState(null);
@@ -163,6 +164,8 @@ const StageList = ({
   );
 
   const handleStageClick = (stage) => {
+    if (isViewOnly) return;
+    
     if (stage.isLocked) {
       setShowUpgradeModal(true);
     } else {
@@ -201,45 +204,47 @@ const StageList = ({
         </p>
       </div>
 
-      <ul className="space-y-2.5 mb-4">
-        {visibleStages
-          .sort((a, b) => a.stageId - b.stageId) // Thêm dòng này để sắp xếp theo stageId
-          .map((stage) => {
-            const isCompleted = completedStages.includes(stage.stageId);
-            return (
-              <li
-                key={stage.stageId}
-                onClick={() => handleStageClick(stage)}
-                className={`border-1 rounded-lg p-3 cursor-pointer transition flex justify-between items-start gap-3 ${stage.isLocked
-                    ? "bg-gray-50 border-gray-300 hover:bg-gray-100"
-                    : "border-gray-800 hover:border-gray-600 hover:bg-gray-50"
-                  } ${isCompleted && !stage.isLocked ? "bg-green-50 border-green-600" : ""
-                  }`}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-gray-800 flex items-center gap-2">
-                    <span className="truncate">{stage.stageName}</span>
-                    {isCompleted && !stage.isLocked && (
-                      <FaCheckCircle className="text-green-500 text-lg flex-shrink-0" />
-                    )}
-                    {stage.isLocked && <FaLock className="text-yellow-600 flex-shrink-0" />}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {dayjs(stage.stageStartDate).format("MMM D")} →{" "}
-                    {dayjs(stage.stageEndDate).format("MMM D")}
-                    <span className="ml-2 text-gray-400">({stage.durationInDays} days)</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full flex items-center">
-                    <span className="mr-1">🎯</span>
-                    {stage.targetCigarettesPerDay} cigs/day
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-      </ul>
+             <ul className="space-y-2.5 mb-4">
+         {visibleStages
+           .sort((a, b) => a.stageId - b.stageId)
+           .map((stage) => {
+             const isCompleted = completedStages.includes(stage.stageId);
+             return (
+               <li
+                 key={stage.stageId}
+                 onClick={() => handleStageClick(stage)}
+                 className={`border-1 rounded-lg p-3 cursor-pointer transition flex justify-between items-start gap-3 ${
+                   stage.isLocked
+                     ? "bg-gray-50 border-gray-300 hover:bg-gray-100"
+                     : "border-gray-800 hover:border-gray-600 hover:bg-gray-50"
+                 } ${
+                   isCompleted && !stage.isLocked ? "bg-green-50 border-green-600" : ""
+                 }`}
+               >
+                 <div className="flex-1 min-w-0">
+                   <div className="font-semibold text-gray-800 flex items-center gap-2">
+                     <span className="truncate">{stage.stageName}</span>
+                     {isCompleted && !stage.isLocked && (
+                       <FaCheckCircle className="text-green-500 text-lg flex-shrink-0" />
+                     )}
+                     {stage.isLocked && <FaLock className="text-yellow-600 flex-shrink-0" />}
+                   </div>
+                   <div className="text-xs text-gray-500 mt-1">
+                     {dayjs(stage.stageStartDate).format("MMM D")} →{" "}
+                     {dayjs(stage.stageEndDate).format("MMM D")}
+                     <span className="ml-2 text-gray-400">({stage.durationInDays} days)</span>
+                   </div>
+                 </div>
+                 <div className="flex items-center gap-2">
+                   <div className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full flex items-center">
+                     <span className="mr-1">🎯</span>
+                     {stage.targetCigarettesPerDay} cigs/day
+                   </div>
+                 </div>
+               </li>
+             );
+           })}
+       </ul>
 
       {/* Modal xem chi tiết stage - ĐÃ ĐIỀU CHỈNH */}
       <Modal
@@ -297,6 +302,7 @@ const StageList = ({
               )}
             </div>
 
+            {/* Phần buttons */}
             <div className="flex gap-3 justify-end">
               <Button
                 onClick={() => {
@@ -308,6 +314,7 @@ const StageList = ({
                       startDate,
                       durationInDays,
                       selectedPlan: membership,
+                      isViewOnly // Truyền tiếp isViewOnly
                     },
                   });
                 }}
@@ -317,41 +324,43 @@ const StageList = ({
                 View Details
               </Button>
 
-              <Button
-                onClick={() => handleCompleteStage(selectedStage.stageId)}
-                disabled={selectedStage.isLocked || completedStages.includes(selectedStage.stageId)}
-                type="default"
-                style={{
-                  backgroundColor: selectedStage.isLocked
-                    ? "#9ca3af" // gray-400
+              {!isViewOnly && ( // Chỉ hiện nút Mark Complete khi không phải chế độ xem
+                <Button
+                  onClick={() => handleCompleteStage(selectedStage.stageId)}
+                  disabled={selectedStage.isLocked || completedStages.includes(selectedStage.stageId)}
+                  type="default"
+                  style={{
+                    backgroundColor: selectedStage.isLocked
+                      ? "#9ca3af" // gray-400
+                      : completedStages.includes(selectedStage.stageId)
+                        ? "#16a34a" // green-600
+                        : "#16a34a", // mặc định
+                    borderColor: selectedStage.isLocked
+                      ? "#9ca3af"
+                      : "#16a34a",
+                    color: "white",
+                    transition: "all 0.3s ease", // 👈 hiệu ứng chuyển mượt
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!selectedStage.isLocked && !completedStages.includes(selectedStage.stageId)) {
+                      e.currentTarget.style.backgroundColor = "#15803d"; // green-700
+                      e.currentTarget.style.borderColor = "#15803d";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!selectedStage.isLocked && !completedStages.includes(selectedStage.stageId)) {
+                      e.currentTarget.style.backgroundColor = "#16a34a"; // green-600
+                      e.currentTarget.style.borderColor = "#16a34a";
+                    }
+                  }}
+                >
+                  {selectedStage.isLocked
+                    ? "Locked"
                     : completedStages.includes(selectedStage.stageId)
-                      ? "#16a34a" // green-600
-                      : "#16a34a", // mặc định
-                  borderColor: selectedStage.isLocked
-                    ? "#9ca3af"
-                    : "#16a34a",
-                  color: "white",
-                  transition: "all 0.3s ease", // 👈 hiệu ứng chuyển mượt
-                }}
-                onMouseEnter={(e) => {
-                  if (!selectedStage.isLocked && !completedStages.includes(selectedStage.stageId)) {
-                    e.currentTarget.style.backgroundColor = "#15803d"; // green-700
-                    e.currentTarget.style.borderColor = "#15803d";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!selectedStage.isLocked && !completedStages.includes(selectedStage.stageId)) {
-                    e.currentTarget.style.backgroundColor = "#16a34a"; // green-600
-                    e.currentTarget.style.borderColor = "#16a34a";
-                  }
-                }}
-              >
-                {selectedStage.isLocked
-                  ? "Locked"
-                  : completedStages.includes(selectedStage.stageId)
-                    ? "Completed"
-                    : "Mark Complete"}
-              </Button>
+                      ? "Completed"
+                      : "Mark Complete"}
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -364,10 +373,9 @@ const StageList = ({
           setShowUpgradeModal(false);
           navigate("/membership");
         }}
-        freeDays={Number(durationInDays) || 0}
-      />
-    </div>
-  );
-};
-
+                 freeDays={Number(durationInDays) || 0}
+       />
+     </div>
+   );
+ };
 export default StageList;
