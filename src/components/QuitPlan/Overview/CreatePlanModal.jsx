@@ -16,65 +16,46 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
   });
 
   useEffect(() => {
-    // Chỉ thực hiện bất cứ điều gì khi modal được mở
-    if (open) {
-      // BƯỚC 1: RESET TOÀN BỘ STATE CỦA FORM VỀ TRẠNG THÁI BAN ĐẦU
-      // Việc này đảm bảo mọi dữ liệu từ lần mở trước sẽ bị xóa sạch.
-      setForm({
-        name: '',
-        reason: '',
-        startDate: '',
-        endDate: '',
-        customNotes: '',
-      });
-      setTouched(false); // Reset cả trạng thái validation
+    const fetchData = async () => {
+      try {
+        const [pkgListRes, meRes, smokingStatusRes] = await Promise.all([
+          api.get('/member-packages'),
+          api.get('/user-membership/me'),
+          api.get('/smoking-status').catch(() => ({ data: null }))
+        ]);
 
-      // BƯỚC 2: ĐỊNH NGHĨA HÀM FETCH DỮ LIỆU
-      // Hàm này giờ sẽ chạy trên một state đã được làm sạch.
-      const fetchData = async () => {
-        try {
-          const [pkgListRes, meRes, smokingStatusRes] = await Promise.all([
-            api.get('/member-packages'),
-            api.get('/user-membership/me'),
-            api.get('/smoking-status').catch(() => ({ data: null }))
-          ]);
-  
-          const pkgs = pkgListRes?.data ?? [];
-          const smokingData = smokingStatusRes?.data;
-          const memberPackageId = meRes?.data?.memberPackageId;
-  
-          let activePkg = pkgs.find(p => Number(p.memberPackageId) === Number(memberPackageId));
-          if (!activePkg) {
-            activePkg = pkgs.find(p => String(p.packageName).toUpperCase().includes('FREE')) || pkgs[0];
-          }
-  
-          if (activePkg) {
-            setDuration(activePkg.duration);
-            setPackageName(activePkg.packageName);
-            // Bây giờ `prev.name` luôn là chuỗi rỗng ('') do đã reset ở trên,
-            // nên giá trị mặc định sẽ được áp dụng chính xác.
-            setForm(prev => ({
-              ...prev,
-              name: `No Smoking Plan - ${activePkg.duration} Days`,
-            }));
-          } else {
-            setDuration(30);
-            setPackageName('DEFAULT');
-            setForm(prev => ({ ...prev, name: 'No Smoking Plan - 30 Days' }));
-          }
-  
-        } catch (err) {
-          console.error('Fetch membership/packages error:', err);
+        const pkgs = pkgListRes?.data ?? [];
+        const smokingData = smokingStatusRes?.data;
+        const memberPackageId = meRes?.data?.memberPackageId;
+
+        let activePkg = pkgs.find(p => Number(p.memberPackageId) === Number(memberPackageId));
+        if (!activePkg) {
+          activePkg = pkgs.find(p => String(p.packageName).toUpperCase().includes('FREE')) || pkgs[0];
+        }
+
+        if (activePkg) {
+          setDuration(activePkg.duration);
+          setPackageName(activePkg.packageName);
+          setForm(prev => ({
+            ...prev,
+            name: prev.name || `No Smoking Plan - ${activePkg.duration} Days`,
+          }));
+        } else {
           setDuration(30);
           setPackageName('DEFAULT');
-          setForm(prev => ({ ...prev, name: 'No Smoking Plan - 30 Days' }));
+          setForm(prev => ({ ...prev, name: prev.name || 'No Smoking Plan - 30 Days' }));
         }
-      };
-  
-      // BƯỚC 3: GỌI HÀM FETCH SAU KHI ĐÃ RESET
-      fetchData();
-    }
-}, [open]);
+
+      } catch (err) {
+        console.error('Fetch membership/packages error:', err);
+        setDuration(30);
+        setPackageName('DEFAULT');
+        setForm(prev => ({ ...prev, name: prev.name || 'No Smoking Plan - 30 Days' }));
+      }
+    };
+
+    if (open) fetchData();
+  }, [open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

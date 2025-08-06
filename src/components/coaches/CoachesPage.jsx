@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom"; // Bước 1: Import useSearchParams
 import api from "../../configs/axios";
 import { FiCalendar, FiFilter, FiVideo, FiArrowUpCircle } from "react-icons/fi";
 import { message } from "antd";
 import { updateMembership } from "../../redux/features/userSlice";
+
 
 const CoachPage = () => {
   const [coaches, setCoaches] = useState([]);
@@ -13,15 +14,28 @@ const CoachPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // Bước 2: Sử dụng hook để đọc tham số từ URL
+  const [searchParams] = useSearchParams();
+  const coachId = searchParams.get("coachId"); // Lấy giá trị của 'coachId'
+
+  // Bước 3: Cập nhật hàm fetch để xử lý cả hai trường hợp
   const fetchCoaches = async () => {
     try {
-      const response = await api.get("/coach");
-      const list = Array.isArray(response.data)
-        ? response.data
-        : Array.isArray(response.data.data)
-        ? response.data.data
-        : [];
-      setCoaches(list);
+      // TRƯỜNG HỢP 2: Nếu có coachId trên URL, chỉ lấy thông tin của coach đó
+      if (coachId) {
+        const response = await api.get(`/coach/${coachId}`);
+        // API trả về một object, nhưng trang cần một mảng để render, nên ta đặt nó vào mảng
+        setCoaches(response.data ? [response.data] : []);
+      } else {
+        // TRƯỜNG HỢP 1: Nếu không có coachId, lấy toàn bộ danh sách coach
+        const response = await api.get("/coach");
+        const list = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.data.data)
+          ? response.data.data
+          : [];
+        setCoaches(list);
+      }
     } catch (error) {
       console.error("Error fetching coaches:", error);
       setCoaches([]);
@@ -48,7 +62,7 @@ const CoachPage = () => {
           setShowUpgradeMessage(true);
         } else {
           setShowUpgradeMessage(false);
-          fetchCoaches();
+          fetchCoaches(); // Gọi hàm fetch đã được cập nhật
         }
       } catch (err) {
         console.error("Không lấy được thông tin membership:", err);
@@ -57,7 +71,8 @@ const CoachPage = () => {
     };
 
     checkMembershipAndFetch();
-  }, [user, navigate, dispatch]);
+    //  Thêm coachId vào mảng phụ thuộc để component cập nhật khi URL thay đổi
+  }, [user, navigate, dispatch, coachId]);
 
   const handleBookConsultation = (coachId) => {
     if (!user) {
@@ -95,15 +110,19 @@ const CoachPage = () => {
 
   return (
     <div className="pt-24 min-h-screen bg-gray-50 px-4">
+      {/* Thay đổi tiêu đề tùy thuộc vào việc có chọn coach hay không */}
       <h1 className="text-4xl font-bold text-center text-gray-800 mb-10">
-        Meet Our Coaches
+        {coachId ? "Your Selected Coach" : "Meet Our Coaches"}
       </h1>
 
-      <div className="flex justify-end mb-6">
-        <button className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-100">
-          <FiFilter /> Filter
-        </button>
-      </div>
+      {/* Ẩn nút filter nếu chỉ hiển thị một coach */}
+      {!coachId && (
+        <div className="flex justify-end mb-6">
+          <button className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-100">
+            <FiFilter /> Filter
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {coaches.length > 0 ? (

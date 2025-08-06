@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { quitPlanService } from '../../../services/quitPlanService'; // Điều chỉnh đường dẫn cho đúng
+import { message } from 'antd';
 
 export const ConfirmDeleteModal = ({ open, onClose, onConfirm }) => (
   <AnimatePresence>
@@ -147,27 +149,43 @@ export const ConfirmCancelModal = ({ open, onClose, onConfirm }) => {
 };
 
 export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
-  const [touched, setTouched] = useState(false);
   const [form, setForm] = useState({
     title: plan?.title || '',
     reason: plan?.reason || '',
     customNotes: plan?.customNotes || '',
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      // Gọi API PUT để cập nhật
+      const updatedPlan = await quitPlanService.updatePlan(plan.planId, {
+        title: form.title,
+        reason: form.reason,
+        customNotes: form.customNotes,
+        startDate: plan.startDate,
+        expectedEndDate: plan.expectedEndDate || plan.endDate,
+        userId: plan.userId,
+        coachId: plan.coachId,
+        recommendedPackageId: plan.recommendedPackageId
+      });
 
-  const validateForm = () => {
-    if (!form.title.trim()) return false;
-    if (form.reason.trim().length < 5) return false;
-    return true;
+      message.success('Plan updated successfully!');
+      onSave(updatedPlan);
+    } catch (error) {
+      console.error('Error updating plan:', error);
+      message.error(error.response?.data?.message || 'Failed to update plan');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const submit = (e) => {
-    e.preventDefault();
-    setTouched(true);
-    if (!validateForm()) return;
-    onSave(form); // Đảm bảo lưu đúng dữ liệu
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -188,35 +206,31 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-semibold text-emerald-700 mb-4">Edit Plan</h3>
-            <form onSubmit={submit} className="space-y-4 text-sm">
-              {/* Title */}
+            <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+              {/* Các trường form giữ nguyên */}
               <div className="grid grid-cols-3 gap-3 items-center">
                 <label className="font-medium text-gray-700">Plan Title</label>
                 <input
                   name="title"
                   value={form.title}
                   onChange={handleChange}
-                  className={`col-span-2 border p-3 rounded ${
-                    touched && !form.title ? 'border-red-400' : ''
-                  }`}
+                  className="col-span-2 border p-3 rounded"
+                  required
                 />
               </div>
 
-              {/* Reason */}
               <div className="grid grid-cols-3 gap-3 items-center">
                 <label className="font-medium text-gray-700">Reason</label>
                 <input
                   name="reason"
                   value={form.reason}
                   onChange={handleChange}
-                  placeholder="E.g. For my health, my family..."
-                  className={`col-span-2 border p-3 rounded ${
-                    touched && form.reason.trim().length < 5 ? 'border-red-400' : ''
-                  }`}
+                  className="col-span-2 border p-3 rounded"
+                  required
+                  minLength={5}
                 />
               </div>
 
-              {/* Notes */}
               <div className="grid grid-cols-3 gap-3 items-start">
                 <label className="font-medium text-gray-700 pt-2">Note</label>
                 <textarea
@@ -224,7 +238,6 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
                   rows={3}
                   value={form.customNotes}
                   onChange={handleChange}
-                  placeholder="E.g. Start your smoke-free journey today..."
                   className="col-span-2 border p-3 rounded resize-none"
                 />
               </div>
@@ -232,9 +245,10 @@ export const EditPlanModal = ({ open, plan, onClose, onSave }) => {
               <div className="flex gap-4 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                  className={`flex-1 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 ${loading ? 'opacity-70' : ''}`}
+                  disabled={loading}
                 >
-                  Save
+                  {loading ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   type="button"

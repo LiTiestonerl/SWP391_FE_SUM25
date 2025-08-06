@@ -176,7 +176,7 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
 
               <div className="flex gap-3 mt-auto pt-4">
                 <button
-                  onClick={() => navigate('/chat')}
+                  onClick={() => navigate(`/coaches?coachId=${selected.userId}`)}
                   className="w-full px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
                 >
                   Chat with Coach
