@@ -12,6 +12,20 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { updateAvatar } from "../../redux/features/userSlice";
 import "./UserProfile.css";
+import { FaStar } from "react-icons/fa";
+
+const RenderStars = ({ rating }) => {
+    const stars = [];
+    for (let i = 0; i < 5; i++) {
+        stars.push(
+        <FaStar
+            key={i}
+            className={i < rating ? "text-yellow-400" : "text-gray-300"}
+        />
+        );
+    }
+    return <div className="flex gap-1">{stars}</div>;
+};
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -22,6 +36,9 @@ const UserProfile = () => {
   const userIdToFetch = isOwnProfile ? currentUser?.id : profileUserId;
   const [viewedUser, setViewedUser] = useState(null);
   const userId = currentUser?.id || currentUser?.userId;
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [myFeedbacks, setMyFeedbacks] = useState([]);
+  const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
 
   const avatarInputRef = useRef(null);
   const coverInputRef = useRef(null);
@@ -33,6 +50,28 @@ const UserProfile = () => {
   const [comments, setComments] = useState({});
   const [visibleComments, setVisibleComments] = useState({});
   const [newComments, setNewComments] = useState({});
+
+  const handleViewMyFeedback = async () => {
+    setIsFeedbackModalOpen(true);
+    setIsFeedbackLoading(true);
+
+    const isCoach = currentUser?.role === 'COACH'; 
+
+    try {
+      let response;
+      if (isCoach) {
+        response = await api.get("/rating/coach/me");
+      } else {
+        response = await api.get("/rating/member/me");
+      }
+      setMyFeedbacks(response.data);
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách feedback:", error);
+      alert("Không thể tải được danh sách feedback.");
+    } finally {
+      setIsFeedbackLoading(false);
+    }
+  };
 
   const toBase64 = (file) =>
     new Promise((resolve, reject) => {
@@ -220,7 +259,7 @@ const UserProfile = () => {
               { label: "Posts" },
               { label: "Status", onClick: () => navigate("/status") },
              { label: "Chat", onClick: () => navigate("/chat") }, 
-        
+        { label: "My Feedback", onClick: handleViewMyFeedback },
               { label: "Achievement", onClick: () => navigate("/achievement") },
             ].map((item, index) => (
               <div
@@ -421,7 +460,7 @@ const UserProfile = () => {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal tạo bài viết */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-xl p-6">
@@ -441,6 +480,69 @@ const UserProfile = () => {
             >
               Post
             </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal xem Feedback */}
+      {isFeedbackModalOpen && (
+        <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center"
+            onClick={() => setIsFeedbackModalOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">
+                {currentUser?.role === 'COACH' ? "Feedback từ người dùng" : "Các đánh giá của bạn"}
+              </h2>
+              <button 
+                onClick={() => setIsFeedbackModalOpen(false)}
+                className="text-gray-500 hover:text-gray-800 text-2xl"
+              >&times;</button>
+            </div>
+            
+            {isFeedbackLoading ? (
+              <p>Đang tải...</p>
+            ) : (
+              <div className="space-y-6">
+                {myFeedbacks.length === 0 ? (
+                  <p>{currentUser?.role === 'COACH' ? "Bạn chưa nhận được đánh giá nào." : "Bạn chưa có đánh giá nào."}</p>
+                ) : (
+                  myFeedbacks.map(rating => (
+                    <div key={rating.ratingId} className="border-b pb-4 last:border-b-0">
+                      {currentUser?.role === 'COACH' ? (
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          Đánh giá từ thành viên: {rating.memberName || "Ẩn danh"}
+                        </h3>
+                      ) : (
+                        <>
+                          {rating.coachName ? (
+                            <h3 className="text-lg font-semibold text-gray-800">
+                              Đánh giá cho HLV: {rating.coachName}
+                            </h3>
+                          ) : rating.postTitle ? (
+                            <h3 className="text-lg font-semibold text-gray-800">
+                              Đánh giá cho bài viết: {rating.postTitle}
+                            </h3>
+                          ) : null}
+                        </>
+                      )}
+
+                      <div className="flex items-center gap-2 my-2">
+                        <RenderStars rating={rating.ratingValue} />
+                      </div>
+                      <p className="text-gray-600 italic">{rating.feedbackText}</p>
+                      <p className="text-right text-xs text-gray-400 mt-2">
+                        {new Date(rating.ratingDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

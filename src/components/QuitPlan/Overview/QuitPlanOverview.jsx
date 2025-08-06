@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
-import { message } from "antd";
+import { message, Modal } from "antd"; // Đã thêm Modal vào import
 
 import PlanSummaryCard from "./PlanSummaryCard";
 import StageList from "./StageList";
@@ -14,7 +14,6 @@ import {
   ConfirmCancelModal,
 } from "./PlanActions";
 import CoachBox from "./CoachBox";
-import { CoachFeedbackCard } from "./CoachCard";
 import CigaretteRecommendations from "./CigaretteRecommendations";
 import api from "../../../configs/axios";
 import {
@@ -65,6 +64,10 @@ const QuitPlanOverview = () => {
   const [loading, setLoading] = useState(true);
   const [recommendations, setRecommendations] = useState([]);
   const [smokingFreeDays, setSmokingFreeDays] = useState(0);
+  const [coachList, setCoachList] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyPlans, setHistoryPlans] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const [showCreate, setCreate] = useState(false);
   const [showEdit, setEdit] = useState(false);
@@ -72,7 +75,6 @@ const QuitPlanOverview = () => {
   const [showComplete, setComplete] = useState(false);
   const [showCancel, setCancel] = useState(false);
 
-  // Load current plan from API
   useEffect(() => {
     const loadCurrentPlan = async () => {
       if (!userId) {
@@ -84,7 +86,6 @@ const QuitPlanOverview = () => {
         const currentPlan = await quitPlanService.getCurrentPlan(userId);
         if (currentPlan) {
           setPlan(currentPlan);
-          // Calculate smoking free days
           const startDate = dayjs(currentPlan.startDate);
           const today = dayjs();
           const daysDiff = today.diff(startDate, "day");
@@ -101,52 +102,26 @@ const QuitPlanOverview = () => {
     };
 
     loadCurrentPlan();
-    console.log("UserID resolved:", userId);
   }, [userId]);
 
   // Load cigarette recommendations
   useEffect(() => {
     const loadRecommendations = async () => {
-      if (!plan?.cigarettesPerDay) return;
+      // Cần có ID của gói thuốc lá hiện tại từ plan
+      if (!plan?.cigarettePackageId) return;
 
       try {
-        const mockRecommendations = [
-          {
-            fromPackageName: "L&M Blue (LOW)",
-            toPackageName: "L&M Zero (ZERO)",
-            notes:
-              "Recommended to reduce nicotine to ZERO level for better health.",
-            priority_order: 1,
-          },
-          {
-            fromPackageName: "Marlboro Red (HIGH)",
-            toPackageName: "Marlboro Gold (MEDIUM)",
-            notes:
-              "Suggested to reduce nicotine from HIGH to MEDIUM gradually.",
-            priority_order: 2,
-          },
-          {
-            fromPackageName: "Camel Crush (MEDIUM)",
-            toPackageName: "Camel Blue (LOW)",
-            notes: "Gradual transition to LOW nicotine with similar flavor.",
-            priority_order: 3,
-          },
-          {
-            fromPackageName: "Vinataba Classic (HIGH)",
-            toPackageName: "Thăng Long Gold (MEDIUM)",
-            notes: "Switching to a local tobacco brand with lower nicotine.",
-            priority_order: 4,
-          },
-          {
-            fromPackageName: "Camel Blue (LOW)",
-            toPackageName: "L&M Zero (ZERO)",
-            notes: "Next step to nicotine-free cigarette alternative.",
-            priority_order: 5,
-          },
-        ];
-        setRecommendations(mockRecommendations);
+        // Gọi API thật, thay thế cho mock data
+        const fetchedRecommendations =
+          await cigaretteRecommendationService.getRecommendationsForCigarette(
+            plan.cigarettePackageId
+          );
+        setRecommendations(fetchedRecommendations);
       } catch (error) {
         console.error("Error loading recommendations:", error);
+        message.error(
+          "You do not have permission to view cigarette recommendations."
+        );
       }
     };
 
@@ -155,7 +130,6 @@ const QuitPlanOverview = () => {
     }
   }, [plan]);
 
-  // Load membership package info
   useEffect(() => {
     if (!memberPackageId) return;
 
@@ -177,6 +151,39 @@ const QuitPlanOverview = () => {
       });
   }, [memberPackageId]);
 
+  const loadHistoryPlans = async () => {
+    if (!userId) return;
+
+    setHistoryLoading(true);
+    try {
+      const plans = await quitPlanService.getUserPlans(userId);
+      setHistoryPlans(plans);
+    } catch (error) {
+      console.error("Error loading history plans:", error);
+      message.error("Failed to load history plans");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleOpenHistory = () => {
+    setShowHistory(true);
+    loadHistoryPlans();
+  };
+
+  const loadCoaches = async () => {
+    try {
+      const response = await api.get("/coach");
+      setCoachList(response.data || []);
+    } catch (error) {
+      console.error("Failed to load coaches:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadCoaches();
+  }, []);
+
   // Handle plan creation
   const handleCreatePlan = async (formData) => {
     if (!userId) {
@@ -186,12 +193,12 @@ const QuitPlanOverview = () => {
     }
 
     try {
-      // 1. Chuẩn bị dữ liệu gửi đi với đúng tên trường API yêu cầu
+   
       const payload = {
         title:
           formData.name || `No Smoking Plan - ${formData.durationInDays} Days`,
         startDate: formData.startDate,
-        expectedEndDate: formData.endDate, // Đổi từ endDate sang expectedEndDate
+        expectedEndDate: formData.endDate, 
         reason: formData.reason,
         stagesDescription: noSmokingHelpers
           .getNoSmokingStages(
@@ -254,16 +261,15 @@ const QuitPlanOverview = () => {
 
   const handleCoachChange = async (coach) => {
     try {
-      // 1. Kiểm tra dữ liệu đầu vào
       if (!plan?.planId || !coach?.userId) {
         message.error("Thông tin Kế hoạch hoặc Huấn luyện viên bị thiếu.");
         return;
       }
 
-      // 2. Gọi đúng API endpoint đã được tạo ở backend: /assign-coach
+      // Gọi API assign coach
       const response = await api.put(
         `/quit-plan/${plan.planId}/assign-coach?coachId=${coach.userId}`,
-        {}, // Body request có thể rỗng vì dữ liệu đã nằm trong URL
+        {},
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -271,24 +277,21 @@ const QuitPlanOverview = () => {
         }
       );
 
-      console.log("Phản hồi từ API gán coach:", response.data);
-
-      // 3. Cập nhật state bằng dữ liệu đầy đủ từ server trả về
-      // Điều này đảm bảo giao diện luôn đồng bộ 100% với database
-      setPlan(response.data);
+      // Cập nhật state với đầy đủ thông tin coach
+      setPlan((prev) => ({
+        ...prev,
+        coachId: coach.userId,
+        coachName: coach.fullName,
+      }));
 
       message.success(
         `Huấn luyện viên ${coach.fullName} đã được chỉ định thành công!`
       );
     } catch (error) {
-      console.error("Lỗi khi chỉ định huấn luyện viên:", {
-        error: error.response?.data || error.message,
-      });
-      // Hiển thị lỗi từ backend nếu có
-      const errorMessage =
-        error.response?.data?.message ||
-        "Chỉ định huấn luyện viên thất bại. Vui lòng thử lại.";
-      message.error(errorMessage);
+      console.error("Lỗi khi chỉ định huấn luyện viên:", error);
+      message.error(
+        error.response?.data?.message || "Chỉ định huấn luyện viên thất bại"
+      );
     }
   };
 
@@ -296,7 +299,9 @@ const QuitPlanOverview = () => {
   const handleCompletePlan = async () => {
     try {
       const completedPlan = await quitPlanService.completePlan(plan.planId);
+
       setPlan(completedPlan);
+
       setComplete(false);
       message.success(
         "🏆 Congratulations! You have completed your No Smoking journey!"
@@ -306,8 +311,6 @@ const QuitPlanOverview = () => {
       message.error("Failed to complete plan. Please try again.");
     }
   };
-
-  // Handle plan cancellation
   const handleCancelPlan = async (reason) => {
     try {
       await quitPlanService.cancelPlan(plan.planId, reason);
@@ -323,7 +326,6 @@ const QuitPlanOverview = () => {
     }
   };
 
-  // Handle plan deletion
   const handleDeletePlan = async () => {
     try {
       await quitPlanService.deletePlan(plan.planId, userId);
@@ -344,7 +346,6 @@ const QuitPlanOverview = () => {
     }
 
     try {
-      // Chuẩn bị dữ liệu cập nhật - chỉ gửi các trường cần thiết
       const updateData = {
         title: plan.title,
         startDate: plan.startDate,
@@ -373,7 +374,7 @@ const QuitPlanOverview = () => {
       // 3. Cập nhật state với dữ liệu mới từ server
       setPlan((prev) => ({
         ...prev,
-        ...response.data, // Sử dụng dữ liệu trả về từ server
+        ...response.data, 
         recommendedPackageId: recommendation.toPackageId,
       }));
 
@@ -412,7 +413,6 @@ const QuitPlanOverview = () => {
   const healthImprovements =
     noSmokingHelpers.getHealthImprovements(smokingFreeDays);
 
-  console.log("plan: ", plan);
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#c3e4dd] via-[#dfeee5] to-[#a1cfc1] py-8 px-2 sm:px-4">
       <div className="max-w-7xl mx-auto space-y-10">
@@ -431,83 +431,142 @@ const QuitPlanOverview = () => {
             </div>
           </div>
           {plan ? (
-            <div className="flex gap-2 flex-wrap">
+            
+            plan.status === "COMPLETED" ? (
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCreate(true)}
+                  className="px-5 py-2 rounded-lg bg-emerald-600 text-white font-semibold shadow hover:bg-emerald-700 flex items-center gap-2"
+                >
+                  🎉 Create a New Plan
+                </button>
+                <button
+                  onClick={handleOpenHistory}
+                  className="px-5 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 flex items-center gap-2"
+                >
+                  📜 View History
+                </button>
+              </div>
+            ) : (
+              
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() =>
+                    navigate("/quit-plan/detail", {
+                      state: {
+                        startDate: plan.startDate,
+                        endDate: plan.endDate || plan.expectedEndDate,
+                      },
+                    })
+                  }
+                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold shadow hover:bg-emerald-700 flex items-center gap-2"
+                >
+                  📊 View Detail
+                </button>
+                <button
+                  onClick={() => setCancel(true)}
+                  className="px-4 py-2 rounded-lg bg-orange-500 text-white font-semibold shadow hover:bg-orange-600 flex items-center gap-2"
+                >
+                  ⏸️ Cancel Plan
+                </button>
+                <button
+                  onClick={() => setComplete(true)}
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold shadow hover:bg-green-700 flex items-center gap-2"
+                >
+                  ✅ Complete!
+                </button>
+              </div>
+            )
+          ) : (
+
+            <div className="flex gap-2">
               <button
-                onClick={() =>
-                  navigate("/quit-plan/detail", {
-                    state: {
-                      startDate: plan.startDate,
-                      endDate: plan.endDate || plan.expectedEndDate, // cần truyền cái này để tính số ngày
-                    },
-                  })
-                }
-                className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold shadow hover:bg-emerald-700 flex items-center gap-2"
+                onClick={() => setCreate(true)}
+                className="px-5 py-2 rounded-lg bg-emerald-600 text-white font-semibold shadow hover:bg-emerald-700 flex items-center gap-2"
               >
-                📊 View Detail
+                🚭 Start No Smoking Journey
               </button>
               <button
-                onClick={() => setCancel(true)}
-                className="px-4 py-2 rounded-lg bg-orange-500 text-white font-semibold shadow hover:bg-orange-600 flex items-center gap-2"
+                onClick={handleOpenHistory}
+                className="px-5 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 flex items-center gap-2"
               >
-                ⏸️ Cancel Plan
-              </button>
-              <button
-                onClick={() => setComplete(true)}
-                className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold shadow hover:bg-green-700 flex items-center gap-2"
-              >
-                ✅ Complete!
+                📜 View History
               </button>
             </div>
-          ) : (
-            <button
-              onClick={() => setCreate(true)}
-              className="px-5 py-2 rounded-lg bg-emerald-600 text-white font-semibold shadow hover:bg-emerald-700 flex items-center gap-2"
-            >
-              🚭 Start No Smoking Journey
-            </button>
           )}
         </div>
 
-        {!plan && (
-          <div className="text-center py-12">
-            <div className="text-8xl mb-6">🚭</div>
-            <h2 className="text-2xl font-bold text-emerald-700 mb-4">
-              Ready to Quit Smoking?
-            </h2>
-            <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-              Take the first step towards a healthier, smoke-free life. Our
-              personalized No Smoking plan will guide you through your journey
-              with proven strategies and continuous support.
-            </p>
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <div className="bg-white/80 p-6 rounded-xl shadow-lg">
-                <div className="text-4xl mb-3">🫁</div>
-                <h3 className="font-bold text-emerald-700 mb-2">
-                  Better Health
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Improve your lung function and overall health
-                </p>
-              </div>
-              <div className="bg-white/80 p-6 rounded-xl shadow-lg">
-                <div className="text-4xl mb-3">💰</div>
-                <h3 className="font-bold text-emerald-700 mb-2">Save Money</h3>
-                <p className="text-sm text-gray-600">
-                  Calculate how much you'll save by quitting
-                </p>
-              </div>
-              <div className="bg-white/80 p-6 rounded-xl shadow-lg">
-                <div className="text-4xl mb-3">👨‍👩‍👧‍👦</div>
-                <h3 className="font-bold text-emerald-700 mb-2">
-                  For Your Family
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Protect your loved ones from secondhand smoke
-                </p>
-              </div>
+        {/* History Modal */}
+        <Modal
+          title="Your Quit Plan History"
+          open={showHistory}
+          onCancel={() => setShowHistory(false)}
+          footer={null}
+          width={800}
+        >
+          {historyLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading your history...</p>
             </div>
-          </div>
-        )}
+          ) : historyPlans.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600">No history plans found</p>
+            </div>
+          ) : (
+            <div className="max-h-[60vh] overflow-y-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-white">
+                  <tr className="border-b">
+                    <th className="text-left p-3">Title</th>
+                    <th className="text-left p-3">Period</th>
+                    <th className="text-left p-3">Status</th>
+                    <th className="text-left p-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyPlans.map((p) => {
+                    const endDate = p.endDate || p.expectedEndDate;
+                    return (
+                      <tr key={p.planId} className="border-b hover:bg-gray-50">
+                        <td className="p-3">{p.title || "Untitled Plan"}</td>
+                        <td className="p-3">
+                          {dayjs(p.startDate).format("DD/MM/YYYY")} -{" "}
+                          {dayjs(endDate).format("DD/MM/YYYY")}
+                        </td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs ${
+                              p.status === "COMPLETED"
+                                ? "bg-green-100 text-green-800"
+                                : p.status === "CANCELLED"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {p.status || "UNKNOWN"}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <button
+                            onClick={() => {
+                              setPlan(p);
+                              setShowHistory(false);
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Modal>
 
         {plan && (
           <>
@@ -546,24 +605,31 @@ const QuitPlanOverview = () => {
                 <CoachBox
                   selectedCoachId={plan.coachId}
                   membership={membership}
-                  onSelect={handleCoachChange}
+                  onSelect={handleCoachChange} 
+                  coachList={coachList} 
                 />
               </div>
               <div className="flex flex-col gap-6">
                 <PlanSummaryCard
-                  plan={plan}
+                  plan={{
+                    ...plan, 
+                    coachName: plan.coachId
+                      ? coachList.find((c) => c.userId === plan.coachId)
+                          ?.fullName
+                      : null,
+                  }}
                   onEdit={() => setEdit(true)}
                   onDelete={() => setDel(true)}
-                  onComplet
-                  e={() => setComplete(true)}
+                  onComplete={() => setComplete(true)}
                 />
                 <StageList
                   durationInDays={plan.durationInDays}
                   startDate={plan.startDate}
                   endDate={plan.endDate || plan.expectedEndDate}
-                  membership={plan.membership}
-                  planId={plan.id}
-                  averageCigarettes={plan.averageCigarettes}
+                  membership={membership}
+                  planId={plan.planId} 
+                  averageCigarettes={plan.cigarettesPerDay} 
+                  quitPlanStages={plan.quitPlanStages} 
                 />
               </div>
             </div>

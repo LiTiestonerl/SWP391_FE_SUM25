@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import api from "../../configs/axios";
 import { useDispatch } from "react-redux";
 import { login } from "../../redux/features/userSlice";
-import { Modal, Input, Button, message } from "antd";
+import { Modal, Input, Button, message, Rate } from "antd"; 
 import { updateMembership } from "../../redux/features/userSlice";
 import { useNavigate } from "react-router-dom";
 import { FiArrowUpCircle } from "react-icons/fi";
@@ -37,6 +37,9 @@ const Social = () => {
   const [showUpgradeMessage, setShowUpgradeMessage] = useState(false);
   const navigate = useNavigate();
 
+  // THÊM MỚI: State để lưu ratings { postId: averageScore }
+  const [ratings, setRatings] = useState({});
+
   const healthStats = {
     daysSmokeFree: 30,
     moneySaved: 500,
@@ -46,34 +49,47 @@ const Social = () => {
   const getDisplayName = (user) =>
     user?.fullName || user?.name || user?.login || user?.email || "Anonymous";
 
-  const fetchPosts = async () => {
+  // THÊM MỚI: Hàm fetch và tính toán rating trung bình cho một post
+  const fetchAverageRating = async (postId) => {
     try {
-      setLoading(true);
-      const res = await api.get("posts");
-      const data = Array.isArray(res.data) ? res.data : res.data.data || [];
-      setPosts(data);
+      const res = await api.get(`/rating/post/${postId}`);
+      const allRatings = res.data; 
+
+      if (allRatings && allRatings.length > 0) {
+        const totalScore = allRatings.reduce((sum, rating) => sum + rating.ratingValue, 0);
+        const averageScore = totalScore / allRatings.length;
+        
+        setRatings((prev) => ({
+          ...prev,
+          [postId]: averageScore,
+        }));
+      } else {
+         setRatings((prev) => ({
+          ...prev,
+          [postId]: 0,
+        }));
+      }
     } catch (err) {
-      console.error("Error fetching posts:", err);
-      setError("Failed to load posts");
-    } finally {
-      setLoading(false);
+      // console.error(`Could not fetch ratings for post ${postId}:`, err);
+      setRatings((prev) => ({
+        ...prev,
+        [postId]: 0,
+      }));
     }
   };
 
   useEffect(() => {
     const fetchData = async () => {
-      // Kiểm tra user trước tiên
       if (!user || !user.token) {
         message.error("Vui lòng đăng nhập để tiếp tục.");
         navigate("/login");
         return;
       }
 
-      setLoading(true); // 1. Bật loading CHỈ MỘT LẦN ở đầu
+      setLoading(true); 
       setError(null);
 
       try {
-        // Lấy thông tin gói thành viên
         const membershipRes = await api.get("/user-membership/me");
         dispatch(updateMembership(membershipRes.data));
         const membership = membershipRes.data;
@@ -81,29 +97,34 @@ const Social = () => {
         const isFreePlan = membership?.memberPackageId === 10;
         const hasNoPlan = !membership;
 
-        // Dựa vào gói thành viên để quyết định hiển thị gì
         if (isFreePlan || hasNoPlan) {
           setShowUpgradeMessage(true);
         } else {
           setShowUpgradeMessage(false);
-          // Chỉ fetch bài viết khi user có quyền
           const postsRes = await api.get("posts");
           const data = Array.isArray(postsRes.data)
             ? postsRes.data
             : postsRes.data.data || [];
           setPosts(data);
+
+          // CHỈNH SỬA: Sau khi có posts, fetch rating cho từng post
+          if (data.length > 0) {
+            data.forEach(post => {
+              fetchAverageRating(post.id || post.postId);
+            });
+          }
         }
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu:", err);
         setError("Không thể tải dữ liệu. Vui lòng thử lại.");
-        setShowUpgradeMessage(true); // Hiện thông báo nâng cấp nếu có lỗi
+        setShowUpgradeMessage(true);
       } finally {
-        setLoading(false); // 2. Tắt loading CHỈ MỘT LẦN ở cuối cùng
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, [user?.token, dispatch, navigate]); // Thêm dispatch và navigate vào mảng phụ thuộc
+  }, [user?.token, dispatch, navigate]);
 
   const handlePostSubmit = async (e) => {
     e.preventDefault();
@@ -132,7 +153,6 @@ const Social = () => {
   };
 
   const toggleComments = async (postId) => {
-    // Nếu chưa đăng nhập thì không cho xem bình luận
     if (!user || !user.token) {
       setShowLoginPopup(true);
       return;
@@ -177,28 +197,53 @@ const Social = () => {
       console.error("Failed to post comment:", err);
     }
   };
+
+  // THÊM MỚI: Hàm để gửi rating mới
+  const handleRatingSubmit = async (postId, value) => {
+    if (!user || !user.token) {
+      message.error("Vui lòng đăng nhập để đánh giá.");
+      setShowLoginPopup(true);
+      return;
+    }
+
+    try {
+      const ratingData = {
+        memberId: user.id,
+        postId: postId,
+        ratingValue: value,
+        feedbackText: ""
+      };
+      await api.post('/rating/post', ratingData);
+      message.success("Cảm ơn bạn đã đánh giá!");
+      fetchAverageRating(postId);
+
+    } catch (err) {
+      console.error("Failed to submit rating:", err);
+      message.error("Gửi đánh giá thất bại. Vui lòng thử lại.");
+    }
+  };
   if (showUpgradeMessage) {
-    return (
-      <div className="pt-24 min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-lg mx-auto">
-          <FiArrowUpCircle className="mx-auto text-green-500 text-6xl mb-4" />
-          <h1 className="text-3xl font-bold text-gray-800 mb-3">
-            Nâng cấp để tham gia cộng đồng
-          </h1>
-          <p className="text-gray-600 mb-8">
-            Gói hiện tại không cho phép truy cập vào cộng đồng. Hãy nâng cấp để
-            chia sẻ, bình luận và kết nối với người khác trên hành trình bỏ
-            thuốc của bạn.
-          </p>
-          <button
-            onClick={() => navigate("/membership")}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out transform hover:scale-105"
-          >
-            Xem các gói nâng cấp
-          </button>
+     return (
+        <div className="pt-24 min-h-screen bg-gray-50 flex items-center justify-center px-4">
+          <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-lg mx-auto">
+            <FiArrowUpCircle className="mx-auto text-green-500 text-6xl mb-4" />
+            <h1 className="text-3xl font-bold text-gray-800 mb-3">
+              Nâng cấp để tham gia cộng đồng
+            </h1>
+            <p className="text-gray-600 mb-8">
+              Gói hiện tại không cho phép truy cập vào cộng đồng. Hãy nâng cấp để
+              chia sẻ, bình luận và kết nối với người khác trên hành trình bỏ
+              thuốc của bạn.
+            </p>
+            <button
+              onClick={() => navigate("/membership")}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out transform hover:scale-105"
+            >
+              Xem các gói nâng cấp
+            </button>
+          </div>
         </div>
-      </div>
-    );
+      );
   }
   return (
     <div className="min-h-screen bg-gray-50 pt-[104px]">
@@ -282,18 +327,33 @@ const Social = () => {
 
                   <p className="text-gray-800 mb-4">{post.content}</p>
 
-                  <div className="flex items-center space-x-6 text-gray-500 mb-2">
-                    <button
-                      className="flex items-center space-x-2 hover:text-blue-600"
-                      onClick={() => toggleComments(post.id || post.postId)}
-                    >
-                      <FiMessageSquare className="h-5 w-5" />
-                      <span>Comments</span>
-                    </button>
-                    <button className="flex items-center space-x-2 hover:text-blue-600">
-                      <FiShare2 className="h-5 w-5" />
-                    </button>
-                  </div>
+                 <div className="flex items-center justify-between text-gray-500 mb-2">
+                    <div className="flex items-center space-x-6">
+                        <button
+                          className="flex items-center space-x-2 hover:text-blue-600"
+                          onClick={() => toggleComments(post.id || post.postId)}
+                        >
+                          <FiMessageSquare className="h-5 w-5" />
+                          <span>Comments</span>
+                        </button>
+                    </div>
+                    
+                    {/* THÊM MỚI: Component Rate */}
+                    <div className="flex items-center">
+                      <Rate 
+                        allowHalf
+                        disabled={!user || !user.token}
+                        value={ratings[post.id || post.postId] || 0}
+                        onChange={(value) => handleRatingSubmit(post.id || post.postId, value)}
+                      />
+                      {ratings[post.id || post.postId] > 0 && (
+                          <span className="ml-2 text-sm text-gray-600">
+                              {ratings[post.id || post.postId]?.toFixed(1)}
+                          </span>
+                      )}
+                    </div>
+                </div>
+                
 
                   {/* Hiển thị khối bình luận nếu visible */}
                   {visibleComments[post.id || post.postId] && (

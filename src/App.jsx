@@ -14,7 +14,6 @@ import QuitPlanPage from "./pages/quit-plan";
 import Footer from "./components/footer";
 import Header from "./components/header/index ";
 import NewsPage from "./pages/news";
-import RankPage from "./components/rank/RankPage";
 import CoachesPage from "./components/coaches/CoachesPage";
 import BecomeCoachPage from "./components/BecomeCoach/BecomeCoachPage";
 import Verify from "./pages/verify";
@@ -53,10 +52,6 @@ function App() {
         {
           path: "home",
           element: <HomePage />,
-        },
-        {
-          path: "rank",
-          element: <RankPage />,
         },
         {
           path: "news",
