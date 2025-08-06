@@ -19,7 +19,6 @@ export const userSlice = createSlice({
         state.avatar = action.payload;
       }
     },
-    // ✅ THÊM reducer để cập nhật thông tin membership
     updateMembership: (state, action) => {
       if (!state) return state;
       return {
@@ -30,10 +29,25 @@ export const userSlice = createSlice({
         },
       };
     },
+    // ✅ BƯỚC 1: Thêm reducer mới để lưu ID của coach đã được chọn
+    setSelectedCoach: (state, action) => {
+      // Chỉ cập nhật nếu user đã đăng nhập (state không phải là null)
+      if (state) {
+        // Gán trực tiếp ID từ payload vào state của user
+        // Redux Toolkit sử dụng Immer bên dưới nên ta có thể "mutate" state như thế này
+        state.selectedCoachId = action.payload;
+      }
+    },
   },
 });
 
-// Export actions
-export const { login, logout, updateAvatar, updateMembership } = userSlice.actions;
+// ✅ BƯỚC 2: Export action mới ra
+export const { 
+  login, 
+  logout, 
+  updateAvatar, 
+  updateMembership, 
+  setSelectedCoach // Thêm action mới vào đây
+} = userSlice.actions;
 
 export default userSlice.reducer;

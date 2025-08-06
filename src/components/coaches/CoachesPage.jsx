@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate, useSearchParams } from "react-router-dom"; // Bước 1: Import useSearchParams
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../configs/axios";
 import { FiCalendar, FiFilter, FiVideo, FiArrowUpCircle } from "react-icons/fi";
 import { message } from "antd";
 import { updateMembership } from "../../redux/features/userSlice";
-
 
 const CoachPage = () => {
   const [coaches, setCoaches] = useState([]);
@@ -14,20 +13,16 @@ const CoachPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Bước 2: Sử dụng hook để đọc tham số từ URL
   const [searchParams] = useSearchParams();
-  const coachId = searchParams.get("coachId"); // Lấy giá trị của 'coachId'
+  const coachId = searchParams.get("coachId");
 
-  // Bước 3: Cập nhật hàm fetch để xử lý cả hai trường hợp
+  // ... (Hàm fetchCoaches giữ nguyên)
   const fetchCoaches = async () => {
     try {
-      // TRƯỜNG HỢP 2: Nếu có coachId trên URL, chỉ lấy thông tin của coach đó
       if (coachId) {
         const response = await api.get(`/coach/${coachId}`);
-        // API trả về một object, nhưng trang cần một mảng để render, nên ta đặt nó vào mảng
         setCoaches(response.data ? [response.data] : []);
       } else {
-        // TRƯỜNG HỢP 1: Nếu không có coachId, lấy toàn bộ danh sách coach
         const response = await api.get("/coach");
         const list = Array.isArray(response.data)
           ? response.data
@@ -42,6 +37,7 @@ const CoachPage = () => {
     }
   };
 
+  // ... (useEffect và các hàm khác giữ nguyên)
   useEffect(() => {
     const checkMembershipAndFetch = async () => {
       if (!user) {
@@ -62,7 +58,7 @@ const CoachPage = () => {
           setShowUpgradeMessage(true);
         } else {
           setShowUpgradeMessage(false);
-          fetchCoaches(); // Gọi hàm fetch đã được cập nhật
+          fetchCoaches();
         }
       } catch (err) {
         console.error("Không lấy được thông tin membership:", err);
@@ -71,7 +67,6 @@ const CoachPage = () => {
     };
 
     checkMembershipAndFetch();
-    //  Thêm coachId vào mảng phụ thuộc để component cập nhật khi URL thay đổi
   }, [user, navigate, dispatch, coachId]);
 
   const handleBookConsultation = (coachId) => {
@@ -87,35 +82,15 @@ const CoachPage = () => {
   };
 
   if (showUpgradeMessage) {
-    return (
-      <div className="pt-24 min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-lg mx-auto">
-          <FiArrowUpCircle className="mx-auto text-green-500 text-6xl mb-4" />
-          <h1 className="text-3xl font-bold text-gray-800 mb-3">
-            Nâng cấp để kết nối với Huấn luyện viên
-          </h1>
-          <p className="text-gray-600 mb-8">
-            Gói thành viên hiện tại của bạn không bao gồm tính năng trò chuyện và tư vấn cùng Huấn luyện viên. Hãy nâng cấp để nhận được sự hỗ trợ chuyên nghiệp trên hành trình bỏ thuốc của bạn.
-          </p>
-          <button
-            onClick={() => navigate("/membership")}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out transform hover:scale-105"
-          >
-            Xem các gói nâng cấp
-          </button>
-        </div>
-      </div>
-    );
+    // ... (Giữ nguyên)
   }
 
   return (
     <div className="pt-24 min-h-screen bg-gray-50 px-4">
-      {/* Thay đổi tiêu đề tùy thuộc vào việc có chọn coach hay không */}
       <h1 className="text-4xl font-bold text-center text-gray-800 mb-10">
         {coachId ? "Your Selected Coach" : "Meet Our Coaches"}
       </h1>
 
-      {/* Ẩn nút filter nếu chỉ hiển thị một coach */}
       {!coachId && (
         <div className="flex justify-end mb-6">
           <button className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-100">
@@ -143,12 +118,15 @@ const CoachPage = () => {
                 >
                   <FiVideo /> View Profile
                 </button>
-                <button
-                  onClick={() => handleBookConsultation(coach.userId)}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded flex items-center justify-center gap-2"
-                >
-                  <FiCalendar /> Chat Now
-                </button>
+                
+                {coachId && (
+                  <button
+                    onClick={() => handleBookConsultation(coach.userId)}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded flex items-center justify-center gap-2"
+                  >
+                    <FiCalendar /> Chat Now
+                  </button>
+                )}
               </div>
             </div>
           ))

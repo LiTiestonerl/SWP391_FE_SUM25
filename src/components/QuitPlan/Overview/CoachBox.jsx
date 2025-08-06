@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
-import api from '../../../configs/axios';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import api from "../../../configs/axios";
+import { useDispatch } from "react-redux";
+import { setSelectedCoach } from "../../../redux/features/userSlice";
 
 const customScrollbarStyles = `
   .custom-scrollbar::-webkit-scrollbar {
@@ -24,17 +26,24 @@ const UpgradeModal = ({ open, onClose, onUpgrade }) => (
     {open && (
       <motion.div
         className="fixed inset-0 z-[9999] bg-black/40 flex items-center justify-center"
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         onClick={onClose}
       >
         <motion.div
           onClick={(e) => e.stopPropagation()}
           className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl"
-          initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
         >
-          <h3 className="text-xl font-bold text-emerald-700">Upgrade to select a coach</h3>
+          <h3 className="text-xl font-bold text-emerald-700">
+            Upgrade to select a coach
+          </h3>
           <p className="text-sm text-gray-600 mt-2">
-            FREE packages do not support coach selection. Upgrade now to get 1-on-1 coaching, live chat, and personalized feedback.
+            FREE packages do not support coach selection. Upgrade now to get
+            1-on-1 coaching, live chat, and personalized feedback.
           </p>
           <ul className="text-sm text-gray-700 list-disc ml-5 mt-3 space-y-1">
             <li>Select a coach with the right expertise</li>
@@ -63,6 +72,7 @@ const UpgradeModal = ({ open, onClose, onUpgrade }) => (
 
 const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [coachList, setCoachList] = useState([]);
   const [showSelector, setShowSelector] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -76,44 +86,51 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
 
   // Load user membership
   useEffect(() => {
-    api.get('/user-membership/me')
-      .then(res => {
+    api
+      .get("/user-membership/me")
+      .then((res) => {
         setUserMembership(res.data);
       })
-      .catch(err => console.error('Failed to load user membership', err));
+      .catch((err) => console.error("Failed to load user membership", err));
   }, []);
 
   // Load coach list
   useEffect(() => {
-    api.get('/coach')
-      .then(res => {
-        const list = (res.data || []).map(c => ({
+    api
+      .get("/coach")
+      .then((res) => {
+        const list = (res.data || []).map((c) => ({
           ...c,
-          specialization: c.roleName || 'Coach',
+          specialization: c.roleName || "Coach",
           avatarUrl: c.avatarUrl || null,
         }));
         setCoachList(list);
       })
-      .catch(err => console.error('Failed to load coach list', err));
+      .catch((err) => console.error("Failed to load coach list", err));
   }, []);
 
   // Load coach details if selected but not in list
   useEffect(() => {
     if (!selectedCoachId) return;
-    const found = coachList.find(c => c.userId === selectedCoachId);
+    const found = coachList.find((c) => c.userId === selectedCoachId);
     if (found) return;
 
-    api.get(`/coach/${selectedCoachId}`)
-      .then(res => {
+    api
+      .get(`/coach/${selectedCoachId}`)
+      .then((res) => {
         if (!res?.data) return;
         const detail = {
           ...res.data,
-          specialization: res.data.roleName || 'Coach',
+          specialization: res.data.roleName || "Coach",
           avatarUrl: res.data.avatarUrl || null,
         };
-        setCoachList(prev => prev.some(c => c.userId === detail.userId) ? prev : [detail, ...prev]);
+        setCoachList((prev) =>
+          prev.some((c) => c.userId === detail.userId)
+            ? prev
+            : [detail, ...prev]
+        );
       })
-      .catch(err => console.error('Failed to load coach detail', err));
+      .catch((err) => console.error("Failed to load coach detail", err));
   }, [selectedCoachId, coachList]);
 
   const handleOpenSelector = () => {
@@ -126,7 +143,10 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
 
   const scroll = (direction) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: direction === 'left' ? -300 : 300, behavior: 'smooth' });
+      scrollRef.current.scrollBy({
+        left: direction === "left" ? -300 : 300,
+        behavior: "smooth",
+      });
     }
   };
 
@@ -134,7 +154,9 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
     <>
       <style>{customScrollbarStyles}</style>
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden min-h-[685px] flex flex-col">
-        <h3 className="text-lg font-semibold text-emerald-700 px-6 pt-6 pb-1">Coach</h3>
+        <h3 className="text-lg font-semibold text-emerald-700 px-6 pt-6 pb-1">
+          Coach
+        </h3>
 
         {!selected ? (
           <div className="flex flex-col items-center justify-center flex-1 px-6 pb-6">
@@ -149,7 +171,9 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
                   className="w-20 h-20 opacity-60 mx-auto mb-3"
                 />
                 <p className="text-gray-500 text-sm">
-                  {isFree ? 'Upgrade to select your coach' : 'Click to select your coach'}
+                  {isFree
+                    ? "Upgrade to select your coach"
+                    : "Click to select your coach"}
                 </p>
               </div>
             </div>
@@ -158,25 +182,43 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
           <>
             <div className="w-[90%] h-76 rounded-xl bg-gray-100 ring-2 ring-gray-300 mx-auto mt-3 flex items-center justify-center overflow-hidden">
               {selected.avatarUrl ? (
-                <img src={selected.avatarUrl} alt={selected.fullName} className="w-full h-full object-cover" />
+                <img
+                  src={selected.avatarUrl}
+                  alt={selected.fullName}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <span className="text-gray-400">No Image</span>
               )}
             </div>
             <div className="p-6 flex flex-col flex-1 overflow-hidden text-[14px] text-gray-700 space-y-2 leading-relaxed">
-              <h4 className="text-xl font-bold text-gray-800">{selected.fullName}</h4>
-              <p className="text-emerald-600 font-medium">{selected.specialization}</p>
-              
+              <h4 className="text-xl font-bold text-gray-800">
+                {selected.fullName}
+              </h4>
+              <p className="text-emerald-600 font-medium">
+                {selected.specialization}
+              </p>
+
               {/* Contact Information Section */}
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <h5 className="font-semibold text-gray-800 mb-2">Contact Information</h5>
-                <p><span className="font-medium">Email:</span> {selected.email || 'N/A'}</p>
-                <p><span className="font-medium">Phone:</span> {selected.phone || 'N/A'}</p>
+                <h5 className="font-semibold text-gray-800 mb-2">
+                  Contact Information
+                </h5>
+                <p>
+                  <span className="font-medium">Email:</span>{" "}
+                  {selected.email || "N/A"}
+                </p>
+                <p>
+                  <span className="font-medium">Phone:</span>{" "}
+                  {selected.phone || "N/A"}
+                </p>
               </div>
 
               <div className="flex gap-3 mt-auto pt-4">
                 <button
-                  onClick={() => navigate(`/coaches?coachId=${selected.userId}`)}
+                  onClick={() =>
+                    navigate(`/coaches?coachId=${selected.userId}`)
+                  }
                   className="w-full px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
                 >
                   Chat with Coach
@@ -192,13 +234,17 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
         {showSelector && (
           <motion.div
             className="fixed inset-0 z-[9999] bg-black/40 flex items-center justify-center"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={() => setShowSelector(false)}
           >
             <motion.div
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-3xl px-10 py-8 w-full max-w-6xl max-h-[95vh] h-[400px] shadow-xl relative"
-              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
             >
               <h3 className="text-2xl font-bold text-emerald-700 mb-6 text-center">
                 Select Your Coach
@@ -206,39 +252,56 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
 
               <div className="relative">
                 <button
-                  onClick={() => scroll('left')}
+                  onClick={() => scroll("left")}
                   className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-md p-2 hover:bg-emerald-100"
                 >
                   ◀
                 </button>
 
-                <div ref={scrollRef} className="flex gap-6 overflow-x-auto custom-scrollbar pb-4 px-8">
+                <div
+                  ref={scrollRef}
+                  className="flex gap-6 overflow-x-auto custom-scrollbar pb-4 px-8"
+                >
                   {coachList.map((coach) => (
                     <button
                       key={coach.userId}
                       onClick={() => {
+                        // Gọi hàm onSelect như cũ để component cha có thể xử lý (ví dụ: gọi API gán coach)
                         onSelect(coach);
+
+                        // Dispatch action để lưu ID của coach vào Redux store
+                        dispatch(setSelectedCoach(coach.userId));
+
+                        // Đóng cửa sổ chọn
                         setShowSelector(false);
                       }}
                       className="min-w-[240px] flex-shrink-0 flex flex-col items-center gap-2 border p-4 rounded-2xl bg-white hover:bg-emerald-50"
                     >
                       <div className="w-full h-[180px] rounded-xl overflow-hidden ring-1 ring-gray-200">
                         {coach.avatarUrl ? (
-                          <img src={coach.avatarUrl} alt={coach.fullName} className="w-full h-full object-cover" />
+                          <img
+                            src={coach.avatarUrl}
+                            alt={coach.fullName}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <span className="text-gray-400">No Image</span>
                         )}
                       </div>
                       <div className="text-sm text-center mt-2">
-                        <div className="font-semibold text-gray-800 text-[14px]">{coach.fullName}</div>
-                        <div className="text-gray-500 text-xs">{coach.specialization}</div>
+                        <div className="font-semibold text-gray-800 text-[14px]">
+                          {coach.fullName}
+                        </div>
+                        <div className="text-gray-500 text-xs">
+                          {coach.specialization}
+                        </div>
                       </div>
                     </button>
                   ))}
                 </div>
 
                 <button
-                  onClick={() => scroll('right')}
+                  onClick={() => scroll("right")}
                   className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-md p-2 hover:bg-emerald-100"
                 >
                   ▶
@@ -255,7 +318,7 @@ const CoachBox = ({ selectedCoachId, onSelect, membership }) => {
         onClose={() => setShowUpgrade(false)}
         onUpgrade={() => {
           setShowUpgrade(false);
-          navigate('/membership');
+          navigate("/membership");
         }}
       />
     </>
