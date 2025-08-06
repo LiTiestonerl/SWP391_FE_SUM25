@@ -4,7 +4,6 @@ import { useSelector } from "react-redux";
 import dayjs from "dayjs";
 import { message, Modal } from "antd";
 import { LeftOutlined } from "@ant-design/icons";
-
 import PlanSummaryCard from "./PlanSummaryCard";
 import StageList from "./StageList";
 import CreatePlanModal from "./CreatePlanModal";
@@ -76,6 +75,7 @@ const QuitPlanOverview = () => {
   const loadCurrentPlan = async () => {
     if (!userId) {
       setLoading(false);
+      message.error("User ID not found. Please log in again.");
       return;
     }
 
@@ -93,6 +93,7 @@ const QuitPlanOverview = () => {
     } catch (error) {
       console.error("Error loading current plan:", error);
       setCreate(true);
+      message.error("Failed to load current plan. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -133,6 +134,7 @@ const QuitPlanOverview = () => {
       setCoachList(response.data || []);
     } catch (error) {
       console.error("Failed to load coaches:", error);
+      message.error("Failed to load coaches.");
     }
   };
 
@@ -188,7 +190,8 @@ const QuitPlanOverview = () => {
       message.success("Plan updated successfully!");
       return true;
     } catch (error) {
-      message.error("Failed to update plan");
+      console.error("Error updating plan:", error);
+      message.error(error.response?.data?.message || "Failed to update plan");
       return false;
     }
   };
@@ -228,7 +231,7 @@ const QuitPlanOverview = () => {
       setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
       console.error("Error completing plan:", error);
-      message.error("Failed to complete plan. Please try again.");
+      message.error(error.response?.data?.message || "Failed to complete plan. Please try again.");
     }
   };
 
@@ -242,7 +245,7 @@ const QuitPlanOverview = () => {
       setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
       console.error("Error cancelling plan:", error);
-      message.error("Failed to cancel plan. Please try again.");
+      message.error(error.response?.data?.message || "Failed to cancel plan. Please try again.");
     }
   };
 
@@ -255,7 +258,7 @@ const QuitPlanOverview = () => {
       message.success("Plan deleted successfully.");
     } catch (error) {
       console.error("Error deleting plan:", error);
-      message.error("Failed to delete plan. Please try again.");
+      message.error(error.response?.data?.message || "Failed to delete plan. Please try again.");
     }
   };
 
@@ -265,23 +268,34 @@ const QuitPlanOverview = () => {
       return;
     }
 
+    if (isPlanReadOnly) {
+      message.error("Cannot update a completed or cancelled plan");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      message.error("Authentication token is missing. Please log in again.");
+      return;
+    }
+
     try {
       const updateData = {
-        title: plan.title,
+        title: plan.title || "No Smoking Plan",
         startDate: plan.startDate,
         expectedEndDate: plan.expectedEndDate || plan.endDate,
-        reason: plan.reason,
-        stagesDescription: plan.stagesDescription,
-        customNotes: plan.customNotes,
+        reason: plan.reason || "Quit smoking",
+        stagesDescription: plan.stagesDescription || "",
+        customNotes: plan.customNotes || "",
         userId: userId,
         coachId: plan.coachId || null,
         recommendedPackageId: recommendation.toPackageId,
       };
 
       const response = await api.put(
-        `/quit-plan/${plan.planId}/user`,
+        `/api/quit-plan/${plan.planId}/user`,
         updateData,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setPlan((prev) => ({
@@ -290,10 +304,23 @@ const QuitPlanOverview = () => {
         recommendedPackageId: recommendation.toPackageId,
       }));
 
+      // Lưu vào localStorage để giữ trạng thái khi tải lại trang
+      localStorage.setItem(`selectedPackage_${plan.planId}`, recommendation.toPackageId);
+      
       message.success("Recommended package updated successfully!");
     } catch (error) {
       console.error("Error updating package:", error);
-      message.error("Failed to update package. Please try again!");
+      let errorMessage = "Failed to update package. Please try again.";
+      if (error.response) {
+        if (error.response.status === 403) {
+          errorMessage = "You are not authorized to update this plan.";
+        } else if (error.response.status === 400) {
+          errorMessage = error.response.data.message || "Invalid data provided.";
+        } else if (error.response.status === 404) {
+          errorMessage = "Plan not found.";
+        }
+      }
+      message.error(errorMessage);
     }
   };
 
@@ -342,7 +369,6 @@ const QuitPlanOverview = () => {
                   </h1>
                   {plan && (
                     <p className="text-emerald-600 font-medium mt-1">
-                      {noSmokingHelpers.getMotivationalMessage(smokingFreeDays)}
                     </p>
                   )}
                 </div>
@@ -546,6 +572,7 @@ const QuitPlanOverview = () => {
                 currentCigaretteId={plan.cigarettePackageId}
                 onSelectPackage={handleSelectPackage}
                 isViewOnly={isPlanReadOnly}
+                planId={plan.planId}
               />
             </div>
           </>
@@ -622,6 +649,7 @@ const QuitPlanOverview = () => {
                 currentCigaretteId={plan.cigarettePackageId}
                 onSelectPackage={handleSelectPackage}
                 isViewOnly={isPlanReadOnly}
+                planId={plan.planId}
               />
             </div>
           </>

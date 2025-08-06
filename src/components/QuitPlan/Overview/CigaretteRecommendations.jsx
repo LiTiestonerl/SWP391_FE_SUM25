@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Card, Row, Col, Typography, Spin, Tag, Divider, Button, Select, message } from "antd";
 import {
   FaTint,
@@ -8,8 +8,8 @@ import {
   FaChevronRight,
   FaCheckCircle,
   FaCheck,
-  FaArrowLeft,
-  FaArrowRight,
+  FaArrowUp,
+  FaArrowDown,
 } from "react-icons/fa";
 import { motion, useAnimation } from "framer-motion";
 import api from "../../../configs/axios";
@@ -28,18 +28,16 @@ const OUTER_CARD = {
 const INNER_CARD_STYLE = {
   borderRadius: "8px",
   overflow: "hidden",
-  minWidth: "100%",
   minHeight: "280px",
-  width: "290px",
+  width: "100%",
 };
 
-const HEADER_GRADIENT = (colors) => ({
-  background: `linear-gradient(135deg, ${colors.join(", ")})`,
-  padding: "16px",
-  color: "#fff",
-});
-
-const labelStyle = { fontWeight: 600, marginRight: 8 };
+const RECOMMENDATION_CONTAINER = {
+  height: "500px",
+  overflow: "hidden",
+  position: "relative",
+  width: "100%",
+};
 
 const NAV_BUTTON_STYLE = {
   backgroundColor: "#fff",
@@ -53,7 +51,19 @@ const NAV_BUTTON_STYLE = {
   boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
   cursor: "pointer",
   transition: "all 0.3s",
+  position: "absolute",
+  top: "50%",
+  transform: "translateY(-50%)",
+  zIndex: 10,
 };
+
+const HEADER_GRADIENT = (colors) => ({
+  background: `linear-gradient(135deg, ${colors.join(", ")})`,
+  padding: "16px",
+  color: "#fff",
+});
+
+const labelStyle = { fontWeight: 600, marginRight: 8 };
 
 const SELECT_STYLE = {
   width: "200px",
@@ -79,7 +89,12 @@ const NICOTINE_COLORS = {
   HIGH: "#f5222d", // Đỏ
 };
 
-export default function CigaretteRecommendations({ onSelectPackage, currentCigaretteId, isViewOnly }) {
+export default function CigaretteRecommendations({ 
+  onSelectPackage, 
+  currentCigaretteId, 
+  isViewOnly,
+  planId 
+}) {
   // ========== TRẠNG THÁI (STATE) ==========
   const [currentStatus, setCurrentStatus] = useState(null);
   const [currentPackage, setCurrentPackage] = useState(null);
@@ -91,20 +106,35 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
   const [selectedPackageId, setSelectedPackageId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successPackageId, setSuccessPackageId] = useState(null);
-  const [filterType, setFilterType] = useState(null); // Bắt đầu với null để hiển thị khung chọn
+  const [filterType, setFilterType] = useState(null);
   const controls = useAnimation();
   const containerRef = useRef(null);
 
-  // ========== CÁC HÀM XỬ LÝ ==========
+  // Khởi tạo selectedPackageId từ localStorage
+  useEffect(() => {
+    if (planId) {
+      const savedPackageId = localStorage.getItem(`selectedPackage_${planId}`);
+      if (savedPackageId) {
+        setSelectedPackageId(savedPackageId);
+        setSuccessPackageId(savedPackageId);
+      }
+    }
+  }, [planId]);
 
   // Hàm lấy thông tin gói thuốc hiện tại
   const fetchCurrentPackage = async (packageId) => {
     try {
-      const response = await api.get(`/cigarette-packages/${packageId}`);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication token is missing");
+      }
+      const response = await api.get(`/cigarette-packages/${packageId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setCurrentPackage(response.data);
     } catch (error) {
       console.error("Lỗi khi lấy gói thuốc hiện tại:", error);
-      message.error("Không thể tải thông tin gói thuốc hiện tại");
+      message.error(error.message || "Không thể tải thông tin gói thuốc hiện tại");
     }
   };
 
@@ -123,19 +153,11 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
   // Hàm lọc gợi ý dựa trên nicotine và hương vị
   const filterRecommendations = (recs) => {
     if (!currentStatus || !recs || recs.length === 0) {
-      console.log("Không có currentStatus hoặc dữ liệu rỗng:", { currentStatus, recs });
       return [];
     }
 
-    console.log("Trước khi lọc:", {
-      preferredFlavor: currentStatus.preferredFlavor,
-      preferredNicotineLevel: currentStatus.preferredNicotineLevel,
-      filterType,
-    });
-
     return recs
       .filter((rec) => {
-        // Chuẩn hóa dữ liệu
         const toFlavor = rec.toFlavor ? rec.toFlavor.trim().toUpperCase() : "";
         const preferredFlavor = currentStatus.preferredFlavor
           ? currentStatus.preferredFlavor.trim().toUpperCase()
@@ -147,35 +169,19 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
           ? currentStatus.preferredNicotineLevel.trim().toUpperCase()
           : "";
 
-        // Kiểm tra nicotine
         const isNicotineValid =
           toNicotine &&
           preferredNicotine &&
           NICOTINE_STRENGTH_ORDER[toNicotine] <= NICOTINE_STRENGTH_ORDER[preferredNicotine];
 
-        // Kiểm tra hương vị
         const isFlavorValid = filterType === "same-flavor" ? toFlavor === preferredFlavor : true;
 
-        // Không hiển thị gói hiện tại
         const isNotCurrent =
           rec.toPackageId !== (currentCigaretteId || currentStatus?.cigarettePackageId);
-
-        console.log("Kiểm tra bản ghi:", {
-          toPackageId: rec.toPackageId,
-          toCigaretteName: rec.toCigaretteName,
-          toFlavor,
-          preferredFlavor,
-          isFlavorValid,
-          toNicotine,
-          preferredNicotine,
-          isNicotineValid,
-          isNotCurrent,
-        });
 
         return isNicotineValid && isFlavorValid && isNotCurrent;
       })
       .sort((a, b) => {
-        // Sắp xếp theo nicotine thấp dần
         return (
           NICOTINE_STRENGTH_ORDER[a.toNicoteneStrength.trim().toUpperCase()] -
           NICOTINE_STRENGTH_ORDER[b.toNicoteneStrength.trim().toUpperCase()]
@@ -185,39 +191,42 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
 
   // Hàm lấy gợi ý từ API
   const fetchRecommendations = async () => {
-    if (!filterType) {
-      console.log("Chưa chọn loại gợi ý (filterType = null)");
-      return;
-    }
+    if (!filterType) return;
 
     try {
       if (!currentStatus || !isValidStatus(currentStatus)) {
-        console.log("Dữ liệu currentStatus không hợp lệ:", currentStatus);
         setRecommendations([]);
         setFilteredRecommendations([]);
         message.info("Vui lòng cập nhật sở thích hương vị và mức nicotine hợp lệ");
         return;
       }
 
-      const { preferredFlavor, preferredNicotineLevel, cigarettePackageId } = currentStatus;
+      const token = localStorage.getItem("token");
+      if (!token) {
+        message.error("Authentication token is missing. Please log in again.");
+        return;
+      }
+
+      const { preferredFlavor, preferredNicotineLevel } = currentStatus;
       let data = [];
 
       if (filterType === "same-flavor") {
-        // API cho same-flavor
-        const endpoint = `/cigarette-recommendations/by-preference?flavor=${preferredFlavor}&nicotineLevel=${preferredNicotineLevel}`;
-        const response = await api.get(endpoint);
-        console.log("Dữ liệu API /by-preference:", response.data);
+        const response = await api.get(
+          `/cigarette-recommendations/by-preference?flavor=${preferredFlavor}&nicotineLevel=${preferredNicotineLevel}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         data = response.data || [];
       } else {
-        // API cho lighter-options
-        const endpoint = `/cigarette-recommendations/by-smoking-level/${preferredNicotineLevel}`;
         try {
-          const response = await api.get(endpoint);
-          console.log("Dữ liệu API /by-smoking-level:", response.data);
+          const response = await api.get(
+            `/cigarette-recommendations/by-smoking-level/${preferredNicotineLevel}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
           data = response.data || [];
         } catch (error) {
-          console.log("API /by-smoking-level thất bại, dùng fallback /cigarette-packages");
-          const fallback = await api.get("/cigarette-packages");
+          const fallback = await api.get("/cigarette-packages", {
+            headers: { Authorization: `Bearer ${token}` }
+          });
           data = fallback.data.map((pkg) => ({
             toPackageId: pkg.cigarettePackageId,
             toCigaretteName: pkg.cigarettePackageName,
@@ -233,9 +242,10 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
 
       let filtered = filterRecommendations(data);
 
-      // Fallback nếu không có gợi ý
       if (!data || data.length === 0) {
-        const fallback = await api.get("/cigarette-packages");
+        const fallback = await api.get("/cigarette-packages", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const fallbackRecs = fallback.data.map((pkg) => ({
           toPackageId: pkg.cigarettePackageId,
           toCigaretteName: pkg.cigarettePackageName,
@@ -247,158 +257,177 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
           notes: `Alternative with ${pkg.nicotineLevel.toLowerCase()} nicotine`,
         }));
         filtered = filterRecommendations(fallbackRecs);
-        console.log("Dữ liệu dự phòng:", fallbackRecs);
       }
 
-      console.log("Gợi ý đã lọc:", filtered);
       setRecommendations(data);
       setFilteredRecommendations(filtered);
-
-      // Thông báo khi không có gói phù hợp
-      if (filtered.length === 0) {
-        const noResultsMsg = filterType === "same-flavor"
-          ? `Không tìm thấy gói thuốc lá ${preferredFlavor || "không xác định"} cùng hương vị với mức nicotine thấp hơn`
-          : "Không tìm thấy gói thuốc lá nào có mức nicotine thấp hơn";
-        message.info(noResultsMsg, 3);
-      }
+      setCarouselPosition(0);
+      controls.set({ y: 0 }); // Reset animation
     } catch (error) {
       console.error("Lỗi khi lấy gợi ý:", error);
-      message.error("Lỗi khi tải gợi ý gói thuốc lá");
+      message.error(error.response?.data?.message || "Lỗi khi tải gợi ý gói thuốc lá");
       setRecommendations([]);
       setFilteredRecommendations([]);
     }
   };
 
   // Hàm thay đổi loại bộ lọc
-  const handleFilterChange = (value) => {
+  const handleFilterChange = useCallback((value) => {
     setFilterType(value);
     setCarouselPosition(0);
     controls.stop();
-    controls.set({ x: 0 });
-    // Gọi lại fetchRecommendations
+    controls.set({ y: 0 });
     if (currentStatus && isValidStatus(currentStatus)) {
       fetchRecommendations();
     }
-  };
-
-  // ========== HIỆU ỨNG VÀ TƯƠNG TÁC ==========
-
-  // Hiệu ứng cuộn tự động
-  useEffect(() => {
-    if (filteredRecommendations.length > 1) {
-      const totalWidth = filteredRecommendations.length * 306;
-      const duration = filteredRecommendations.length * 10;
-
-      if (!isPaused) {
-        controls.start({
-          x: -totalWidth,
-          transition: {
-            x: {
-              repeat: Infinity,
-              repeatType: "loop",
-              duration: duration,
-              ease: "linear",
-            },
-          },
-        });
-      }
-
-      const pauseTimeout = setTimeout(() => {
-        setIsPaused(false);
-        if (!isPaused) {
-          controls.start({
-            x: -totalWidth,
-            transition: {
-              x: {
-                repeat: Infinity,
-                repeatType: "loop",
-                duration: duration,
-                ease: "linear",
-              },
-            },
-          });
-        }
-      }, 10000);
-
-      return () => clearTimeout(pauseTimeout);
-    } else {
-      controls.set({ x: 0 });
-    }
-  }, [filteredRecommendations, isPaused, controls]);
+  }, [currentStatus]);
 
   // Xử lý khi chọn gói thuốc
-  const handleSelect = async (recommendation) => {
+  const handleSelect = useCallback(async (recommendation) => {
     if (isSubmitting || isViewOnly) return;
+
+    if (!recommendation?.toPackageId) {
+      console.error("Invalid recommendation data:", recommendation);
+      message.error("Invalid package data. Please try another package.");
+      return;
+    }
 
     setSelectedPackageId(recommendation.toPackageId);
     setIsSubmitting(true);
 
     try {
+      console.log("Selecting package:", recommendation);
       if (onSelectPackage) {
         await onSelectPackage(recommendation);
       }
+      
+      // Lưu vào localStorage
+      if (planId) {
+        localStorage.setItem(`selectedPackage_${planId}`, recommendation.toPackageId);
+      }
+      
       setSuccessPackageId(recommendation.toPackageId);
       message.success("Đã chọn gói thuốc lá mới");
     } catch (error) {
       console.error("Lỗi khi chọn gói:", error);
-      message.error("Lỗi khi chọn gói thuốc lá");
+      let errorMessage = "Lỗi khi chọn gói thuốc lá";
+      if (error.response) {
+        if (error.response.status === 403) {
+          errorMessage = "Bạn không có quyền cập nhật gói này.";
+        } else if (error.response.status === 400) {
+          errorMessage = error.response.data.message || "Dữ liệu không hợp lệ.";
+        } else if (error.response.status === 404) {
+          errorMessage = "Kế hoạch không tồn tại.";
+        }
+      }
+      message.error(errorMessage);
+      setSelectedPackageId(null);
     } finally {
       setIsSubmitting(false);
       setTimeout(() => setSuccessPackageId(null), 3000);
     }
-  };
+  }, [isSubmitting, isViewOnly, onSelectPackage, planId]);
 
   // Xử lý điều hướng carousel
-  const handlePrev = () => {
+  const handleScrollUp = useCallback(() => {
     setIsPaused(true);
     controls.stop();
-    const newPosition = Math.min(carouselPosition + 306, 0);
+    const cardHeight = 320; // Approximate card height (280px + 16px margin + padding)
+    const newPosition = Math.min(carouselPosition + cardHeight, 0);
     setCarouselPosition(newPosition);
     controls.start({
-      x: newPosition,
+      y: newPosition,
       transition: { duration: 0.5, ease: "easeInOut" },
     });
-  };
+  }, [carouselPosition, controls]);
 
-  const handleNext = () => {
+  const handleScrollDown = useCallback(() => {
     setIsPaused(true);
     controls.stop();
-    const totalWidth = filteredRecommendations.length * 306;
-    const newPosition = Math.max(carouselPosition - 306, -totalWidth);
+    const cardHeight = 320;
+    const totalHeight = filteredRecommendations.length * cardHeight;
+    const newPosition = Math.max(carouselPosition - cardHeight, -totalHeight);
     setCarouselPosition(newPosition);
     controls.start({
-      x: newPosition,
+      y: newPosition,
       transition: { duration: 0.5, ease: "easeInOut" },
     });
-  };
+  }, [carouselPosition, filteredRecommendations.length, controls]);
 
-  // ========== LẤY DỮ LIỆU KHI KHỞI TẠO ==========
+  // Hiệu ứng tự động scroll
+  useEffect(() => {
+    if (filteredRecommendations.length <= 1) {
+      controls.set({ y: 0 });
+      return;
+    }
+
+    const cardHeight = 320;
+    const totalHeight = filteredRecommendations.length * cardHeight;
+    const duration = filteredRecommendations.length * 8; // Reduced for smoother pacing
+
+    if (!isPaused) {
+      controls.start({
+        y: -totalHeight,
+        transition: {
+          y: {
+            repeat: Infinity,
+            repeatType: "loop",
+            duration,
+            ease: "linear",
+          },
+        },
+      });
+    }
+
+    const pauseTimeout = setTimeout(() => {
+      setIsPaused(false);
+      if (!isPaused) {
+        controls.start({
+          y: -totalHeight,
+          transition: {
+            y: {
+              repeat: Infinity,
+              repeatType: "loop",
+              duration,
+              ease: "linear",
+            },
+          },
+        });
+      }
+    }, 5000); // Reduced pause for better UX
+
+    return () => clearTimeout(pauseTimeout);
+  }, [filteredRecommendations.length, isPaused, controls]);
+
+  // Lấy dữ liệu khi khởi tạo
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          message.error("Authentication token is missing. Please log in again.");
+          return;
+        }
 
-        // Lấy trạng thái hút thuốc hiện tại
-        const { data: status } = await api.get("/smoking-status");
-        console.log("Dữ liệu smoking_status:", status);
+        const { data: status } = await api.get("/smoking-status", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setCurrentStatus(status);
 
         const cigaretteId = currentCigaretteId || status?.cigarettePackageId;
         if (cigaretteId) {
           await fetchCurrentPackage(cigaretteId);
-          if (isValidStatus(status)) {
-            if (filterType) {
-              await fetchRecommendations();
-            }
+          if (isValidStatus(status) && filterType) {
+            await fetchRecommendations();
           } else {
-            console.log("Dữ liệu currentStatus không hợp lệ, chờ user chọn filterType");
             setFilteredRecommendations([]);
             message.info("Vui lòng chọn loại gợi ý");
           }
         }
       } catch (error) {
         console.error("Lỗi khi lấy dữ liệu:", error);
-        message.error("Lỗi khi tải thông tin hút thuốc lá");
+        message.error(error.response?.data?.message || "Lỗi khi tải thông tin hút thuốc lá");
       } finally {
         setLoading(false);
       }
@@ -407,7 +436,6 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
     fetchData();
   }, [currentCigaretteId]);
 
-  // Gọi lại fetchRecommendations khi filterType thay đổi
   useEffect(() => {
     if (filterType && currentStatus && isValidStatus(currentStatus)) {
       fetchRecommendations();
@@ -477,7 +505,7 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
     );
   }
 
-  // Chỉ nhân đôi nếu có nhiều hơn 1 gói
+  // Nhân đôi danh sách để tạo hiệu ứng vòng lặp
   const doubledRecommendations = filteredRecommendations.length > 1
     ? [...filteredRecommendations, ...filteredRecommendations]
     : filteredRecommendations;
@@ -505,15 +533,15 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
               <Row justify="space-between" align="middle">
                 <Col>
                   <Title level={5} style={{ margin: 0 }}>
-                    {currentPackage?.cigarettePackageName}
+                    {currentPackage?.cigarettePackageName || "Unknown"}
                   </Title>
                   <Text style={{ color: "rgba(255,255,255,0.85)" }}>
-                    {currentPackage?.cigaretteBrand}
+                    {currentPackage?.cigaretteBrand || "N/A"}
                   </Text>
                 </Col>
                 <Col>
                   <Tag color="warning">Current</Tag>
-                  <NicotineTag level={currentStatus?.preferredNicotineLevel} />
+                  <NicotineTag level={currentStatus?.preferredNicotineLevel || "N/A"} />
                 </Col>
               </Row>
             </div>
@@ -522,28 +550,28 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
                 <FaLeaf />
                 <Text style={{ marginLeft: 8 }}>
                   <span style={labelStyle}>Flavor:</span>
-                  {currentStatus?.preferredFlavor}
+                  {currentStatus?.preferredFlavor || "N/A"}
                 </Text>
               </Col>
               <Col span={12}>
                 <FaTint />
                 <Text style={{ marginLeft: 8 }}>
                   <span style={labelStyle}>Nicotine:</span>
-                  <NicotineTag level={currentStatus?.preferredNicotineLevel} />
+                  <NicotineTag level={currentStatus?.preferredNicotineLevel || "N/A"} />
                 </Text>
               </Col>
               <Col span={12}>
                 <FaHashtag />
                 <Text style={{ marginLeft: 8 }}>
                   <span style={labelStyle}>Sticks/Pack:</span>
-                  {currentPackage?.sticksPerPack}
+                  {currentPackage?.sticksPerPack || "N/A"}
                 </Text>
               </Col>
               <Col span={12}>
                 <FaDollarSign />
                 <Text style={{ marginLeft: 8 }}>
                   <span style={labelStyle}>Price:</span>
-                  {currentPackage?.pricePerPack?.toLocaleString("vi-VN")} VND
+                  {currentPackage?.pricePerPack?.toLocaleString("vi-VN") || "N/A"} VND
                 </Text>
               </Col>
             </Row>
@@ -580,37 +608,26 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
               Found {filteredRecommendations.length} suitable packages
             </Text>
 
-            {/* Nút điều hướng */}
+            {/* Nút điều hướng lên */}
             <Button
               style={{
                 ...NAV_BUTTON_STYLE,
-                position: "absolute",
                 left: -20,
-                top: "50%",
-                transform: "translateY(-50%)",
-                zIndex: 10,
               }}
-              onClick={handlePrev}
+              onClick={handleScrollUp}
               disabled={isViewOnly || carouselPosition === 0}
             >
-              <FaArrowLeft color="#52c41a" size={20} />
+              <FaArrowUp color="#52c41a" size={20} />
             </Button>
 
             {/* Carousel hiển thị gợi ý */}
-            <div
-              style={{
-                overflow: "hidden",
-                whiteSpace: "nowrap",
-                paddingBottom: 12,
-                width: "100%",
-              }}
-              ref={containerRef}
-            >
+            <div style={RECOMMENDATION_CONTAINER} ref={containerRef}>
               <motion.div
                 animate={controls}
-                initial={{ x: 0 }}
+                initial={{ y: 0 }}
                 style={{
-                  display: "inline-flex",
+                  display: "flex",
+                  flexDirection: "column",
                   gap: 16,
                 }}
                 onHoverStart={() => {
@@ -624,13 +641,10 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
                 {doubledRecommendations.map((rec, idx) => (
                   <motion.div
                     key={`${rec.toPackageId}-${idx}`}
-                    style={{
-                      display: "inline-block",
-                      width: 290,
-                      verticalAlign: "top",
-                    }}
-                    whileHover={{ scale: 1.03 }}
-                    transition={{ type: "spring", stiffness: 300 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    style={{ marginBottom: "16px" }}
                   >
                     <RecommendationCard
                       recommendation={rec}
@@ -639,25 +653,26 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
                       isSuccess={successPackageId === rec.toPackageId}
                       isViewOnly={isViewOnly}
                       NicotineTag={NicotineTag}
+                      selectedPackageId={selectedPackageId}
                     />
                   </motion.div>
                 ))}
               </motion.div>
             </div>
 
+            {/* Nút điều hướng xuống */}
             <Button
               style={{
                 ...NAV_BUTTON_STYLE,
-                position: "absolute",
                 right: -20,
-                top: "50%",
-                transform: "translateY(-50%)",
-                zIndex: 10,
               }}
-              onClick={handleNext}
-              disabled={isViewOnly || carouselPosition <= -(filteredRecommendations.length * 306)}
+              onClick={handleScrollDown}
+              disabled={
+                isViewOnly ||
+                carouselPosition <= -(filteredRecommendations.length * 320)
+              }
             >
-              <FaArrowRight color="#52c41a" size={20} />
+              <FaArrowDown color="#52c41a" size={20} />
             </Button>
           </div>
         </Col>
@@ -666,27 +681,40 @@ export default function CigaretteRecommendations({ onSelectPackage, currentCigar
   );
 }
 
-// Component hiển thị thông tin gói thuốc được gợi ý
-function RecommendationCard({ recommendation, onSelect, isSubmitting, isSuccess, isViewOnly, NicotineTag }) {
+function RecommendationCard({ 
+  recommendation, 
+  onSelect, 
+  isSubmitting, 
+  isSuccess, 
+  isViewOnly, 
+  NicotineTag,
+  selectedPackageId 
+}) {
+  const isSelected = selectedPackageId === recommendation.toPackageId;
+  
   return (
     <Card
       bordered={false}
-      style={INNER_CARD_STYLE}
-      bodyStyle={{ padding: 0, background: "#e8f5e9" }}
+      style={{
+        ...INNER_CARD_STYLE,
+        border: isSelected ? "2px solid #52c41a" : "none",
+        boxShadow: isSelected ? "0 0 0 2px rgba(82, 196, 26, 0.3)" : "none"
+      }}
+      bodyStyle={{ padding: 0, background: isSelected ? "#f6ffed" : "#e8f5e9" }}
     >
       <div style={HEADER_GRADIENT(["#81c784", "#388e3c"])}>
         <Row justify="space-between" align="middle">
           <Col>
             <Title level={5} style={{ margin: 0 }}>
-              {recommendation?.toCigaretteName}
+              {recommendation?.toCigaretteName || "Unknown"}
             </Title>
             <Text style={{ color: "rgba(255,255,255,0.85)" }}>
-              {recommendation?.toBrand}
+              {recommendation?.toBrand || "N/A"}
             </Text>
           </Col>
           <Col>
             <div style={{ display: "flex", alignItems: "center" }}>
-              {isSuccess && (
+              {isSelected && (
                 <FaCheck
                   style={{
                     color: "#52c41a",
@@ -696,7 +724,7 @@ function RecommendationCard({ recommendation, onSelect, isSubmitting, isSuccess,
                 />
               )}
               <Tag color="success">Recommended</Tag>
-              <NicotineTag level={recommendation?.toNicoteneStrength} />
+              <NicotineTag level={recommendation?.toNicoteneStrength || "N/A"} />
             </div>
           </Col>
         </Row>
@@ -707,28 +735,28 @@ function RecommendationCard({ recommendation, onSelect, isSubmitting, isSuccess,
           <FaLeaf />
           <Text style={{ marginLeft: 8 }}>
             <span style={labelStyle}>Flavor:</span>
-            {recommendation?.toFlavor}
+            {recommendation?.toFlavor || "N/A"}
           </Text>
         </Col>
         <Col span={12}>
           <FaTint />
           <Text style={{ marginLeft: 8 }}>
             <span style={labelStyle}>Nicotine:</span>
-            <NicotineTag level={recommendation?.toNicoteneStrength} />
+            <NicotineTag level={recommendation?.toNicoteneStrength || "N/A"} />
           </Text>
         </Col>
         <Col span={12}>
           <FaHashtag />
           <Text style={{ marginLeft: 8 }}>
             <span style={labelStyle}>Sticks:</span>
-            {recommendation?.toSticksPerPack}
+            {recommendation?.toSticksPerPack || "N/A"}
           </Text>
         </Col>
         <Col span={12}>
           <FaDollarSign />
           <Text style={{ marginLeft: 8 }}>
             <span style={labelStyle}>Price:</span>
-            {recommendation?.toPrice?.toLocaleString("vi-VN")} VND
+            {recommendation?.toPrice?.toLocaleString("vi-VN") || "N/A"} VND
           </Text>
         </Col>
       </Row>
@@ -741,38 +769,46 @@ function RecommendationCard({ recommendation, onSelect, isSubmitting, isSuccess,
       )}
 
       <div style={{ padding: "0 16px 16px" }}>
-        <button
-          style={{
-            width: "100%",
+        {!isSelected ? (
+          <button
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              backgroundColor: "#4caf50",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              cursor: isSubmitting || isViewOnly ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              opacity: isSubmitting || isViewOnly ? 0.7 : 1,
+            }}
+            onClick={() => onSelect(recommendation)}
+            disabled={isSubmitting || isViewOnly}
+          >
+            {isSubmitting ? (
+              <>
+                <Spin size="small" />
+                Processing...
+              </>
+            ) : (
+              "Select this package"
+            )}
+          </button>
+        ) : (
+          <div style={{
             padding: "8px 12px",
-            backgroundColor: isSuccess ? "#52c41a" : "#4caf50",
-            color: "#fff",
-            border: "none",
+            backgroundColor: "#f6ffed",
+            color: "#52c41a",
             borderRadius: 6,
-            cursor: (isSubmitting || isViewOnly) ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            opacity: (isSubmitting || isViewOnly) ? 0.7 : 1,
-          }}
-          onClick={() => onSelect(recommendation)}
-          disabled={isSubmitting || isViewOnly}
-        >
-          {isSubmitting ? (
-            <>
-              <Spin size="small" />
-              Processing...
-            </>
-          ) : isSuccess ? (
-            <>
-              <FaCheck />
-              Selected
-            </>
-          ) : (
-            "Select this package"
-          )}
-        </button>
+            textAlign: "center",
+            border: "1px solid #b7eb8f"
+          }}>
+            <FaCheck /> Selected
+          </div>
+        )}
       </div>
     </Card>
   );

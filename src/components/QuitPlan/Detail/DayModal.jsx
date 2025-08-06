@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { Modal as AntdModal, Input, Button, Divider, message } from "antd";
+import { Modal as AntdModal, Input, Button, Divider, message, Alert } from "antd";
 import { quitProgressService } from "../../../services/quitPlanService";
 import dayjs from "dayjs";
 import isBetween from 'dayjs/plugin/isBetween';
 
-// Extend dayjs with isBetween plugin
 dayjs.extend(isBetween);
 
 const DayModal = ({ 
@@ -15,22 +14,33 @@ const DayModal = ({
   isViewOnly = false,
   planStatus = "IN_PROGRESS"
 }) => {
-  const [cigarettesSmoked, setCigarettesSmoked] = useState(day?.cigarettesSmoked || 0);
-  const [smokingFreeDays, setSmokingFreeDays] = useState(day?.smokingFreeDays || 0);
-  const [healthStatus, setHealthStatus] = useState(day?.healthStatus || "");
+  const [cigarettesSmoked, setCigarettesSmoked] = useState(0);
+  const [smokingFreeDays, setSmokingFreeDays] = useState(0);
+  const [healthStatus, setHealthStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentStage, setCurrentStage] = useState(null);
+  const [stageLoading, setStageLoading] = useState(true);
 
   const findStageForDate = (dateString) => {
-    if (!quitPlanStages || !dateString) return null;
-    
+    if (!quitPlanStages || !dateString) {
+      console.warn('Missing stages or date');
+      return null;
+    }
+
     try {
       const currentDate = dayjs(dateString);
-      return quitPlanStages.find(stage => {
-        const startDate = dayjs(stage.stageStartDate);
-        const endDate = dayjs(stage.stageEndDate);
-        return currentDate.isBetween(startDate, endDate, 'day', '[]');
+      const matchedStage = quitPlanStages.find(stage => {
+        try {
+          const startDate = dayjs(stage.stageStartDate);
+          const endDate = dayjs(stage.stageEndDate);
+          return currentDate.isBetween(startDate, endDate, 'day', '[]');
+        } catch (e) {
+          console.error('Error processing stage dates:', e);
+          return false;
+        }
       });
+      
+      return matchedStage || null;
     } catch (error) {
       console.error('Error finding stage:', error);
       return null;
@@ -39,6 +49,7 @@ const DayModal = ({
 
   useEffect(() => {
     if (day?.date) {
+      setStageLoading(true);
       const matchedStage = findStageForDate(day.date);
       setCurrentStage(matchedStage);
       
@@ -47,8 +58,15 @@ const DayModal = ({
         setSmokingFreeDays(day.smokingFreeDays || 0);
         setHealthStatus(day.healthStatus || "");
       }
+      setStageLoading(false);
     }
   }, [day]);
+
+  // Bỏ validate số điếu thuốc (cho phép nhập bất kỳ giá trị nào >= 0)
+  const isSaveDisabled = isViewOnly || 
+                        planStatus !== "IN_PROGRESS" || 
+                        !currentStage ||
+                        cigarettesSmoked < 0;
 
   const handleSave = async () => {
     if (!day || !currentStage) {
@@ -77,8 +95,6 @@ const DayModal = ({
     }
   };
 
-  const isSaveDisabled = isViewOnly || planStatus !== "IN_PROGRESS" || !currentStage;
-
   if (!day) return null;
 
   return (
@@ -97,33 +113,46 @@ const DayModal = ({
       </div>
 
       <div className="px-6 py-4 space-y-4">
+        {!currentStage && !stageLoading && (
+          <Alert 
+            type="warning" 
+            message="No matching stage found for this date" 
+            showIcon
+          />
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="font-medium text-gray-700">Date:</label>
             <Input value={day.date} disabled />
           </div>
+          
           <div>
             <label className="font-medium text-gray-700">Stage:</label>
             <Input 
-              value={currentStage ? `${currentStage.stageName} (ID: ${currentStage.stageId})` : "Not assigned"} 
+              value={
+                stageLoading ? "Loading..." :
+                currentStage ? `${currentStage.stageName}` : // Chỉ hiển thị stageName thôi
+                "Not assigned"
+              } 
               disabled 
             />
           </div>
         </div>
 
+        {/* Phần nhập số điếu thuốc - đã bỏ validate */}
         <div>
           <label className="font-medium text-gray-700">Cigarettes Smoked:</label>
           <Input
             type="number"
             min={0}
-            max={currentStage?.targetCigarettesPerDay || 20}
             value={cigarettesSmoked}
             onChange={(e) => setCigarettesSmoked(Number(e.target.value))}
             disabled={isViewOnly}
           />
           {currentStage && (
             <p className="text-xs text-gray-500 mt-1">
-              Target: {currentStage.targetCigarettesPerDay} cigarettes/day
+              Target suggestion: {currentStage.targetCigarettesPerDay} cigarettes/day
             </p>
           )}
         </div>
@@ -160,10 +189,11 @@ const DayModal = ({
                 type="primary" 
                 onClick={handleSave} 
                 loading={loading}
+                disabled={isSaveDisabled}
               >
                 Save
               </Button>
-              <Button onClick={onClose}>Cancel</Button>
+              <Button onClick={() => onClose(false)}>Cancel</Button>
             </div>
           </>
         )}
