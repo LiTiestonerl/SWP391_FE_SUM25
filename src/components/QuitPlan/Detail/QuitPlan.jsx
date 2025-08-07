@@ -1,11 +1,14 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import isBetween from 'dayjs/plugin/isBetween';
 import WeekColumn from "./WeekColumn";
 import { LeftOutlined } from "@ant-design/icons";
 import { motion } from "framer-motion";
 
-// Đưa các hàm helper ra ngoài component
+dayjs.extend(isBetween);
+
+// Hàm tạo kế hoạch mới
 const generateQuitPlan = (startDate, durationInDays) => {
   const weeks = [];
   let dayCounter = 1;
@@ -16,14 +19,12 @@ const generateQuitPlan = (startDate, durationInDays) => {
     for (let d = 0; d < 7; d++) {
       if (dayCounter > durationInDays) break;
 
-      const tasks = [];
-
       days.push({
         id: `${dayCounter}-${w}`,
         dayNumber: dayCounter,
         date: startDate.add(dayCounter - 1, "day").format("YYYY-MM-DD"),
         status: "",
-        tasks,
+        tasks: [],
         comments: [],
       });
 
@@ -39,34 +40,58 @@ const generateQuitPlan = (startDate, durationInDays) => {
   };
 };
 
+// Hàm tạo kế hoạch từ các giai đoạn (đã sửa để đảm bảo thứ tự)
 const generateQuitPlanFromStages = (stages) => {
+  // Sắp xếp các stage theo ngày bắt đầu
+  const sortedStages = [...stages].sort((a, b) => 
+    dayjs(a.stageStartDate).diff(dayjs(b.stageStartDate))
+  );
+
   const weeks = [];
-  let dayCounter = 1;
-  
-  stages.forEach((stage, weekIndex) => {
+  let globalDayCounter = 1;
+
+  sortedStages.forEach((stage, weekIndex) => {
     const days = [];
-    const stageDays = stage.durationInDays || 7;
+    const stageStartDate = dayjs(stage.stageStartDate);
+    const stageEndDate = dayjs(stage.stageEndDate);
     
+    // Tính số ngày chính xác giữa start và end date (bao gồm cả 2 ngày đầu cuối)
+    const stageDays = stageEndDate.diff(stageStartDate, 'day') + 1;
+
     for (let d = 0; d < stageDays; d++) {
-      const tasks = [];
+      const currentDate = stageStartDate.add(d, 'day');
       
       days.push({
-        id: `${dayCounter}-${weekIndex}`,
-        dayNumber: dayCounter,
-        date: dayjs(stage.stageStartDate).add(d, "day").format("YYYY-MM-DD"),
+        id: `${globalDayCounter}-${weekIndex}`,
+        dayNumber: globalDayCounter,
+        date: currentDate.format("YYYY-MM-DD"),
         status: "",
-        tasks,
+        tasks: [],
         comments: [],
+        stageId: stage.stageId,
+        progressId: stage.quitProgresses?.find(p => 
+          dayjs(p.date).isSame(currentDate, 'day')
+        )?.progressId
       });
-      
-      dayCounter++;
+
+      globalDayCounter++;
     }
-    weeks.push(days);
+
+    weeks.push({
+      weekNumber: weekIndex + 1,
+      days,
+      stageId: stage.stageId,
+      stageName: stage.stageName,
+      targetCigarettes: stage.targetCigarettesPerDay
+    });
   });
 
+  // Sắp xếp lại các tuần theo ngày để đảm bảo thứ tự
+  weeks.sort((a, b) => dayjs(a.days[0].date).diff(dayjs(b.days[0].date)));
+
   return {
-    startDate: stages[0].stageStartDate,
-    endDate: stages[stages.length - 1].stageEndDate,
+    startDate: sortedStages[0].stageStartDate,
+    endDate: sortedStages[sortedStages.length - 1].stageEndDate,
     weeks,
   };
 };
@@ -76,6 +101,7 @@ const QuitPlan = () => {
   const navigate = useNavigate();
   const [plan, setPlan] = useState(null);
   const [quitPlanStages, setQuitPlanStages] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let startDate;
@@ -87,19 +113,34 @@ const QuitPlan = () => {
       durationInDays = endDate.diff(startDate, "day") + 1;
 
       if (location.state.quitPlanStages) {
-        setQuitPlanStages(location.state.quitPlanStages);
-        const generated = generateQuitPlanFromStages(location.state.quitPlanStages);
+        try {
+          setQuitPlanStages(location.state.quitPlanStages);
+          const generated = generateQuitPlanFromStages(location.state.quitPlanStages);
+          setPlan(generated);
+        } catch (error) {
+          console.error("Error generating plan from stages:", error);
+          // Fallback to basic plan if error occurs
+          const generated = generateQuitPlan(startDate, durationInDays);
+          setPlan(generated);
+        }
+      } else {
+        const generated = generateQuitPlan(startDate, durationInDays);
         setPlan(generated);
-        return;
       }
     } else {
+      // Default plan if no data provided
       startDate = dayjs();
       durationInDays = 7;
+      const generated = generateQuitPlan(startDate, durationInDays);
+      setPlan(generated);
     }
 
-    const generated = generateQuitPlan(startDate, durationInDays);
-    setPlan(generated);
+    setLoading(false);
   }, [location.state]);
+
+  if (loading) {
+    return <div className="text-center py-8">Loading plan...</div>;
+  }
 
   if (!plan?.weeks?.length) {
     return <p className="text-center text-gray-500">No plan found.</p>;
@@ -123,16 +164,17 @@ const QuitPlan = () => {
 
       <div className="overflow-x-auto scroll-smooth">
         <div className="flex gap-6 items-start">
-          {plan.weeks.map((week, idx) => (
+          {plan.weeks.map((weekData, idx) => (
             <WeekColumn
-              key={idx}
-              weekNumber={idx + 1}
-              days={week}
+              key={`week-${weekData.stageId || idx}`}
+              weekNumber={weekData.weekNumber}
+              days={weekData.days}
               planStartDate={plan.startDate}
               quitPlanStages={quitPlanStages}
-              currentStage={quitPlanStages[idx]}
+              currentStage={quitPlanStages.find(s => s.stageId === weekData.stageId)}
               isViewOnly={location.state?.isViewOnly || false}
               planStatus={location.state?.status || "IN_PROGRESS"}
+              targetCigarettes={weekData.targetCigarettes}
             />
           ))}
         </div>

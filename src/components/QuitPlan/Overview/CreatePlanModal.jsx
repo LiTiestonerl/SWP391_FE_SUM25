@@ -6,6 +6,7 @@ import api from '../../../configs/axios';
 const CreatePlanModal = ({ open, onClose, onCreate }) => {
   const [duration, setDuration] = useState(null);
   const [packageName, setPackageName] = useState('');
+  const [memberPackageId, setMemberPackageId] = useState(null);
   const [touched, setTouched] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -14,6 +15,8 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
     endDate: '',
     customNotes: '',
   });
+  const [dateError, setDateError] = useState('');
+  const [selectedDays, setSelectedDays] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,9 +39,10 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
         if (activePkg) {
           setDuration(activePkg.duration);
           setPackageName(activePkg.packageName);
+          setMemberPackageId(activePkg.memberPackageId);
           setForm(prev => ({
             ...prev,
-            name: prev.name || `No Smoking Plan - ${activePkg.duration} Days`,
+            name: prev.name || `No Smoking Plan`,
           }));
         } else {
           setDuration(30);
@@ -57,6 +61,29 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
     if (open) fetchData();
   }, [open]);
 
+  useEffect(() => {
+    if (form.startDate && form.endDate) {
+      const start = dayjs(form.startDate);
+      const end = dayjs(form.endDate);
+      const days = end.diff(start, 'day') + 1;
+      setSelectedDays(days);
+
+      // Only validate if not package 10
+      if (memberPackageId !== 10 && duration) {
+        if (days > duration) {
+          setDateError(`Your package only allows ${duration} days. Please select a shorter period.`);
+        } else {
+          setDateError('');
+        }
+      } else {
+        setDateError('');
+      }
+    } else {
+      setSelectedDays(0);
+      setDateError('');
+    }
+  }, [form.startDate, form.endDate, duration, memberPackageId]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
@@ -67,6 +94,8 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
     if (form.reason.trim().length < 5) return false;
     if (!form.startDate) return false;
     if (!form.endDate) return false;
+    // Only check date error for non-package 10
+    if (memberPackageId !== 10 && dateError) return false;
     return true;
   };
 
@@ -86,9 +115,10 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
       durationInDays: durationDays > 0 ? durationDays : 0,
       membershipPackageName: packageName,
     };
-    console.log("planData: ", planData)
     onCreate(planData);
   };
+
+  const isUnlimitedPackage = memberPackageId === 10;
 
   return (
     <AnimatePresence>
@@ -110,8 +140,12 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
           >
             <h2 className="text-2xl font-bold text-emerald-600 mb-4">Create Quit Plan</h2>
             <p className="mb-2 text-sm text-gray-600">
-              Membership: <b>{packageName || '...'}</b> — Duration:&nbsp;
-              <b>{duration != null ? `${duration} Days` : '...'}</b>
+              Membership: <b>{packageName || '...'}</b>
+              {!isUnlimitedPackage && (
+                <>
+                  {" "}— Duration: <b>{duration != null ? `${duration} Days` : '...'}</b>
+                </>
+              )}
             </p>
 
             <form onSubmit={submit} className="space-y-4 text-sm">
@@ -183,10 +217,25 @@ const CreatePlanModal = ({ open, onClose, onCreate }) => {
                 </div>
               </div>
 
+              {form.startDate && form.endDate && (
+                <div className="text-sm text-gray-600">
+                  You've selected {selectedDays} day{selectedDays !== 1 ? 's' : ''}
+                </div>
+              )}
+
+              {dateError && (
+                <div className="text-sm text-red-500 p-2 bg-red-50 rounded">
+                  {dateError}
+                </div>
+              )}
+
               <div className="flex gap-4 text-sm">
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition"
+                  disabled={!validateForm()}
+                  className={`flex-1 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition ${
+                    !validateForm() ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
                   Create Plan
                 </button>
