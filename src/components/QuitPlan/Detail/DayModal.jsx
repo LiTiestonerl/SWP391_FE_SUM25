@@ -17,6 +17,8 @@ const DayModal = ({
   const [cigarettesSmoked, setCigarettesSmoked] = useState(0);
   const [smokingFreeDays, setSmokingFreeDays] = useState(0);
   const [healthStatus, setHealthStatus] = useState("");
+  const [moneySpent, setMoneySpent] = useState(0);
+  const [moneySaved, setMoneySaved] = useState(0);
   const [loading, setLoading] = useState(false);
   const [currentStage, setCurrentStage] = useState(null);
   const [stageLoading, setStageLoading] = useState(true);
@@ -57,12 +59,13 @@ const DayModal = ({
         setCigarettesSmoked(day.cigarettesSmoked || 0);
         setSmokingFreeDays(day.smokingFreeDays || 0);
         setHealthStatus(day.healthStatus || "");
+        setMoneySpent(day.moneySpent || 0);
+        setMoneySaved(day.moneySaved || 0);
       }
       setStageLoading(false);
     }
   }, [day]);
 
-  // Bỏ validate số điếu thuốc (cho phép nhập bất kỳ giá trị nào >= 0)
   const isSaveDisabled = isViewOnly || 
                         planStatus !== "IN_PROGRESS" || 
                         !currentStage ||
@@ -84,7 +87,9 @@ const DayModal = ({
         stageId: currentStage.stageId
       };
 
-      await quitProgressService.updateProgress(progressData);
+      const response = await quitProgressService.updateProgress(progressData);
+      setMoneySpent(response.moneySpent || 0);
+      setMoneySaved(response.moneySaved || 0);
       message.success("Progress saved successfully!");
       onClose(true);
     } catch (error) {
@@ -132,7 +137,7 @@ const DayModal = ({
             <Input 
               value={
                 stageLoading ? "Loading..." :
-                currentStage ? `${currentStage.stageName}` : // Chỉ hiển thị stageName thôi
+                currentStage ? `${currentStage.stageName}` : 
                 "Not assigned"
               } 
               disabled 
@@ -140,7 +145,6 @@ const DayModal = ({
           </div>
         </div>
 
-        {/* Phần nhập số điếu thuốc - đã bỏ validate */}
         <div>
           <label className="font-medium text-gray-700">Cigarettes Smoked:</label>
           <Input
@@ -165,6 +169,24 @@ const DayModal = ({
             value={smokingFreeDays}
             onChange={(e) => setSmokingFreeDays(Number(e.target.value))}
             disabled={isViewOnly}
+          />
+        </div>
+
+        <div>
+          <label className="font-medium text-gray-700">Money Spent:</label>
+          <Input
+            type="number"
+            value={moneySpent}
+            disabled
+          />
+        </div>
+
+        <div>
+          <label className="font-medium text-gray-700">Money Saved:</label>
+          <Input
+            type="number"
+            value={moneySaved}
+            disabled
           />
         </div>
 
