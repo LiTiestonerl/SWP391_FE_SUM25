@@ -1,44 +1,47 @@
 import React, { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
-import api from "../../configs/axios";
-import { useDispatch } from "react-redux";
-import { login } from "../../redux/features/userSlice";
-import { Modal, Input, Button, message, Rate } from "antd"; 
-import { updateMembership } from "../../redux/features/userSlice";
+import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { FiArrowUpCircle } from "react-icons/fi";
-
+import { Modal, Input, Button, message, Rate } from "antd";
 import {
+  FiArrowUpCircle,
   FiHome,
   FiTrendingUp,
   FiUsers,
   FiBookOpen,
   FiMessageSquare,
-  FiShare2,
   FiAward,
 } from "react-icons/fi";
+import api from "../../configs/axios";
+import { login, updateMembership } from "../../redux/features/userSlice";
 import "./Social.css";
 
 const Social = () => {
   const user = useSelector((state) => state.user);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // States cho modal và comments
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [visibleComments, setVisibleComments] = useState({});
   const [comments, setComments] = useState({});
   const [newComments, setNewComments] = useState({});
+
+  // States cho popup đăng nhập
   const [showLoginPopup, setShowLoginPopup] = useState(false);
-  const dispatch = useDispatch();
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState(null);
-  const [showUpgradeMessage, setShowUpgradeMessage] = useState(false);
-  const navigate = useNavigate();
 
-  // THÊM MỚI: State để lưu ratings { postId: averageScore }
+  // State cho ratings
   const [ratings, setRatings] = useState({});
+
+  // THÊM MỚI: State để quản lý modal yêu cầu nâng cấp
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const healthStats = {
     daysSmokeFree: 30,
@@ -49,35 +52,27 @@ const Social = () => {
   const getDisplayName = (user) =>
     user?.fullName || user?.name || user?.login || user?.email || "Anonymous";
 
-  // THÊM MỚI: Hàm fetch và tính toán rating trung bình cho một post
   const fetchAverageRating = async (postId) => {
     try {
       const res = await api.get(`/rating/post/${postId}`);
-      const allRatings = res.data; 
+      const allRatings = res.data;
 
       if (allRatings && allRatings.length > 0) {
-        const totalScore = allRatings.reduce((sum, rating) => sum + rating.ratingValue, 0);
+        const totalScore = allRatings.reduce(
+          (sum, rating) => sum + rating.ratingValue,
+          0
+        );
         const averageScore = totalScore / allRatings.length;
-        
-        setRatings((prev) => ({
-          ...prev,
-          [postId]: averageScore,
-        }));
+        setRatings((prev) => ({ ...prev, [postId]: averageScore }));
       } else {
-         setRatings((prev) => ({
-          ...prev,
-          [postId]: 0,
-        }));
+        setRatings((prev) => ({ ...prev, [postId]: 0 }));
       }
     } catch (err) {
-      // console.error(`Could not fetch ratings for post ${postId}:`, err);
-      setRatings((prev) => ({
-        ...prev,
-        [postId]: 0,
-      }));
+      setRatings((prev) => ({ ...prev, [postId]: 0 }));
     }
   };
 
+  // CHỈNH SỬA: useEffect sẽ luôn tải bài viết, không chặn dựa trên gói thành viên
   useEffect(() => {
     const fetchData = async () => {
       if (!user || !user.token) {
@@ -86,38 +81,29 @@ const Social = () => {
         return;
       }
 
-      setLoading(true); 
+      setLoading(true);
       setError(null);
 
       try {
+        // Luôn lấy thông tin membership và cập nhật vào Redux
         const membershipRes = await api.get("/user-membership/me");
         dispatch(updateMembership(membershipRes.data));
-        const membership = membershipRes.data;
 
-        const isFreePlan = membership?.memberPackageId === 10;
-        const hasNoPlan = !membership;
+        // Luôn tải bài viết
+        const postsRes = await api.get("posts");
+        const data = Array.isArray(postsRes.data)
+          ? postsRes.data
+          : postsRes.data.data || [];
+        setPosts(data);
 
-        if (isFreePlan || hasNoPlan) {
-          setShowUpgradeMessage(true);
-        } else {
-          setShowUpgradeMessage(false);
-          const postsRes = await api.get("posts");
-          const data = Array.isArray(postsRes.data)
-            ? postsRes.data
-            : postsRes.data.data || [];
-          setPosts(data);
-
-          // CHỈNH SỬA: Sau khi có posts, fetch rating cho từng post
-          if (data.length > 0) {
-            data.forEach(post => {
-              fetchAverageRating(post.id || post.postId);
-            });
-          }
+        if (data.length > 0) {
+          data.forEach((post) => {
+            fetchAverageRating(post.id || post.postId);
+          });
         }
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu:", err);
         setError("Không thể tải dữ liệu. Vui lòng thử lại.");
-        setShowUpgradeMessage(true);
       } finally {
         setLoading(false);
       }
@@ -126,9 +112,20 @@ const Social = () => {
     fetchData();
   }, [user?.token, dispatch, navigate]);
 
+  // CHỈNH SỬA: handlePostSubmit kiểm tra gói thành viên trước khi đăng bài
   const handlePostSubmit = async (e) => {
     e.preventDefault();
     if (!newPost.trim()) return;
+
+    // Lấy thông tin gói thành viên từ Redux state (đã được cập nhật trong useEffect)
+    const membership = user.membership;
+
+    // Kiểm tra nếu người dùng đang ở gói 2
+    if (membership?.memberPackageId === 12) {
+      setShowUpgradeModal(true); // Mở modal yêu cầu nâng cấp
+      setIsModalOpen(false); // Đóng modal tạo bài viết
+      return; // Dừng hàm tại đây
+    }
 
     try {
       const avatar =
@@ -147,8 +144,11 @@ const Social = () => {
 
       setPosts((prev) => [res.data, ...prev]);
       setNewPost("");
+      setIsModalOpen(false); // Đóng modal sau khi đăng thành công
+      message.success("Đăng bài thành công!");
     } catch (err) {
       console.error("Failed to create post:", err);
+      message.error("Tạo bài viết thất bại. Vui lòng thử lại.");
     }
   };
 
@@ -157,12 +157,7 @@ const Social = () => {
       setShowLoginPopup(true);
       return;
     }
-
-    setVisibleComments((prev) => ({
-      ...prev,
-      [postId]: !prev[postId],
-    }));
-
+    setVisibleComments((prev) => ({ ...prev, [postId]: !prev[postId] }));
     if (!comments[postId]) {
       try {
         const res = await api.get(`/posts/${postId}/comments`);
@@ -179,15 +174,12 @@ const Social = () => {
       setShowLoginPopup(true);
       return;
     }
-
     if (!content) return;
-
     try {
       const res = await api.post(`/posts/${postId}/comments`, {
         content,
         status: "published",
       });
-
       setComments((prev) => ({
         ...prev,
         [postId]: [res.data, ...(prev[postId] || [])],
@@ -198,53 +190,30 @@ const Social = () => {
     }
   };
 
-  // THÊM MỚI: Hàm để gửi rating mới
   const handleRatingSubmit = async (postId, value) => {
     if (!user || !user.token) {
       message.error("Vui lòng đăng nhập để đánh giá.");
       setShowLoginPopup(true);
       return;
     }
-
     try {
-      const ratingData = {
+      await api.post("/rating/post", {
         memberId: user.id,
         postId: postId,
         ratingValue: value,
-        feedbackText: ""
-      };
-      await api.post('/rating/post', ratingData);
+        feedbackText: "",
+      });
       message.success("Cảm ơn bạn đã đánh giá!");
       fetchAverageRating(postId);
-
     } catch (err) {
       console.error("Failed to submit rating:", err);
       message.error("Gửi đánh giá thất bại. Vui lòng thử lại.");
     }
   };
-  if (showUpgradeMessage) {
-     return (
-        <div className="pt-24 min-h-screen bg-gray-50 flex items-center justify-center px-4">
-          <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-lg mx-auto">
-            <FiArrowUpCircle className="mx-auto text-green-500 text-6xl mb-4" />
-            <h1 className="text-3xl font-bold text-gray-800 mb-3">
-              Nâng cấp để tham gia cộng đồng
-            </h1>
-            <p className="text-gray-600 mb-8">
-              Gói hiện tại không cho phép truy cập vào cộng đồng. Hãy nâng cấp để
-              chia sẻ, bình luận và kết nối với người khác trên hành trình bỏ
-              thuốc của bạn.
-            </p>
-            <button
-              onClick={() => navigate("/membership")}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition duration-300 ease-in-out transform hover:scale-105"
-            >
-              Xem các gói nâng cấp
-            </button>
-          </div>
-        </div>
-      );
-  }
+
+  // Loại bỏ điều kiện hiển thị thông báo toàn trang
+  // if (showUpgradeMessage) { ... }
+
   return (
     <div className="min-h-screen bg-gray-50 pt-[104px]">
       <div className="max-w-7xl mx-auto px-4 pb-8 flex flex-col md:flex-row gap-6">
@@ -327,38 +296,36 @@ const Social = () => {
 
                   <p className="text-gray-800 mb-4">{post.content}</p>
 
-                 <div className="flex items-center justify-between text-gray-500 mb-2">
+                  <div className="flex items-center justify-between text-gray-500 mb-2">
                     <div className="flex items-center space-x-6">
-                        <button
-                          className="flex items-center space-x-2 hover:text-blue-600"
-                          onClick={() => toggleComments(post.id || post.postId)}
-                        >
-                          <FiMessageSquare className="h-5 w-5" />
-                          <span>Comments</span>
-                        </button>
+                      <button
+                        className="flex items-center space-x-2 hover:text-blue-600"
+                        onClick={() => toggleComments(post.id || post.postId)}
+                      >
+                        <FiMessageSquare className="h-5 w-5" />
+                        <span>Comments</span>
+                      </button>
                     </div>
-                    
-                    {/* THÊM MỚI: Component Rate */}
+
                     <div className="flex items-center">
-                      <Rate 
+                      <Rate
                         allowHalf
                         disabled={!user || !user.token}
                         value={ratings[post.id || post.postId] || 0}
-                        onChange={(value) => handleRatingSubmit(post.id || post.postId, value)}
+                        onChange={(value) =>
+                          handleRatingSubmit(post.id || post.postId, value)
+                        }
                       />
                       {ratings[post.id || post.postId] > 0 && (
-                          <span className="ml-2 text-sm text-gray-600">
-                              {ratings[post.id || post.postId]?.toFixed(1)}
-                          </span>
+                        <span className="ml-2 text-sm text-gray-600">
+                          {ratings[post.id || post.postId]?.toFixed(1)}
+                        </span>
                       )}
                     </div>
-                </div>
-                
+                  </div>
 
-                  {/* Hiển thị khối bình luận nếu visible */}
                   {visibleComments[post.id || post.postId] && (
                     <div className="mt-4">
-                      {/* Danh sách bình luận */}
                       <div className="space-y-2 mb-2">
                         {(comments[post.id || post.postId] || []).map(
                           (comment, index) => (
@@ -387,7 +354,6 @@ const Social = () => {
                         )}
                       </div>
 
-                      {/* Form nhập bình luận */}
                       {user && user.token && (
                         <div className="flex items-center gap-2 mt-2">
                           <input
@@ -466,32 +432,75 @@ const Social = () => {
         </div>
       </div>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-xl p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Create post</h2>
-              <button onClick={() => setIsModalOpen(false)}>✕</button>
-            </div>
-            <textarea
-              className="w-full h-32 border border-gray-300 rounded-lg p-2 resize-none"
-              placeholder={`What's on your mind, ${getDisplayName(user)}?`}
-              value={newPost}
-              onChange={(e) => setNewPost(e.target.value)}
-            />
-            <button
-              className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-              onClick={(e) => {
-                handlePostSubmit(e);
-                setIsModalOpen(false);
-              }}
-            >
-              Post
-            </button>
-          </div>
+      {/* Modal tạo bài viết */}
+      <Modal
+        open={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        footer={null}
+        title="Create post"
+        centered
+      >
+        <div className="flex items-center space-x-3 mb-4">
+          <img
+            src={
+              localStorage.getItem(
+                `custom_avatar_${user?.userId || user?.id}`
+              ) ||
+              user?.avatar ||
+              "/images/avatar.jpg"
+            }
+            alt="User avatar"
+            className="h-10 w-10 rounded-full object-cover"
+          />
+          <h3 className="font-semibold">{getDisplayName(user)}</h3>
         </div>
-      )}
+        <textarea
+          className="w-full h-32 border border-gray-300 rounded-lg p-2 resize-none"
+          placeholder={`What's on your mind?`}
+          value={newPost}
+          onChange={(e) => setNewPost(e.target.value)}
+        />
+        <Button
+          type="primary"
+          block
+          className="mt-4"
+          onClick={handlePostSubmit}
+        >
+          Post
+        </Button>
+      </Modal>
+
+      {/* THÊM MỚI: Modal yêu cầu nâng cấp */}
+      <Modal
+        open={showUpgradeModal}
+        onCancel={() => setShowUpgradeModal(false)}
+        footer={null}
+        centered
+      >
+        <div className="text-center p-6">
+          <FiArrowUpCircle className="mx-auto text-green-500 text-6xl mb-4" />
+          <h1 className="text-2xl font-bold text-gray-800 mb-3">
+            Nâng cấp để tạo bài viết
+          </h1>
+          <p className="text-gray-600 mb-8">
+            Gói thành viên hiện tại của bạn không hỗ trợ tính năng này. Vui lòng
+            nâng cấp để chia sẻ và kết nối với cộng đồng.
+          </p>
+          <Button
+            type="primary"
+            block
+            onClick={() => {
+              setShowUpgradeModal(false);
+              navigate("/membership");
+            }}
+            className="bg-green-600 hover:bg-green-700 h-11 text-lg"
+          >
+            Xem các gói nâng cấp
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Modal Đăng nhập */}
       <Modal
         open={showLoginPopup}
         onCancel={() => setShowLoginPopup(false)}
@@ -506,7 +515,6 @@ const Social = () => {
           />
           <h2 className="text-lg font-semibold mt-2">No Smoking</h2>
         </div>
-
         <Input
           placeholder="Email hoặc số điện thoại"
           value={loginEmail}
@@ -519,11 +527,9 @@ const Social = () => {
           onChange={(e) => setLoginPassword(e.target.value)}
           className="mb-2"
         />
-
         {loginError && (
           <p className="text-red-600 text-sm font-medium mb-2">{loginError}</p>
         )}
-
         <Button
           type="primary"
           block
@@ -533,17 +539,10 @@ const Social = () => {
                 login: loginEmail,
                 password: loginPassword,
               });
-
               const token = res.data;
               dispatch(
-                login({
-                  token,
-                  email: loginEmail,
-                  avatar: "",
-                  userId: "",
-                })
+                login({ token, email: loginEmail, avatar: "", userId: "" })
               );
-
               setShowLoginPopup(false);
               setLoginError(null);
               message.success("Đăng nhập thành công!");
@@ -554,19 +553,16 @@ const Social = () => {
         >
           Login
         </Button>
-
         <p className="text-sm text-blue-600 hover:underline text-center mt-3 cursor-pointer">
           Forget password?
         </p>
-
         <hr className="my-3" />
-
         <Button
           type="default"
           block
           onClick={() => {
             setShowLoginPopup(false);
-            window.location.href = "/register";
+            navigate("/register");
           }}
         >
           Register
