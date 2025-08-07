@@ -112,19 +112,16 @@ const Social = () => {
     fetchData();
   }, [user?.token, dispatch, navigate]);
 
-  // CHỈNH SỬA: handlePostSubmit kiểm tra gói thành viên trước khi đăng bài
   const handlePostSubmit = async (e) => {
     e.preventDefault();
     if (!newPost.trim()) return;
 
-    // Lấy thông tin gói thành viên từ Redux state (đã được cập nhật trong useEffect)
     const membership = user.membership;
 
-    // Kiểm tra nếu người dùng đang ở gói 2
     if (membership?.memberPackageId === 12) {
-      setShowUpgradeModal(true); // Mở modal yêu cầu nâng cấp
-      setIsModalOpen(false); // Đóng modal tạo bài viết
-      return; // Dừng hàm tại đây
+      setShowUpgradeModal(true); 
+      setIsModalOpen(false); 
+      return; 
     }
 
     try {
@@ -210,9 +207,6 @@ const Social = () => {
       message.error("Gửi đánh giá thất bại. Vui lòng thử lại.");
     }
   };
-
-  // Loại bỏ điều kiện hiển thị thông báo toàn trang
-  // if (showUpgradeMessage) { ... }
 
   return (
     <div className="min-h-screen bg-gray-50 pt-[104px]">
